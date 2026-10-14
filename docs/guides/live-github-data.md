@@ -63,10 +63,11 @@ The sidebar shows **Project Status** as one link, to an overview page with a car
 | Grid | Overview |
 | Columns | Project board (local only) |
 | Circle with a dot | Repo Issues |
-| Flask | Integration Tests |
+| Flask | Tests: every test suite, with a second row of links to each one |
 | Tag | What's New |
 
 - **Tooltips:** hover over or tab to an icon to see what the page shows, with counts from the last sync. On phones only the icons are shown.
+- **Test suites:** on the Tests pages, a second row lists each suite (Integration, bluecore_api, …). A green or red dot shows its latest result, and each has its own tooltip with its pass rate and latest test counts.
 - **Where the links come from:** the sync writes them to `_data/nav.json`, so the row only lists pages this build has.
 - **How the dropdown is hidden:** `customProps.hideItems` in the section's `_category_.json` and `sidebarItemsGenerator` in `docusaurus.config.js`.
 
@@ -137,9 +138,33 @@ Health of a GitHub Actions workflow. It's built for the `bluecore-stack` **Bluec
 
 How logs are read:
 
-- Test results are parsed from the log of the first failed job, or the first job if none failed. This assumes the tests run in a single job.
+- Test results are parsed from the log of the first failed job, or the first job if none failed. With a version matrix (e.g. Python 3.12 and 3.13), the other jobs run the same tests, so one job's results stand for the run.
+- The parser recognizes **pytest**, **Jest** (standard summary and sinopia_editor's compact `Tests: 796/796`), **Vitest** and **Playwright** output (`parseTestLog` in `mcp/github.mjs`).
+- A run that failed before any job started (for example a workflow file error) counts as **Didn't start**.
 - GitHub keeps logs for 90 days by default, so older runs show results without test details.
 - The MCP server keeps parsed logs in memory, starting from the snapshot. Each refresh downloads only logs of new runs, and the data is fetched once when the server starts so the first page view is fast.
+
+### Repo tests (`repoTests`)
+
+Each repository's own test workflow gets the same page as the integration suite: `/project-status/tests-<repo>`. The **Tests** page (`/project-status/tests`) puts every suite in one table, with its latest result, pass rate, latest test counts, median run time and how many tests are failing now.
+
+```json
+"repoTests": [
+  { "repo": "bluecore_api", "workflow": "test.yml", "title": "bluecore_api" },
+  { "repo": "marva_editor", "workflow": "unit_tests.yml", "title": "marva_editor (unit)", "slug": "tests-marva_editor-unit" }
+]
+```
+
+| Key | Meaning |
+|---|---|
+| `repo`, `workflow` | The repo and its workflow **file name** |
+| `title` | The suite's name in the navigation and the table |
+| `slug` | Page URL. Defaults to `tests-<repo>`, so set it when a repo has two suites |
+| `runs`, `parseLogs` | Default to 50 and 10 here (less than the integration suite) to keep GitHub API use low |
+
+On these pages, "Where failures happen" uses stages that fit unit-test workflows: **Lint** (ruff, eslint), **Type check** (mypy, ty, tsc), **Tests**, **Setup** (installing dependencies) and **Didn't start**.
+
+The sync reuses test logs it already parsed, from the previous snapshot, and the deploy keeps them between runs with `actions/cache`. As a result, only logs of new runs are downloaded: a cold sync of all ten suites takes about 3.5 minutes, a warm one about a minute. The live server loads repo test data when a page asks for it, not at startup.
 
 ### What's New (`releases`)
 
@@ -184,7 +209,7 @@ curl -s http://localhost:3001/api/github/ci/blue-core-lod/bluecore-stack/bluecor
 
 ## The same data for AI agents
 
-The MCP tools `project_board`, `list_issues`, `list_releases` and `integration_tests` use the same cached data as the pages. When GitHub can't be reached they fall back to the snapshot and say so in their answer. Other GitHub tools (`get_issue`, `search_issues`, `ci_status`, `search_code`, `fork_changes`, …) call GitHub directly. The full list is in the repo `README.md`.
+The MCP tools `project_board`, `list_issues`, `list_releases` and `integration_tests` use the same cached data as the pages. `integration_tests` covers every suite: pass a `suite` such as `bluecore_api` or `marva_editor (unit)`. When GitHub can't be reached they fall back to the snapshot and say so in their answer. Other GitHub tools (`get_issue`, `search_issues`, `ci_status`, `search_code`, `fork_changes`, …) call GitHub directly. The full list is in the repo `README.md`.
 
 ## Adding a board or workflow
 
@@ -198,7 +223,7 @@ The sync builds the whole section in a temporary folder and replaces `docs/proje
 
 | File | Role |
 |---|---|
-| `mcp/github.mjs` | Fetches and normalizes boards (GraphQL), issues, releases and workflow runs, and parses pytest logs. Used by the sync **and** the live API. |
+| `mcp/github.mjs` | Fetches and normalizes boards (GraphQL), issues, releases and workflow runs, parses test logs (pytest, Jest, Vitest, Playwright), and lists the test suites (`testSuites`). Used by the sync **and** the live API. |
 | `mcp/ci-metrics.mjs` | Pass rate, streaks, durations, failure stages, triggers and most-failing tests. Pure functions used by the page text, the sync and the MCP tool. |
 | `mcp/live-api.mjs` | `/api/github/...` endpoints, caching, the snapshot fallback for MCP tools, and the integration test log cache |
 | `scripts/sync/project-status.mjs` | Writes the snapshot JSON and the `.mdx` pages, including a text version of each page for search |

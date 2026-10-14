@@ -61,34 +61,57 @@ export function StatusIcon({name, size = 22}) {
   );
 }
 
-// Row of icon links at the top of each Project Status page. Each link has a tooltip (on hover and
-// keyboard focus) that says what the page shows, linked with aria-describedby for screen readers.
+const RESULT = {success: 'passed', failure: 'failed'};
+
+// One link with its tooltip (shown on hover and keyboard focus, linked with aria-describedby)
+function NavLink({page: p, active, sub}) {
+  const tipId = `status-tip-${p.id}`;
+  return (
+    <li className={styles.statusNavItem}>
+      <Link
+        to={p.href}
+        className={`${styles.statusNavLink} ${sub ? styles.statusSubLink : ''} ${active ? styles.statusNavActive : ''}`}
+        aria-current={active ? 'page' : undefined}
+        aria-describedby={tipId}
+      >
+        {sub ? (
+          <span className={`${styles.resultDot} ${styles[`result_${p.status}`] ?? ''}`} aria-hidden="true" />
+        ) : (
+          <StatusIcon name={p.icon} />
+        )}
+        <span className={sub ? undefined : styles.statusNavLabel}>{p.label}</span>
+        {sub && RESULT[p.status] && <span className={styles.srOnly}> (latest run {RESULT[p.status]})</span>}
+      </Link>
+      <span role="tooltip" id={tipId} className={styles.statusTip}>
+        <strong>{p.title}</strong>
+        {p.description}
+      </span>
+    </li>
+  );
+}
+
+// Row of icon links at the top of each Project Status page. Pages with a `group` (each test suite,
+// group "tests") get a second row, shown on the group's page and on every page in the group.
 export default function StatusNav({pages, current}) {
+  const page = pages.find((p) => p.id === current);
+  const group = page?.group ?? (pages.some((p) => p.group === current) ? current : null);
+  const members = group ? pages.filter((p) => p.group === group) : [];
   return (
     <nav className={styles.statusNav} aria-label="Project Status pages">
       <ul>
-        {pages.map((p) => {
-          const tipId = `status-tip-${p.id}`;
-          const active = p.id === current;
-          return (
-            <li key={p.id} className={styles.statusNavItem}>
-              <Link
-                to={p.href}
-                className={`${styles.statusNavLink} ${active ? styles.statusNavActive : ''}`}
-                aria-current={active ? 'page' : undefined}
-                aria-describedby={tipId}
-              >
-                <StatusIcon name={p.icon} />
-                <span className={styles.statusNavLabel}>{p.label}</span>
-              </Link>
-              <span role="tooltip" id={tipId} className={styles.statusTip}>
-                <strong>{p.title}</strong>
-                {p.description}
-              </span>
-            </li>
-          );
-        })}
+        {pages
+          .filter((p) => !p.group)
+          .map((p) => (
+            <NavLink key={p.id} page={p} active={p.id === current || p.id === group} />
+          ))}
       </ul>
+      {members.length > 0 && (
+        <ul className={styles.statusSubNav} aria-label={`${pages.find((p) => p.id === group)?.title ?? 'Section'} pages`}>
+          {members.map((p) => (
+            <NavLink key={p.id} page={p} active={p.id === current} sub />
+          ))}
+        </ul>
+      )}
     </nav>
   );
 }
@@ -98,7 +121,7 @@ export function StatusOverview({pages}) {
   return (
     <ul className={styles.statusCards}>
       {pages
-        .filter((p) => p.id !== 'overview')
+        .filter((p) => p.id !== 'overview' && !p.group)
         .map((p) => (
           <li key={p.id}>
             <Link to={p.href} className={styles.statusCard}>

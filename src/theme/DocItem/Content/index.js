@@ -6,10 +6,12 @@ import {useDoc} from '@docusaurus/plugin-content-docs/client';
 import styles from './styles.module.css';
 
 const STALE_AFTER_DAYS = 365;
+// Docusaurus's stand-in date when it skips git history (dev mode): not a real date
+const PLACEHOLDER_TIMESTAMP = 1539502055000;
 
 export default function ContentWrapper(props) {
   const {metadata} = useDoc();
-  const updated = metadata.lastUpdatedAt;
+  const updated = metadata.lastUpdatedAt === PLACEHOLDER_TIMESTAMP ? null : metadata.lastUpdatedAt;
   const ageDays = updated ? (Date.now() - updated) / 86400000 : 0;
   return (
     <>

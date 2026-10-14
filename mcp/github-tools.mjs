@@ -5,7 +5,7 @@
 import {z} from 'zod';
 import {ciMetrics, failureStage, formatDuration, triggerName} from './ci-metrics.mjs';
 import {fetchCiStatus, fetchFailedSteps, fetchFile, fetchForkChanges, fetchIssue, fetchMergedPRs, fetchTree, searchCode, searchIssues} from './github.mjs';
-import {allowedRepos, githubConfig, integrationTestData, issuesData, projectData, releasesData} from './live-api.mjs';
+import {allTestSuites, allowedRepos, githubConfig, integrationTestData, issuesData, projectData, releasesData} from './live-api.mjs';
 
 const text = (t) => ({content: [{type: 'text', text: t}]});
 const fail = (t) => ({...text(t), isError: true});
@@ -536,24 +536,25 @@ export function registerGitHubTools(server) {
     );
   }
 
-  // --- Integration tests ---------------------------------------------------------------------------
-  const suites = cfg.integrationTests ?? [];
+  // --- Integration tests and each repo's own tests ------------------------------------------------
+  const suites = allTestSuites();
   if (suites.length) {
     server.registerTool(
       'integration_tests',
       {
-        title: 'Integration test metrics',
+        title: 'Test metrics (integration and per repo)',
         description:
-          `Health of the integration test workflow(s) (${suites.map((s) => `${s.repo}/${s.workflow}`).join(', ')}): latest result, pass rate, durations, ` +
-          'which stage fails (image build / tests / setup), the most-failing tests (and whether they still fail), what triggers runs, and recent runs.',
+          `Health of a test workflow: the integration suite or a repo's own tests (${suites.map((s) => s.title ?? `${s.repo}/${s.workflow}`).join(', ')}): latest result, pass rate, durations, ` +
+          'which stage fails (image build / lint / type check / tests / setup), the most-failing tests (and whether they still fail), what triggers runs, and recent runs.',
         inputSchema: {
-          suite: z.string().optional().describe('Repo or workflow name (default: the first)'),
+          suite: z.string().optional().describe('Suite title, repo or workflow name, e.g. "bluecore_api" or "marva_editor (unit)" (default: the integration suite)'),
           recent_runs: z.number().int().min(0).max(50).optional().describe('How many recent runs to list (default 10)'),
         },
         annotations: readOnly,
       },
       async ({suite, recent_runs}) => {
-        const s = suites.find((x) => suite && (x.repo === suite || x.workflow.startsWith(suite) || x.title === suite)) ?? suites[0];
+        const match = (test) => suite && suites.find(test);
+        const s = match((x) => x.title === suite || x.slug === suite) || match((x) => x.repo === suite) || match((x) => x.workflow.startsWith(suite)) || suites[0];
         let result;
         try {
           result = await integrationTestData(s);

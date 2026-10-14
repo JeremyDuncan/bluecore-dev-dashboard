@@ -874,3 +874,52 @@
   font-size: 14px;
   line-height: 1.5;
 }
+
+/* Second row under a nav group (each test suite under "Tests"): text pills with a result dot */
+.statusNav .statusSubNav {
+  margin-top: 10px;
+  padding: 10px 0 0 14px;
+  border-top: 1px dashed var(--bc-sky-line);
+  gap: 6px;
+}
+
+.statusSubLink {
+  padding: 5px 12px;
+  font-size: 13px;
+}
+
+.resultDot {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--bc-stone);
+}
+
+.result_success {
+  background: var(--bc-ok);
+}
+
+.result_failure {
+  background: var(--bc-error);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Tests overview table */
+.testsTable td:first-child {
+  white-space: nowrap;
+}
+
+.suiteKind {
+  display: block;
+  color: var(--bc-meta);
+  font-size: 12px;
+}

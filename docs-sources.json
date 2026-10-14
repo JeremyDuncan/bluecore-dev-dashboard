@@ -139,7 +139,51 @@
         "runs": 100,
         "parseLogs": 30
       }
-    ]
+    ],
+    "repoTests": [
+      {
+        "repo": "bluecore_api",
+        "workflow": "test.yml",
+        "title": "bluecore_api"
+      },
+      {
+        "repo": "bluecore-models",
+        "workflow": "test.yml",
+        "title": "bluecore-models"
+      },
+      {
+        "repo": "bluecore-workflows",
+        "workflow": "test.yml",
+        "title": "bluecore-workflows"
+      },
+      {
+        "repo": "bluecore-client",
+        "workflow": "test.yml",
+        "title": "bluecore-client"
+      },
+      {
+        "repo": "marc-bibframe",
+        "workflow": "test.yml",
+        "title": "marc-bibframe"
+      },
+      {
+        "repo": "bibframe-json",
+        "workflow": "test.yml",
+        "title": "bibframe-json"
+      },
+      {
+        "repo": "sinopia_editor",
+        "workflow": "test.yml",
+        "title": "sinopia_editor"
+      },
+      {
+        "repo": "marva_editor",
+        "workflow": "unit_tests.yml",
+        "title": "marva_editor (unit)",
+        "slug": "tests-marva_editor-unit"
+      }
+    ],
+    "_repoTestsNote": "Each repo's own test workflow: one page per entry under Tests. runs (default 50) and parseLogs (default 10) keep GitHub API use low."
   },
   "apiReference": [
     {

@@ -15,11 +15,15 @@ const DAY = 86400000;
 
 // Which stage a failed run broke in, from its failed step names
 export function failureStage(run) {
+  if (run.noJobs) return "Didn't start";
   const steps = (run.failedSteps ?? []).join(' ').toLowerCase();
   if (!steps) return run.tests?.failed || run.tests?.errors ? 'Tests' : 'Unknown';
-  if (/\btest/.test(steps)) return 'Tests';
+  if (/test|jest|vitest|playwright/.test(steps)) return 'Tests';
+  // Repo test workflows: checks that run before the tests
+  if (/\b(ruff|eslint|prettier|lint|format)\b/.test(steps)) return 'Lint';
+  if (/\b(mypy|ty check|tsc|type ?check)\b/.test(steps)) return 'Type check';
   if (/build|image|docker|push/.test(steps)) return 'Image build';
-  if (/checkout|set up|setup|install|log in|login|resolve|create|verify|show/.test(steps)) return 'Setup';
+  if (/checkout|set up|setup|install|npm ci|uv sync|log in|login|resolve|create|verify|show/.test(steps)) return 'Setup';
   return 'Other';
 }
 

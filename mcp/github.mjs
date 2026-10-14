@@ -406,7 +406,133 @@ export function parsePytest(log) {
   };
 }
 
-// Recent runs of one workflow, with pytest results parsed from the logs of every failed run and of
+// Log lines without GitHub's timestamps (colors are already stripped by fetchJobLog)
+const logLines = (log) => log.split('\n').map((l) => l.replace(/^\d{4}-\d\d-\d\dT[\d:.]+Z\s?/, '').trimEnd());
+const num = (text, word) => Number(text.match(new RegExp(`(\\d+) ${word}`))?.[1] ?? 0);
+// "1m 41s 173ms" / "7.9m" / "8.47s" → seconds
+function seconds(text) {
+  if (!text) return 0;
+  const unit = {h: 3600, m: 60, s: 1, ms: 0.001};
+  let total = 0;
+  for (const [, n, u] of text.matchAll(/([\d.]+)\s*(ms|h|m|s)\b/g)) total += Number(n) * unit[u];
+  return Math.round(total * 10) / 10;
+}
+
+// Vitest: " Test Files  1 failed | 11 passed (12)", "      Tests  2 failed | 144 passed (146)",
+// failures as " FAIL  src/a.test.js > group > name".
+export function parseVitest(log) {
+  const lines = logLines(log);
+  const summary = [...lines].reverse().find((l) => /^\s*Tests\s+.*\(\d+\)\s*$/.test(l));
+  if (!summary) return null;
+  const failures = [
+    ...new Map(
+      lines
+        .map((l) => l.match(/^\s*FAIL\s+(\S+)\s+>\s+(.+?)\s*$/))
+        .filter(Boolean)
+        .map(([, file, name]) => [`${file}::${name}`, {kind: 'failed', test: `${file}::${name}`, message: ''}]),
+    ).values(),
+  ];
+  return {
+    passed: num(summary, 'passed'),
+    failed: num(summary, 'failed'),
+    errors: 0,
+    skipped: num(summary, 'skipped') + num(summary, 'todo'),
+    durationSec: seconds(lines.find((l) => /^\s*Duration\s/.test(l))?.replace(/\(.*$/, '')),
+    failures,
+  };
+}
+
+// Jest, either its standard summary ("Tests:       2 failed, 794 passed, 796 total") or the compact
+// one sinopia_editor prints ("Tests:  794/796", passed/total). Failures: "FAIL path" lines, and the
+// "● Group › name" headings below each (named after the file they belong to).
+export function parseJest(log) {
+  const lines = logLines(log);
+  const summary = [...lines].reverse().find((l) => /^\s*Tests:\s+/.test(l));
+  if (!summary) return null;
+  const compact = summary.match(/Tests:\s+(\d+)\/(\d+)/);
+  const failures = new Map();
+  let file = null;
+  for (const l of lines) {
+    const failFile = l.match(/^\s*FAIL\s+(\S+)/);
+    if (failFile) {
+      file = failFile[1];
+      continue;
+    }
+    if (/^\s*PASS\s/.test(l)) file = null;
+    const name = l.match(/^\s*●\s+(.+›.+?)\s*$/)?.[1];
+    if (name && file) failures.set(`${file}::${name}`, {kind: 'failed', test: `${file}::${name}`, message: ''});
+  }
+  // Failed files whose test names weren't printed (e.g. --silent): one entry per file
+  for (const l of lines) {
+    const f = l.match(/^\s*FAIL\s+(\S+)/)?.[1];
+    if (f && ![...failures.keys()].some((k) => k.startsWith(`${f}::`))) failures.set(`${f}::(file)`, {kind: 'failed', test: `${f}::(whole file)`, message: ''});
+  }
+  const time = lines.find((l) => /^\s*Time:\s/.test(l))?.replace(/^\s*Time:\s*/, '');
+  return {
+    passed: compact ? Number(compact[1]) : num(summary, 'passed'),
+    failed: compact ? Number(compact[2]) - Number(compact[1]) : num(summary, 'failed'),
+    errors: 0,
+    skipped: compact ? 0 : num(summary, 'skipped') + num(summary, 'todo'),
+    durationSec: seconds(time?.replace(/,.*$/, '')),
+    failures: [...failures.values()],
+  };
+}
+
+// Playwright: "  2 failed", "  1 flaky", "  73 passed (7.9m)", each failure listed under "N failed" as
+// "    [chromium] › path/a.spec.js:4:5 › Title".
+export function parsePlaywright(log) {
+  const lines = logLines(log);
+  const passedLine = [...lines].reverse().find((l) => /^\s+\d+ passed \(/.test(l));
+  const failedIdx = lines.findLastIndex((l) => /^\s+\d+ failed\s*$/.test(l));
+  if (!passedLine && failedIdx === -1) return null;
+  const count = (word) => Number([...lines].reverse().find((l) => new RegExp(`^\\s+\\d+ ${word}\\b`).test(l))?.match(/(\d+)/)[1] ?? 0);
+  const failures = [];
+  for (let i = failedIdx + 1; failedIdx !== -1 && i < lines.length; i++) {
+    const m = lines[i].match(/^\s+\[([^\]]+)\]\s+›\s+(\S+?)(?::\d+:\d+)?\s+›\s+(.+?)\s*$/);
+    if (!m) break;
+    failures.push({kind: 'failed', test: `${m[2]}::${m[3]} [${m[1]}]`, message: ''});
+  }
+  return {
+    passed: count('passed'),
+    failed: count('failed'),
+    errors: 0,
+    skipped: count('skipped') + count('did not run'),
+    durationSec: seconds(passedLine?.match(/\(([^)]+)\)/)?.[1]),
+    failures,
+  };
+}
+
+// Test results from a job log, whichever runner wrote it (pytest, Vitest, Jest, Playwright)
+export function parseTestLog(log) {
+  return parsePytest(log) ?? parsePlaywright(log) ?? parseVitest(log) ?? parseJest(log);
+}
+
+// Every test workflow in the projectStatus config: the integration suite(s) and each repo's own tests
+// (repoTests, which read fewer runs by default), with their page slug and snapshot file name.
+export function testSuites(cfg) {
+  const org = cfg?.issues?.org;
+  const integration = (cfg?.integrationTests ?? []).map((s, i) => ({
+    kind: 'integration',
+    org,
+    ...s,
+    slug: s.slug ?? (i === 0 ? 'integration-tests' : `integration-tests-${s.repo}`),
+  }));
+  const repo = (cfg?.repoTests ?? []).map((s) => ({kind: 'repo', org, runs: 50, parseLogs: 10, ...s, slug: s.slug ?? `tests-${s.repo}`}));
+  return [...integration, ...repo].map((s) => ({...s, dataFile: `ci-${s.repo}-${s.workflow.replace(/\.ya?ml$/, '')}.json`}));
+}
+
+// Parsed logs from a saved snapshot (run id → {failedSteps, tests}), so a refresh or the next sync only
+// downloads logs of runs that are new since then.
+export function logCacheFromSnapshot(snapshot, cache = new Map()) {
+  for (const r of snapshot?.runs ?? []) {
+    if (r.status === 'completed' && (r.tests || r.failedSteps?.length || r.noJobs)) {
+      cache.set(r.id, {failedSteps: r.failedSteps ?? [], tests: r.tests ?? null, ...(r.noJobs && {noJobs: true})});
+    }
+  }
+  return cache;
+}
+
+// Recent runs of one workflow, with test results parsed from the logs of every failed run and of
 // the latest `parseLogs` other completed runs. `logCache` (a Map: run id → parsed result) avoids
 // downloading the same log twice.
 export async function fetchWorkflowRuns({org, repo, workflow, runs = 100, parseLogs = 40}, token, logCache = new Map()) {
@@ -424,10 +550,12 @@ export async function fetchWorkflowRuns({org, repo, workflow, runs = 100, parseL
       const result = {failedSteps: [], tests: null};
       try {
         const jobs = await rest(`https://api.github.com/repos/${org}/${repo}/actions/runs/${run.id}/jobs?per_page=50`, token);
-        result.failedSteps = jobs.jobs.flatMap((j) => j.steps.filter((s) => s.conclusion === 'failure').map((s) => s.name));
-        // Test results live in the job that ran pytest; read the first job's log (one-job workflow)
+        result.failedSteps = jobs.jobs.flatMap((j) => (j.steps ?? []).filter((s) => s.conclusion === 'failure').map((s) => s.name));
+        if (jobs.jobs.length === 0) result.noJobs = true; // failed before any job started (e.g. a workflow file error)
+        // Test results live in the job that ran the tests: the failed one, or the first (a matrix's
+        // other jobs run the same tests on another Python/Node version)
         const job = jobs.jobs.find((j) => j.conclusion === 'failure') ?? jobs.jobs[0];
-        if (job) result.tests = parsePytest(await fetchJobLog({org, repo, jobId: job.id}, token));
+        if (job) result.tests = parseTestLog(await fetchJobLog({org, repo, jobId: job.id}, token));
       } catch (err) {
         result.error = err.message; // e.g. log expired (GitHub keeps logs 90 days by default)
       }

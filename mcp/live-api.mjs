@@ -9,7 +9,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {fetchIssues, fetchProject, fetchReleases, fetchWorkflowRuns, listRepos} from './github.mjs';
+import {fetchIssues, fetchProject, fetchReleases, fetchWorkflowRuns, listRepos, logCacheFromSnapshot, testSuites} from './github.mjs';
 
 const SOURCES = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../docs-sources.json');
 const CACHE_MS = Number(process.env.LIVE_CACHE_SECONDS ?? 120) * 1000;
@@ -82,7 +82,7 @@ export async function handleLiveApi(req, res, pathname) {
     } else if (kind === 'ci') {
       // /api/github/ci/<org>/<repo>/<workflow file>
       const [, , , , , repo, workflow] = pathname.split('/');
-      const suite = (cfg.integrationTests ?? []).find((s) => s.repo === repo && s.workflow === workflow && (s.org ?? cfg.issues?.org) === org);
+      const suite = testSuites(cfg).find((s) => s.repo === repo && s.workflow === workflow && s.org === org);
       if (!suite) return send(res, 404, {error: 'unknown workflow'}, origin), true;
       send(res, 200, (await integrationTestData(suite)).data, origin);
     } else if (kind === 'releases' && cfg.releases?.org === org) {
@@ -143,32 +143,31 @@ export async function allowedRepos() {
   return cached(`repos:${cfg.issues.org}`, () => listRepos(cfg.issues.org, process.env.GITHUB_TOKEN, cfg.issues));
 }
 
-// Integration test runs with parsed pytest results. Parsed logs are kept per run id for the life of
-// the server, so each refresh only downloads logs of new runs.
-// The cache starts from the snapshot (the sync already read those logs), so only runs newer than
-// the last sync need their logs downloaded.
+// Test runs (integration suite or a repo's own tests, see testSuites) with parsed test results.
+// Parsed logs are kept per run id for the life of the server, so each refresh only downloads logs
+// of new runs. The cache starts from the snapshot (the sync already read those logs), so only runs
+// newer than the last sync need their logs downloaded.
 const logCache = new Map();
 const seeded = new Set();
 function seedLogCache(file) {
   if (seeded.has(file)) return;
   seeded.add(file);
   try {
-    const snapshot = JSON.parse(fs.readFileSync(path.join(SNAPSHOT_DIR, file), 'utf8'));
-    for (const r of snapshot.runs ?? []) {
-      if (r.status === 'completed' && (r.tests || r.failedSteps?.length)) logCache.set(r.id, {failedSteps: r.failedSteps ?? [], tests: r.tests ?? null});
-    }
+    logCacheFromSnapshot(JSON.parse(fs.readFileSync(path.join(SNAPSHOT_DIR, file), 'utf8')), logCache);
   } catch {
     // no snapshot yet
   }
 }
+// `suite` is an entry from testSuites(config())
 export function integrationTestData(suite) {
-  const key = `ci:${suite.repo}/${suite.workflow}`;
-  const file = `ci-${suite.repo}-${suite.workflow.replace(/\.ya?ml$/, '')}.json`;
-  seedLogCache(file);
-  return liveOrSnapshot(key, () => fetchWorkflowRuns({org: suite.org ?? config().issues.org, ...suite}, process.env.GITHUB_TOKEN, logCache), file);
+  seedLogCache(suite.dataFile);
+  return liveOrSnapshot(`ci:${suite.repo}/${suite.workflow}`, () => fetchWorkflowRuns(suite, process.env.GITHUB_TOKEN, logCache), suite.dataFile);
 }
 
-// Warm the integration test data when the server starts, so the first page view is fast
+export const allTestSuites = () => testSuites(config());
+
+// Warm the integration test data when the server starts, so the first page view is fast. Repo test
+// pages load on demand, to keep the startup light on GitHub API calls.
 export function prewarm() {
-  for (const suite of config()?.integrationTests ?? []) integrationTestData(suite).catch(() => {});
+  for (const suite of allTestSuites().filter((s) => s.kind === 'integration')) integrationTestData(suite).catch(() => {});
 }

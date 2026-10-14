@@ -52,8 +52,10 @@ const config = {
 
   future: {
     v4: true,
-    // A preset *name*: Docusaurus rejects the object getVcsPreset() returns (its functions fail the arity check)
-    experimental_vcs: inGitRepo ? 'default-v1' : fileDates,
+    // A preset *name*: Docusaurus rejects the object getVcsPreset() returns (its functions fail the arity check).
+    // Production builds only: in dev, the git preset returns a placeholder ("Oct 14, 2018 by Author") for
+    // every page, which the "Possibly out of date" notice would take at face value; file dates are real.
+    experimental_vcs: inGitRepo && process.env.NODE_ENV === 'production' ? 'default-v1' : fileDates,
   },
 
   url: process.env.SITE_URL ?? `https://${GITHUB_ORG.toLowerCase()}.github.io`,

@@ -1,5 +1,6 @@
-// Integration test health for a GitHub Actions workflow: headline numbers, a run chart, where
-// failures happen, which upstream triggers fail most, the most-failing tests and recent runs.
+// Test health for a GitHub Actions workflow (the integration suite, or a repo's own tests with
+// kind="repo"): headline numbers, a run chart, where failures happen, what triggers runs, the
+// most-failing tests and recent runs.
 // Live when the MCP container is reachable, otherwise the snapshot from the last sync.
 import React, {useMemo, useState} from 'react';
 import {ciMetrics, failureStage, formatDuration, triggerName} from '@site/mcp/ci-metrics.mjs';
@@ -98,7 +99,7 @@ function Bars({rows, color}) {
   );
 }
 
-export default function IntegrationTests({snapshot, apiPath}) {
+export default function IntegrationTests({snapshot, apiPath, kind = 'integration'}) {
   const {data, live, error} = useLiveData(snapshot, apiPath);
   const m = useMemo(() => ciMetrics(data), [data]);
   const [showAll, setShowAll] = useState(false);
@@ -181,7 +182,11 @@ export default function IntegrationTests({snapshot, apiPath}) {
           ) : (
             <p className={styles.empty}>No failures.</p>
           )}
-          <p className={styles.note}>“Image build” means a service image (API, Sinopia, …) didn't build; “Tests” means the stack ran and tests failed.</p>
+          <p className={styles.note}>
+            {kind === 'integration'
+              ? '“Image build” means a service image (API, Sinopia, …) didn\'t build; “Tests” means the stack ran and tests failed.'
+              : '“Lint” and “Type check” fail before any test runs; “Tests” means tests ran and failed; “Setup” means installing dependencies failed.'}
+          </p>
         </section>
         <section>
           <p className={styles.sectionTitle}>By trigger</p>
@@ -189,7 +194,11 @@ export default function IntegrationTests({snapshot, apiPath}) {
             color="var(--bc-core-blue)"
             rows={byTrigger.map((t) => ({...t, text: `${t.value} runs · ${t.rate}% pass`, color: t.rate < 70 ? 'var(--bc-error)' : t.rate < 90 ? 'var(--bc-warning)' : 'var(--bc-ok)'}))}
           />
-          <p className={styles.note}>Runs started by a change in another repo (e.g. “sinopia-integration”), by a push, or by hand.</p>
+          <p className={styles.note}>
+            {kind === 'integration'
+              ? 'Runs started by a change in another repo (e.g. “sinopia-integration”), by a push, or by hand.'
+              : 'What started each run: a push, a pull request, a schedule or a manual run.'}
+          </p>
         </section>
       </div>
 
@@ -213,7 +222,7 @@ export default function IntegrationTests({snapshot, apiPath}) {
                 <tr key={t.test}>
                   <td>
                     <span className={styles.testArea}>{t.area}</span>
-                    <code>{t.test.split('::').slice(1).join('::')}</code>
+                    <code>{t.test.includes('::') ? t.test.split('::').slice(1).join('::') : t.test}</code>
                   </td>
                   <td>{t.failures}×</td>
                   <td>

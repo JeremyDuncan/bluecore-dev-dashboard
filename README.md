@@ -124,6 +124,8 @@ The token needs the `read:project` scope: `gh auth refresh -s read:project`, the
 
 **Integration Tests** (`projectStatus.integrationTests`): health of a GitHub Actions workflow, here `bluecore-stack`'s Bluecore Integration Test. Headline numbers (latest run, pass rate, streak, median and p90 run time, tests passing, time to fix), a chart of the last 100 runs, failures by stage (image build / tests / setup), pass rate by trigger (which repo's change started the run), the most-failing tests with their last error and whether they still fail, and recent runs. Test results come from the pytest summary in each run's log (failed runs and the latest 30 others).
 
+**Repo tests** (`projectStatus.repoTests`): the same health page for each repository's own test workflow (pytest, Jest, Vitest or Playwright), plus a **Tests** page comparing every suite. On the Tests pages a second row of links, each with a pass/fail dot and a tooltip, switches between suites.
+
 **What's New** (`projectStatus.releases`): the latest release of each repo as "Updates" cards (the Figma product-page box), then a release timeline with the full notes. Live like the other status pages.
 
 ### "Last updated" dates

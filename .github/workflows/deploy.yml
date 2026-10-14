@@ -36,6 +36,12 @@ jobs:
       - run: npm run sync:readmes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # higher rate limit; only sees public repos of the org
+      # Test logs parsed by earlier deploys, so each hourly run only downloads logs of new runs
+      - uses: actions/cache@v4
+        with:
+          path: docs/project-status/_data
+          key: status-data-${{ github.run_id }}
+          restore-keys: status-data-
       - run: npm run sync:status
         env:
           PUBLIC_BUILD: '1'
