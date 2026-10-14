@@ -1,0 +1,300 @@
+/**
+ * Blue Core theme, from the "Styles and Components" section of the Blue Core Figma file.
+ * Colors and type use the Figma variable names (Core/…, Neutral/…, Special/…).
+ * Roboto is bundled with the site (@fontsource), so pages make no requests to Google Fonts.
+ */
+@import '@fontsource/roboto/300.css';
+@import '@fontsource/roboto/400.css';
+@import '@fontsource/roboto/400-italic.css';
+@import '@fontsource/roboto/500.css';
+@import '@fontsource/roboto/700.css';
+
+:root {
+  /* Core */
+  --bc-core-blue: #003caf; /* logo, links, buttons, interactive accents */
+  --bc-navy: #091d6d; /* headings on light backgrounds, dark sections */
+  --bc-accent-blue: #61c6ff; /* icons and headings on dark backgrounds */
+  --bc-sky-light: #def1ff; /* section background fill */
+  --bc-sky-line: #d1e3f0; /* dividers between content blocks */
+  /* Neutral */
+  --bc-charcoal: #1f2933; /* body text */
+  --bc-slate: #4b5563; /* secondary / meta text */
+  --bc-stone: #c0c4c8; /* disabled, muted */
+  --bc-neutral-light: #efefef; /* subtle panels */
+  /* Special */
+  --bc-hover-blue: #0056ff;
+  --bc-visited-blue: #4a6fb3;
+  --bc-ok: #00a676;
+  --bc-warning: #f9c21c;
+  --bc-error: #e95050;
+
+  /* Roles (swapped in dark mode below) */
+  --bc-heading: var(--bc-navy);
+  --bc-link: var(--bc-core-blue);
+  --bc-link-hover: var(--bc-hover-blue);
+  --bc-link-visited: var(--bc-visited-blue);
+  --bc-meta: var(--bc-slate);
+  --bc-header-bg: var(--bc-sky-light);
+  --bc-surface: #ffffff; /* cards and panels */
+
+  /* Infima */
+  --ifm-color-primary: #003caf;
+  --ifm-color-primary-dark: #00369e;
+  --ifm-color-primary-darker: #003395;
+  --ifm-color-primary-darkest: #002a7a;
+  --ifm-color-primary-light: #0047d0;
+  --ifm-color-primary-lighter: #004de1;
+  --ifm-color-primary-lightest: #1565ff;
+  --ifm-color-success: var(--bc-ok);
+  --ifm-color-warning: var(--bc-warning);
+  --ifm-color-danger: var(--bc-error);
+  --ifm-color-info: var(--bc-core-blue);
+
+  --ifm-font-family-base: 'Roboto', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --ifm-heading-font-family: var(--ifm-font-family-base);
+  --ifm-font-size-base: 16px;
+  --ifm-line-height-base: 1.5; /* Figma P: 16 / 24 */
+  --ifm-font-color-base: var(--bc-charcoal);
+  --ifm-heading-color: var(--bc-heading);
+  --ifm-link-color: var(--bc-link);
+  --ifm-link-hover-color: var(--bc-link-hover);
+  --ifm-hr-background-color: var(--bc-sky-line);
+  --ifm-toc-border-color: var(--bc-sky-line);
+  --ifm-table-border-color: var(--bc-sky-line);
+  --ifm-table-head-background: var(--bc-sky-light);
+  --ifm-table-stripe-background: transparent;
+  --ifm-menu-color: var(--bc-charcoal);
+  --ifm-menu-color-background-active: var(--bc-sky-light);
+  --ifm-menu-color-background-hover: var(--bc-neutral-light);
+  --ifm-button-border-radius: 100px;
+
+  --ifm-navbar-background-color: var(--bc-header-bg);
+  --ifm-navbar-height: 83px; /* 24px padding + 35px logo + 24px padding */
+  --ifm-navbar-padding-horizontal: 48px;
+  --ifm-navbar-shadow: none;
+  --ifm-navbar-link-color: var(--bc-link);
+  --ifm-navbar-link-hover-color: var(--bc-link-hover);
+
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+}
+
+/* "On dark" colors from the design: navy header, Accent Blue headings and links, white text */
+[data-theme='dark'] {
+  --bc-heading: var(--bc-accent-blue);
+  --bc-link: var(--bc-accent-blue);
+  --bc-link-hover: #ffffff;
+  --bc-link-visited: #90d7ff;
+  --bc-meta: var(--bc-stone);
+  --bc-header-bg: var(--bc-navy);
+  --bc-surface: var(--bc-charcoal);
+  --bc-sky-line: #34404d;
+
+  --ifm-color-primary: #61c6ff;
+  --ifm-color-primary-dark: #3eb9ff;
+  --ifm-color-primary-darker: #2cb3ff;
+  --ifm-color-primary-darkest: #009ef6;
+  --ifm-color-primary-light: #71ccff;
+  --ifm-color-primary-lighter: #79cfff;
+  --ifm-color-primary-lightest: #90d7ff;
+  --ifm-color-info: var(--bc-accent-blue);
+
+  --ifm-background-color: var(--bc-charcoal);
+  --ifm-background-surface-color: var(--bc-charcoal);
+  --ifm-font-color-base: #ffffff;
+  --ifm-menu-color: #e5e7eb;
+  --ifm-menu-color-background-active: rgba(97, 198, 255, 0.15);
+  --ifm-menu-color-background-hover: rgba(255, 255, 255, 0.06);
+  --ifm-table-head-background: var(--bc-navy);
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}
+
+/* ---------- Header (Figma: Site Header) ---------- */
+
+.navbar {
+  border-bottom: none;
+}
+
+.navbar__brand {
+  margin-right: 24px;
+}
+
+.navbar__logo {
+  height: 35px;
+  width: auto;
+}
+
+/* Menu links: Roboto Regular 18, Core Blue, underline on hover / current page */
+.navbar__items--right {
+  gap: 20px;
+}
+
+.navbar__link {
+  padding: 0 0 4px;
+  font-size: 18px;
+  font-weight: 400;
+  border-bottom: 1px solid transparent;
+}
+
+.navbar__link:hover,
+.navbar__link--active {
+  border-bottom-color: currentColor;
+}
+
+/* External-link arrow icon isn't part of the design */
+.navbar__link svg {
+  display: none;
+}
+
+.navbar__toggle {
+  color: var(--bc-link);
+}
+
+/* Search box: white field on the Sky Light header */
+.navbar .navbar__search-input,
+.navbar [class*='searchBar'] input {
+  background-color: #ffffff;
+  border: 1px solid var(--bc-sky-line);
+  border-radius: 100px;
+  color: var(--bc-charcoal);
+}
+
+[data-theme='dark'] .navbar .navbar__search-input,
+[data-theme='dark'] .navbar [class*='searchBar'] input {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: transparent;
+  color: #ffffff;
+}
+
+@media (max-width: 996px) {
+  :root {
+    --ifm-navbar-padding-horizontal: 20px;
+    --ifm-navbar-height: 72px;
+  }
+}
+
+/* ---------- Type (Figma: Core Text Styles) ---------- */
+
+/* H1: Roboto Light 60 / 1.2 (36 under 768px). Scales between the two so long doc titles still fit. */
+.markdown h1,
+.theme-doc-markdown header h1,
+[class*='generatedIndexPage'] header h1 {
+  font-size: clamp(36px, 2.6vw + 16px, 60px);
+  font-weight: 300;
+  line-height: 1.2;
+  color: var(--bc-heading);
+}
+
+/* H2: Roboto Bold 28 / 1.3 (24 under 768px) */
+.markdown h2 {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+/* H3: Roboto Bold 18 / 1.4 */
+.markdown h3 {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+@media (max-width: 767px) {
+  .markdown h2 {
+    font-size: 24px;
+  }
+}
+
+/* Links inside body text are always underlined (design note: helps scanning and accessibility) */
+.markdown a {
+  color: var(--bc-link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.markdown a:visited {
+  color: var(--bc-link-visited);
+}
+
+.markdown a:hover {
+  color: var(--bc-link-hover);
+}
+
+.markdown hr {
+  border-color: var(--bc-sky-line);
+}
+
+.markdown table thead th {
+  color: var(--bc-heading);
+}
+
+/* Meta text: Roboto Medium 14 / 22.4, Slate */
+.theme-doc-footer,
+.theme-last-updated,
+.breadcrumbs__link,
+.table-of-contents {
+  font-size: 14px;
+  line-height: 22.4px;
+}
+
+.breadcrumbs__item--active .breadcrumbs__link {
+  background: var(--bc-sky-light);
+  color: var(--bc-core-blue);
+}
+
+[data-theme='dark'] .breadcrumbs__item--active .breadcrumbs__link {
+  background: rgba(97, 198, 255, 0.15);
+  color: var(--bc-accent-blue);
+}
+
+/* ---------- Sidebar and page navigation ---------- */
+
+.theme-doc-sidebar-container {
+  border-right-color: var(--bc-sky-line) !important;
+}
+
+.menu__link--active:not(.menu__link--sublist) {
+  font-weight: 500;
+}
+
+.pagination-nav__link {
+  border-color: var(--bc-sky-line);
+}
+
+.pagination-nav__link:hover {
+  border-color: var(--bc-link);
+}
+
+.pagination-nav__label {
+  color: var(--bc-link);
+}
+
+/* Category overview cards (e.g. /projects) */
+.card {
+  border: 1px solid var(--bc-sky-line);
+  box-shadow: none;
+}
+
+.card:hover {
+  border-color: var(--bc-link);
+}
+
+/* ---------- Buttons (Figma: Button Primary) ---------- */
+
+.button--primary {
+  background-color: var(--bc-core-blue);
+  border-color: var(--bc-core-blue);
+  font-weight: 700;
+}
+
+.button--primary:hover {
+  background-color: var(--bc-navy);
+  border-color: var(--bc-navy);
+}

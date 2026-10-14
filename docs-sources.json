@@ -1,0 +1,156 @@
+{
+  "googleDocs": [
+    {
+      "folder": "0AAhAJgoVw1ArUk9PVA",
+      "slug": "shared-drive",
+      "title": "Shared Drive Docs",
+      "enabled": false
+    },
+    {
+      "id": "PASTE_GOOGLE_DOC_ID_HERE",
+      "slug": "example-google-doc",
+      "title": "Example single Google Doc",
+      "enabled": false
+    }
+  ],
+  "driveDownloads": [
+    {
+      "dir": "imports/shared-drive",
+      "slug": "shared-drive",
+      "title": "Shared Drive Docs",
+      "driveUrl": "https://drive.google.com/drive/folders/0AAhAJgoVw1ArUk9PVA",
+      "enabled": true
+    }
+  ],
+  "boxFolders": [
+    {
+      "dir": "/box/Blue Core MVP planning",
+      "slug": "blue-core-mvp-planning",
+      "title": "Blue Core MVP Planning",
+      "_note": "/box is the BOX_DIR folder from .env (Box Drive), mounted read-only by docker-compose",
+      "enabled": true
+    }
+  ],
+  "readmes": [
+    {
+      "repo": "blue-core-lod/bluecore-stack",
+      "ref": "main",
+      "files": [
+        "README.md",
+        "docs/**/*.md",
+        "training/**/*.md"
+      ],
+      "slug": "bluecore-stack",
+      "title": "Bluecore Stack",
+      "enabled": false,
+      "_note": "Covered by the blue-core-lod entry in githubOrgs"
+    },
+    {
+      "local": "/sources/some-local-checkout",
+      "path": "README.md",
+      "slug": "local-example",
+      "title": "Local checkout example",
+      "githubUrl": "https://github.com/YOUR_GITHUB_ORG/some-repo",
+      "enabled": false
+    }
+  ],
+  "githubOrgs": [
+    {
+      "org": "blue-core-lod",
+      "dir": "blue-core-repos",
+      "title": "Blue Core Repos",
+      "description": "Documentation from each repository in the blue-core-lod GitHub organization.",
+      "position": 20,
+      "files": [
+        "README.md",
+        "docs/**/*.md",
+        "doc/**/*.md",
+        "training/**/*.md"
+      ],
+      "exclude": [
+        "**/node_modules/**",
+        "**/vendor/**",
+        ".github/**"
+      ],
+      "includeWikis": true,
+      "includeArchived": false,
+      "includeForks": [
+        "graph-toolbox",
+        "marva_editor"
+      ],
+      "includePrivate": false,
+      "skipRepos": [],
+      "enabled": true,
+      "wikiSection": {
+        "dir": "blue-core-wiki",
+        "title": "Blue Core Wiki",
+        "mainRepo": "bluecore_info",
+        "position": 30
+      }
+    }
+  ],
+  "codeDocs": [
+    {
+      "name": "example-typescript-lib",
+      "cwd": "../../some-ts-project",
+      "command": "npx typedoc --plugin typedoc-plugin-markdown --out ./.docs-out src/index.ts",
+      "output": ".docs-out",
+      "enabled": false
+    }
+  ],
+  "projectStatus": {
+    "dir": "project-status",
+    "title": "Project Status",
+    "description": "Live status of the Blue Core GitHub project board, open issues and the latest releases of each repository.",
+    "position": 10,
+    "projects": [
+      {
+        "org": "blue-core-lod",
+        "number": 5,
+        "slug": "blue-core-mvp-board"
+      }
+    ],
+    "issues": {
+      "org": "blue-core-lod",
+      "includeArchived": false,
+      "includePrivate": false,
+      "skipRepos": [],
+      "includeForks": [
+        "graph-toolbox",
+        "marva_editor"
+      ]
+    },
+    "_note": "Needs GITHUB_TOKEN with the read:project scope. Output is git-ignored (the board is private).",
+    "enabled": true,
+    "releases": {
+      "org": "blue-core-lod",
+      "perRepo": 20,
+      "includeForks": [
+        "graph-toolbox",
+        "marva_editor"
+      ]
+    },
+    "integrationTests": [
+      {
+        "org": "blue-core-lod",
+        "repo": "bluecore-stack",
+        "workflow": "bluecore-integration-test.yml",
+        "title": "Bluecore Integration Test",
+        "runs": 100,
+        "parseLogs": 30
+      }
+    ]
+  },
+  "apiReference": [
+    {
+      "slug": "bluecore-api",
+      "name": "Blue Core API",
+      "specUrl": "https://dev.bcld.info/api/openapi.json",
+      "baseUrl": "https://dev.bcld.info/api",
+      "docsUrl": "https://dev.bcld.info/api/docs",
+      "repo": "bluecore_api",
+      "_note": "The dev environment. Point specUrl/baseUrl at production when there is one.",
+      "enabled": true
+    }
+  ]
+}

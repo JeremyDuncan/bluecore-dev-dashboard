@@ -1,0 +1,238 @@
+# Docs Site
+
+A free, self-hosted developer docs site built with [Docusaurus](https://docusaurus.io). Markdown is pulled automatically from **Google Docs**, **GitHub READMEs** and **code**, and your AI agent writes the rest as pull requests.
+
+```
+Google Docs ─┐
+READMEs ─────┼─ npm run sync ─▶ docs/*.md ─▶ npm run build ─▶ GitHub Pages
+Code ────────┘                     ▲
+                    AI agent PRs ──┘ (guides, cleanup, gap-filling)
+```
+
+## Quick start (Docker, recommended)
+
+The only requirement is Docker. For a full step-by-step setup (tokens, Drive and Box files, chat CLIs), see **[SETUP.md](SETUP.md)**.
+
+```bash
+cp .env.example .env   # optional: add GITHUB_TOKEN / GOOGLE_ACCESS_TOKEN
+make up                # pull all sources, then live preview at http://localhost:3000 (edits hot-reload)
+make up SYNC=0         # quick restart without syncing (also works for make prod)
+make sync              # pull all sources again while the site runs
+make prod              # pull all sources, then production build served by nginx at http://localhost:8080
+make mcp               # only the dev MCP server for AI agents (make up and make prod start one too)
+make chat              # only the "Ask the docs" chat helper (make up / make prod start it automatically)
+make down              # stop everything
+```
+
+No `make`? Use the commands directly:
+
+| Task | Command |
+|---|---|
+| Live preview | `docker compose up --build` |
+| Sync sources | `docker compose run --rm sync` |
+| Production (nginx) | `docker compose --profile prod up --build web` |
+| Shell in container | `docker compose run --rm docs bash` |
+
+How it's put together:
+- **`Dockerfile`** has these stages:
+  - `deps`: `npm ci`, cached on `package-lock.json`
+  - `dev`: preview server
+  - `build`: static site
+  - `prod`: about 77 MB nginx image with only the HTML
+- **`docker-compose.yml`** mounts this folder into the container, so edits on your machine show up immediately. It also mounts `SOURCES_DIR` (default `../..`, the folder holding your repos) read-only at `/sources`. In `docs-sources.json`, reference local checkouts as `"local": "/sources/<repo-name>"`.
+- **The `prod` image** is self-contained, so you can deploy it to any server: `docker build --target prod -t bluecore-dev-dashboard . && docker run -p 80:80 bluecore-dev-dashboard`. Pass `--build-arg SITE_URL=https://docs.example.org` for your real domain.
+- **Code doc generators** (`codeDocs`) run inside the container. `npx`-based tools (TypeDoc, widdershins) work as is. For Python or Ruby generators, add them to the `dev` stage of the `Dockerfile`.
+
+## Quick start (without Docker)
+
+```bash
+npm install
+npm run sync     # pull content from the sources in docs-sources.json
+npm start        # preview at http://localhost:3000/<REPO_NAME>/ (set BASE_URL=/ to serve at the root)
+```
+
+## Where Markdown comes from
+
+| Source | How | Output folder | Edit where? |
+|---|---|---|---|
+| GitHub org repos | `npm run sync:readmes` fetches each repo's README and docs, then rewrites relative links | `docs/blue-core-repos/<repo>/` | In the source repo |
+| GitHub wikis | Same step; clones each repo's wiki | `docs/blue-core-wiki/` | In the GitHub wiki |
+| Single repos (`readmes`) | Same step | `docs/repos/` | In the source repo |
+| Google Docs | `npm run sync:google-docs` exports each doc as Markdown (needs link-sharing or a token) | `docs/google-drive/` | In Google Docs |
+| Google Drive downloads | `npm run sync:drive-downloads` converts downloaded `.zip`/`.docx` files with pandoc | `docs/google-drive/<slug>/` | In Google Docs, then re-download |
+| Box | `npm run sync:box` converts the Box Drive folder | `docs/box/<slug>/` | In Box |
+| Code (API reference) | `npm run sync:code` runs a generator (TypeDoc, pydoc-markdown, …) | `docs/reference/` | In code comments |
+| Guides / tutorials | Your AI agent drafts them (see `AGENT_PROMPTS.md`) and a human reviews | `docs/guides/`, `docs/getting-started/` | Here |
+| `llms.txt` | Built automatically before every build | `static/` | n/a |
+
+Configure sources in **`docs-sources.json`**. Set `"enabled": false` to skip an entry.
+
+**Nothing in the table except Guides is committed.**
+- **GitHub content** is pulled on every `make up`, `make prod` and GitHub Pages deploy.
+- **Google Drive, Box, Figma design notes** (`docs/design/`) and **Project Status** are internal and **local only**. They appear only on machines that have the source files, and the section disappears from the site (sidebar, navbar and footer) when they're missing.
+- Unchanged Drive and Box files aren't converted again. Set `SYNC_FORCE=1` to convert them anyway.
+
+See `docs/guides/content-lifecycle.md` for the details.
+
+To pull **a whole repo's docs** instead of one file, use `files` with glob patterns. Folder structure is preserved, and links between imported files stay on the site:
+
+```json
+{
+  "repo": "blue-core-lod/bluecore-stack",
+  "ref": "main",
+  "files": ["README.md", "docs/**/*.md", "training/**/*.md"],
+  "slug": "bluecore-stack",
+  "title": "Bluecore Stack"
+}
+```
+
+To pull docs from **every repo in a GitHub organization** (or user account), add an entry to `githubOrgs`. Repos are discovered on each sync, so new repos show up automatically, and repos with no matching files are skipped. The org becomes a top-level section at `/<dir>` with a card for each repo:
+
+```json
+"githubOrgs": [
+  {
+    "org": "blue-core-lod",
+    "dir": "blue-core-repos",
+    "title": "Blue Core Repos",
+    "position": 20,
+    "files": ["README.md", "docs/**/*.md", "doc/**/*.md"],
+    "exclude": ["**/node_modules/**", "**/vendor/**", ".github/**"],
+    "includeWikis": true,
+    "includeArchived": false,
+    "includeForks": false,
+    "includePrivate": false,
+    "skipRepos": [],
+    "wikiSection": {"dir": "blue-core-wiki", "title": "Blue Core Wiki", "mainRepo": "bluecore_info", "position": 30}
+  }
+]
+```
+
+**GitHub wikis:** `includeWikis: true` puts every repo wiki in the org into its own top-level section (`wikiSection`, here `/blue-core-wiki`). The `mainRepo` wiki fills the section and its Home page becomes the front page; other repos' wikis are sub-sections. For a single `readmes` entry with `files`, `"wiki": true` imports its wiki into a **Wiki** folder under that repo. The Home page becomes the front page, and wiki links (`[[Text|Page]]`, `./Page`, full wiki URLs) point at the imported pages. Repos without a wiki are skipped.
+
+`includeForks` is `false` (skip forks), `true`, or a list of fork names to include, e.g. `["marva_editor", "graph-toolbox"]` for Blue Core's own forks of upstream projects. The `projectStatus.issues` setting takes the same values.
+
+Keep `includePrivate: false` if the site is public. Your `GITHUB_TOKEN` can read private repos, and turning this on would publish their docs.
+
+### Project Status (GitHub Projects and issues)
+`projectStatus` in `docs-sources.json` adds a **Project Status** section (`/project-status`):
+- one page per GitHub project board (`projects`), with a column per Status, filters (repo, assignee, label, search) and Done hidden by default;
+- a **Repo Issues** page with the open issues of every repo in `issues.org`.
+
+The sync (`npm run sync:status`, part of `make sync`) saves a snapshot, and the pages then **update live**: they ask the MCP container (`/api/github/...` on port 3001) for fresh data every 5 minutes. The container holds `GITHUB_TOKEN`, so browsers never see it, and only serves the boards listed in `docs-sources.json` to pages on this machine. A badge on each page says **Live** or **Snapshot from the last sync**; on GitHub Pages (no server) it's always the snapshot.
+
+The token needs the `read:project` scope: `gh auth refresh -s read:project`, then put the new `gh auth token` in `.env`. The output (`docs/project-status/`) is git-ignored because the board is private.
+
+**Integration Tests** (`projectStatus.integrationTests`): health of a GitHub Actions workflow, here `bluecore-stack`'s Bluecore Integration Test. Headline numbers (latest run, pass rate, streak, median and p90 run time, tests passing, time to fix), a chart of the last 100 runs, failures by stage (image build / tests / setup), pass rate by trigger (which repo's change started the run), the most-failing tests with their last error and whether they still fail, and recent runs. Test results come from the pytest summary in each run's log (failed runs and the latest 30 others).
+
+**What's New** (`projectStatus.releases`): the latest release of each repo as "Updates" cards (the Figma product-page box), then a release timeline with the full notes. Live like the other status pages.
+
+### "Last updated" dates
+Every imported page shows when its **source** last changed (bottom of the page), and pages older than a year get a "Possibly out of date" notice at the top:
+- repo docs: the file's last commit on GitHub (date and author)
+- wiki pages: the page's last edit (the wiki is cloned with full history)
+- Google Drive and Box: the file's modified date
+
+The sync writes these as `last_update` front matter. Hand-written pages use git history once this folder is a git repo, and the file date until then (see `experimental_vcs` in `docusaurus.config.js`). The MCP server includes the date in search results, so agents (and the chat) can warn about old pages.
+
+### Ask the docs (chat)
+An **Ask the docs** button sits at the bottom-right of every page. Answers come from an AI CLI on **your machine**, using your own login and plan. Pick one in the chat panel:
+
+| CLI | Models | Install | Log in |
+|---|---|---|---|
+| **Claude Code** | Sonnet (default), Opus, Haiku | `curl -fsSL https://claude.ai/install.sh \| bash` | `claude` |
+| **Codex** | the models your account offers (read from Codex) | `npm install -g @openai/codex` | `codex login` |
+
+The panel shows each CLI with its icon and a ready/not-ready dot, a model menu, and step-by-step setup (with copy buttons) for a CLI that isn't installed or logged in yet. Each answer is labeled with the CLI and model that wrote it. Switching CLI starts a new conversation; switching model doesn't. The choice is remembered per browser.
+
+`make up` and `make prod` start the chat helper (`chat/server.mjs`, http://localhost:3002) in the background and stop it when you press Ctrl+C or run `make down`. Its log is in `.chat.log`. If Node.js isn't installed, they skip it and the site runs without the chat. `make chat` runs only the helper.
+
+**What the CLIs can do:** only search and read the docs (the MCP server's `search_docs`, `read_doc`, `list_docs`).
+- **Claude Code** runs with its built-in tools off (no shell, no file access), without your settings, hooks or CLAUDE.md files.
+- **Codex** always has a shell, so it's fenced in (macOS only): it runs inside a macOS sandbox that blocks your home folder except `~/.codex` (its login) and an empty working folder; Codex's own shell can't start inside it. Its read-only sandbox is on, approvals are off, and ChatGPT apps/connectors (e.g. GitHub actions), plugins, image generation, sub-agents, web search and browser/computer use are turned off. Your `~/.codex/config.toml` isn't loaded.
+
+The question is passed on stdin, never as a command-line argument, and the helper only accepts requests from pages on this machine. Links like `/any-page?ask=How+do+I+…&cli=codex` open the chat and ask that question.
+
+Settings (environment): `CHAT_PROVIDER` (`claude`), `CHAT_CLAUDE_MODEL` (`sonnet`), `CHAT_CODEX_MODEL` (your Codex default), `CLAUDE_BIN`, `CODEX_BIN`, `CHAT_PORT` (3002), `MCP_URL` (`http://localhost:3001/mcp`). Adding another CLI means adding a file in `chat/providers/`. The icons are in `static/img/providers/` (the Codex one is a placeholder; see the README there). The chat box is hidden on the public GitHub Pages build (`CHAT_API_URL: ''`).
+
+### Google Docs setup
+- **If your organization blocks Google API access (no token possible):** in Google Drive, right-click the folder → **Download**. Google zips the Docs as `.docx`. Put the `.zip` in `imports/<name>/` (matching a `driveDownloads` entry in `docs-sources.json`) and run `make sync`. Pandoc converts every doc to Markdown, including images, and keeps the folder structure. Re-download to update. Everything in `imports/` is git-ignored, and the section is left out of the site when the folder is empty.
+- **Easiest:** share the doc as *Anyone with the link → Viewer*, then paste its ID (the long string in the URL between `/d/` and `/edit`) into `docs-sources.json`.
+- **A whole folder or shared drive:** use `{ "folder": "<id from the folder URL>", "slug": "team-docs", "title": "Team Docs" }`. Every Google Doc (and uploaded `.md` file) inside is pulled, subfolders included. Sheets, Slides and PDFs are skipped. Folders always need `GOOGLE_ACCESS_TOKEN`.
+- **Private docs (local):** get a 1-hour access token from the [OAuth 2.0 Playground](https://developers.google.com/oauthplayground): pick scope `https://www.googleapis.com/auth/drive.readonly`, click *Authorize APIs*, then *Exchange authorization code for tokens*. Put the access token in `.env` as `GOOGLE_ACCESS_TOKEN=...` and run `make sync`.
+- **Fallback:** in Google Docs, use *File → Download → Markdown (.md)* and drop the file into `imports/<name>/`. Don't put internal docs in `docs/guides/`: that folder is committed and published.
+
+## Sharing your local production site (ngrok)
+`make prod` serves everything on **one address, port 8080**: nginx forwards `/api/live/` to the MCP container (live Status data) and `/api/chat/` to the chat helper on your machine. So a tunnel to port 8080 gives visitors the whole site, including the live Status pages and **Ask the docs**. Their questions run on **your** Claude Code / Codex login and usage.
+
+```bash
+make prod                                                   # terminal 1
+ngrok http 8080 --basic-auth="bluecore:a-long-password"     # terminal 2 (password: 8–128 characters)
+```
+
+- **Always put a login in front of it.** The site includes the internal Drive and Box docs and the private project board, and the chat uses your AI account. Use `--basic-auth="user:password"`, or ngrok's Google sign-in limited to your email domain (`--oauth=google --oauth-allow-domain=example.org`).
+- **Only tunnel port 8080.** Ports 3001 (MCP) and 3002 (chat helper) only answer requests addressed to `localhost`, so they don't work through a tunnel anyway.
+- The chat only accepts questions from pages of the site itself: nginx refuses requests sent by other websites.
+- At most 2 chat questions run at once (`CHAT_MAX_CONCURRENT`); extra ones get "busy, try again".
+- `make up` (dev, port 3000) keeps calling ports 3001/3002 directly, so it's for local use only.
+
+## Deploying (free)
+
+1. Edit `GITHUB_ORG` / `REPO_NAME` at the top of `docusaurus.config.js`.
+2. Push this folder to a GitHub repo.
+3. Go to **Settings → Pages → Source: GitHub Actions**.
+4. Every push to `main` deploys (`.github/workflows/deploy.yml`), and so does a nightly run. Each deploy pulls the GitHub docs fresh (`npm run sync:readmes`) before building, so they're never stored in the repo.
+5. The public site has only public content: no Drive, Box, Figma or Project Status (those are local only), no live data and no chat.
+
+## Using your AI agent
+- `STYLE_GUIDE.md` sets the rules every agent-written page must follow.
+- `AGENT_PROMPTS.md` holds ready-made prompts (Getting Started, feature guides, Ruby reference, Google Doc cleanup, PR docs-check, Q&A).
+- `https://<your-site>/llms-full.txt` contains the entire doc set in one file. Give it to your agent to "chat with the docs."
+
+### MCP server (agents search the docs themselves)
+`make up` also starts an [MCP](https://modelcontextprotocol.io) server at **`http://localhost:3001/mcp`**. Any MCP-capable agent (Claude Code, Claude Desktop, Cursor, VS Code Copilot, …) can then look things up in the docs while it works. It has three read-only tools:
+
+| Tool | What it does |
+|---|---|
+| `search_docs` | Keyword search across every page, section by section. Returns the title, heading, snippet, website link (with `#anchor`) and the original source (GitHub/Drive). Optional `path_prefix` limits it to one repo or folder. |
+| `read_doc` | Returns a page as Markdown, by path or website URL. Pass `section` to get one heading's part of a long page. |
+| `list_docs` | Lists all pages, optionally under a path such as `blue-core-wiki`. |
+| `project_board` | **Live** items on the GitHub project board (Blue Core MVP): Status column, assignees, labels, sub-issue progress. Filter by status, repo, assignee (`none` = unassigned), label or text; `summary_only` gives counts per status, person and repo. Done is left out unless asked for. |
+| `list_issues` | **Live** open issues across the org's repos, filterable by repo, label, assignee or text. |
+| `get_issue` | One issue or pull request in full: description, latest comments, labels, and its Status on the board. |
+| `search_issues` | GitHub search over **open and closed** issues and PRs in the org (supports `is:pr is:merged`, `label:bug`, `author:…`). |
+| `list_releases` | Latest releases per repo with highlights, or full notes. |
+| `list_files` / `get_file` | List a repo's files (filter by folder or text) and read any file, or part of one, on any branch. |
+| `search_code` | GitHub code search across the org's repos, with the matching lines (GitHub allows ~10 code searches a minute). GitHub doesn't index forks, so for marva_editor and graph-toolbox it lists matching file names instead. |
+| `fork_changes` | For forks (marva_editor, graph-toolbox): what the fork changed vs its upstream project: commits ahead/behind, files added/modified by folder, commit messages, and a file's diff. |
+| `ci_status` | Latest GitHub Actions run of every workflow per repo (default branch), with the failed steps. |
+| `recent_changes` | Pull requests merged since a date (default 7 days), grouped by repo; bot dependency updates hidden by default. |
+| `integration_tests` | Integration test health: latest result, pass rate, durations, failures by stage, most-failing tests (still failing or fixed), triggers, recent runs. |
+| `api_endpoints` / `api_endpoint` / `api_schema` | The Blue Core API from its live OpenAPI spec (`apiReference` in `docs-sources.json`): endpoint list, one endpoint in detail (parameters, body, responses, auth, example `curl`), and data models. |
+| `docs_health` | Cleanup list: stale pages, broken links between pages (missing pages or headings), near-empty pages, repos without docs. |
+
+**Prompts** (one-click reports; in Claude Code they're slash commands like `/mcp__docs__standup_summary`): `standup_summary`, `weekly_update`, `onboarding_plan`, `summarize_epic`, `docs_cleanup`.
+
+Code, CI and change tools only read the repos the issues page shows (public, not archived, plus listed forks), so private repos stay out even though the token could read them.
+
+The GitHub tools are read-only and limited to the org and board in `projectStatus` (`docs-sources.json`). They share the 2-minute cache and token with the live Status pages, and fall back to the last sync's snapshot (and say so) when GitHub can't be reached. The "Ask the docs" chat can use all of them.
+
+Both modes use the same address, so your agent's config works with either:
+
+| | `make up` (dev) | `make prod` |
+|---|---|---|
+| Indexes | the live `docs/` folder, re-indexed every 30 seconds, so `make sync` results show up on their own | a snapshot of `docs/` baked into the `bluecore-dev-dashboard-mcp` image, built together with the nginx site, so search results always match what the site serves |
+| Result links point to | `http://localhost:3000` | `http://localhost:8080` (or `DOCS_SITE_URL`) |
+| To update | nothing to do | run `make prod` again (it syncs first) |
+
+Only one runs at a time: `make prod` stops the dev MCP server and `make up` stops the prod one. To deploy the MCP server elsewhere: `docker build --target mcp --build-arg SITE_URL=https://docs.example.org -t bluecore-dev-dashboard-mcp .`
+
+Connect your agent:
+- **Claude Code:** this folder has a `.mcp.json`, so run `claude` here and approve the `docs` server. From any other folder: `claude mcp add --transport http docs http://localhost:3001/mcp`.
+- **Other agents:** add an HTTP (Streamable HTTP) MCP server with the URL `http://localhost:3001/mcp`.
+- **Without Docker (stdio):** run `npm install --prefix mcp` once, then point the agent at the command `node /path/to/bluecore-dev-dashboard/mcp/server.mjs`.
+
+Settings (in `.env`):
+- `DOCS_SITE_URL`: where result links point (default `http://localhost:3000`). Set it to your published site.
+- `MCP_ALLOWED_HOSTS`: extra host names allowed to call the server, comma-separated. Only needed when the server is reached by a name other than `localhost`.
+
+The server can read **everything in `docs/`, including internal Google Drive pages**, so the port is bound to `127.0.0.1` (this machine only). It has no login, so put it behind authentication before sharing it on a network.

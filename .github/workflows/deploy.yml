@@ -1,0 +1,46 @@
+name: Deploy docs
+
+on:
+  push:
+    branches: [main]
+  # Nightly: the GitHub docs aren't committed, so re-deploying is how the site picks up their changes
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Public content only: GitHub repo docs and wikis. Drive, Box, Figma and Project Status are
+      # local-only, so they're simply absent here.
+      - run: npm run sync:readmes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # higher rate limit; only sees public repos of the org
+      - run: npm run build
+        env:
+          LIVE_API_URL: '' # no live GitHub data on the public site (there's no server to hold the token)
+          CHAT_API_URL: '' # no chat box on the public site (it needs your local Claude Code CLI)
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build
+      - id: deployment
+        uses: actions/deploy-pages@v4
