@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import {themes as prismThemes} from 'prism-react-renderer';
 
 // Edit these for your project / GitHub Pages deployment.
-const GITHUB_ORG = 'YOUR_GITHUB_ORG';
+const GITHUB_ORG = 'JeremyDuncan';
 const REPO_NAME = 'bluecore-dev-dashboard';
 
 // "Last updated" dates: imported pages carry their source's date in front matter (last_update).
