@@ -1,0 +1,55 @@
+{
+  "name": "bluecore-dev-dashboard",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "docusaurus start",
+    "sync": "node scripts/sync/index.mjs",
+    "sync:google-docs": "node scripts/sync/google-docs.mjs",
+    "sync:drive-downloads": "node scripts/sync/drive-downloads.mjs",
+    "sync:box": "node scripts/sync/box.mjs",
+    "sync:status": "node scripts/sync/project-status.mjs",
+    "sync:readmes": "node scripts/sync/readmes.mjs",
+    "sync:code": "node scripts/sync/code-docs.mjs",
+    "llms-txt": "node scripts/sync/llms-txt.mjs",
+    "prebuild": "node scripts/sync/llms-txt.mjs",
+    "build": "docusaurus build",
+    "serve": "docusaurus serve",
+    "clear": "docusaurus clear",
+    "docusaurus": "docusaurus",
+    "mcp": "node mcp/server.mjs --http",
+    "chat": "node chat/server.mjs"
+  },
+  "dependencies": {
+    "@docusaurus/core": "3.10.2",
+    "@docusaurus/faster": "3.10.2",
+    "@docusaurus/preset-classic": "3.10.2",
+    "@docusaurus/theme-mermaid": "^3.10.2",
+    "@easyops-cn/docusaurus-search-local": "^0.55.3",
+    "@fontsource/roboto": "5.3.0",
+    "@mdx-js/react": "^3.0.0",
+    "clsx": "^2.0.0",
+    "prism-react-renderer": "^2.3.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@docusaurus/module-type-aliases": "3.10.2",
+    "@docusaurus/types": "3.10.2"
+  },
+  "browserslist": {
+    "production": [
+      ">0.5%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 3 chrome version",
+      "last 3 firefox version",
+      "last 5 safari version"
+    ]
+  },
+  "engines": {
+    "node": ">=20.0"
+  }
+}

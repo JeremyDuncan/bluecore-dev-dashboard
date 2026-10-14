@@ -1,0 +1,88 @@
+/* Figma: 48px side padding, 24px gap, Sky Line rule on top, quick links Roboto Medium 16, meta text 14/22.4 */
+.footer {
+  padding: 0 48px 24px;
+  background: var(--ifm-background-color);
+}
+
+.content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-top: 24px;
+  border-top: 1px solid var(--bc-sky-line);
+}
+
+.linksAndText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.quicklinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+}
+
+.quicklink {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--bc-link);
+  text-decoration: none;
+}
+
+.quicklink:hover {
+  color: var(--bc-link-hover);
+  text-decoration: underline;
+}
+
+.meta {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 22.4px;
+  color: var(--bc-meta);
+}
+
+.meta a {
+  color: var(--bc-link);
+  text-decoration: none;
+}
+
+.meta a:hover {
+  color: var(--bc-link-hover);
+  text-decoration: underline;
+}
+
+.separator {
+  margin: 0 8px;
+}
+
+.icon {
+  display: block;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.iconDark,
+[data-theme='dark'] .iconLight {
+  display: none;
+}
+
+[data-theme='dark'] .iconDark {
+  display: block;
+}
+
+/* Figma mobile footer: icon on top, then links and text, 20px side padding */
+@media (max-width: 767px) {
+  .footer {
+    padding: 0 20px 24px;
+  }
+
+  .content {
+    flex-direction: column-reverse;
+    align-items: flex-start;
+  }
+}

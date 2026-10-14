@@ -1,0 +1,639 @@
+/* "Ask the docs" chat box — Blue Core tokens from src/css/custom.css */
+
+.launcher {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 200;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border: none;
+  border-radius: 100px;
+  background: var(--bc-core-blue);
+  color: #ffffff;
+  font: inherit;
+  font-weight: 700;
+  box-shadow: 0 6px 20px rgba(9, 29, 109, 0.25);
+  cursor: pointer;
+}
+
+.launcher:hover {
+  background: var(--bc-navy);
+}
+
+[data-theme='dark'] .launcher {
+  background: var(--bc-accent-blue);
+  color: var(--bc-navy);
+}
+
+.panel {
+  position: fixed;
+  /* Default spot until the saved/computed position (inline left/top/width/height) applies */
+  right: 24px;
+  bottom: 24px;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  width: min(440px, calc(100vw - 32px));
+  height: min(640px, calc(100vh - 120px));
+  border: 1px solid var(--bc-sky-line);
+  border-radius: 12px;
+  background: var(--bc-surface);
+  box-shadow: 0 12px 40px rgba(9, 29, 109, 0.25);
+  overflow: hidden;
+  font-size: 15px;
+}
+
+.header {
+  flex-shrink: 0;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 12px 12px 18px;
+  background: var(--bc-header-bg);
+}
+
+.title {
+  color: var(--bc-heading);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.textButton,
+.close {
+  border: none;
+  background: none;
+  color: var(--bc-link);
+  font: inherit;
+  cursor: pointer;
+}
+
+.textButton {
+  padding: 4px 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.close {
+  width: 32px;
+  height: 32px;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.textButton:hover,
+.close:hover,
+.iconButton:hover {
+  color: var(--bc-link-hover);
+}
+
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  color: var(--bc-link);
+  cursor: pointer;
+}
+
+/* Title bar is the drag handle */
+.movable {
+  cursor: move;
+}
+
+/* Fullscreen: the whole browser window, with a readable column in the middle */
+.fullscreen {
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  z-index: 1000; /* above the site header */
+}
+
+.fullscreen .messages,
+.fullscreen .form,
+.fullscreen .footnote {
+  width: 100%;
+  max-width: 860px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.fullscreen .header {
+  padding-left: 24px;
+  padding-right: 16px;
+}
+
+/* Resize handles: thin strips along the edges and squares in the corners, just inside the panel
+   (the rounded corners clip anything outside it) */
+.resize {
+  position: absolute;
+  z-index: 1;
+  touch-action: none;
+}
+
+.resize-n,
+.resize-s {
+  left: 18px;
+  right: 18px;
+  height: 6px;
+  cursor: ns-resize;
+}
+
+.resize-n {
+  top: 0;
+}
+
+.resize-s {
+  bottom: 0;
+}
+
+.resize-e,
+.resize-w {
+  top: 18px;
+  bottom: 18px;
+  width: 6px;
+  cursor: ew-resize;
+}
+
+.resize-e {
+  right: 0;
+}
+
+.resize-w {
+  left: 0;
+}
+
+.resize-ne,
+.resize-nw,
+.resize-se,
+.resize-sw {
+  width: 18px;
+  height: 18px;
+}
+
+.resize-ne {
+  top: 0;
+  right: 0;
+  cursor: nesw-resize;
+}
+
+.resize-sw {
+  bottom: 0;
+  left: 0;
+  cursor: nesw-resize;
+}
+
+.resize-nw {
+  top: 0;
+  left: 0;
+  cursor: nwse-resize;
+}
+
+.resize-se {
+  right: 0;
+  bottom: 0;
+  cursor: nwse-resize;
+}
+
+/* A visible grip in the bottom-right corner */
+.resize-se::after {
+  content: '';
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid var(--bc-stone);
+  border-bottom: 2px solid var(--bc-stone);
+}
+
+:global(body.ask-docs-dragging) {
+  user-select: none;
+}
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 18px;
+}
+
+.intro {
+  color: var(--bc-meta);
+}
+
+.suggestions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.suggestion {
+  padding: 6px 14px;
+  border: 1px solid var(--bc-sky-line);
+  border-radius: 100px;
+  background: var(--bc-surface);
+  color: var(--bc-link);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.suggestion:hover {
+  border-color: var(--bc-link);
+}
+
+.user {
+  width: fit-content;
+  max-width: 85%;
+  margin: 0 0 12px auto;
+  padding: 8px 14px;
+  border-radius: 14px 14px 4px 14px;
+  background: var(--bc-sky-light);
+  color: var(--bc-charcoal);
+  white-space: pre-wrap;
+}
+
+[data-theme='dark'] .user {
+  background: var(--bc-navy);
+  color: #ffffff;
+}
+
+.assistant {
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.assistant p {
+  margin: 0 0 8px;
+}
+
+.assistant ul,
+.assistant ol {
+  margin: 0 0 8px;
+  padding-left: 20px;
+}
+
+.assistant li {
+  margin: 2px 0;
+}
+
+.assistant :global(.ask-nested) {
+  margin-left: 18px;
+}
+
+.assistant :global(.ask-heading) {
+  margin-top: 12px;
+  color: var(--bc-heading);
+  font-weight: 700;
+}
+
+.assistant a {
+  color: var(--bc-link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.assistant a:hover {
+  color: var(--bc-link-hover);
+}
+
+.assistant code {
+  font-size: 13px;
+}
+
+.assistant pre {
+  margin: 0 0 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.assistant :global(.ask-table) {
+  margin: 0 0 8px;
+  overflow-x: auto;
+}
+
+.assistant table {
+  display: table;
+  width: 100%;
+  margin: 0;
+  font-size: 13px;
+}
+
+.assistant th,
+.assistant td {
+  padding: 4px 8px;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--bc-meta);
+  font-size: 14px;
+}
+
+.spinner {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--bc-sky-line);
+  border-top-color: var(--bc-link);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}
+
+.error {
+  padding: 8px 12px;
+  border-left: 3px solid var(--bc-error);
+  background: rgba(233, 80, 80, 0.08);
+  font-size: 14px;
+}
+
+.form {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--bc-sky-line);
+}
+
+.form textarea {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--bc-sky-line);
+  border-radius: 8px;
+  background: var(--bc-surface);
+  color: var(--ifm-font-color-base);
+  font: inherit;
+  resize: none;
+}
+
+.form textarea:focus {
+  outline: 2px solid var(--bc-link-hover);
+  outline-offset: 1px;
+}
+
+.send {
+  align-self: flex-end;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 100px;
+  background: var(--bc-core-blue);
+  color: #ffffff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.send:hover:not(:disabled) {
+  background: var(--bc-navy);
+}
+
+.send:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.footnote {
+  margin: 0;
+  padding: 0 12px 10px;
+  color: var(--bc-meta);
+  font-size: 12px;
+}
+
+@media (max-width: 549px) {
+  .launcher {
+    right: 16px;
+    bottom: 16px;
+  }
+
+  .compact {
+    right: 8px;
+    bottom: 8px;
+    left: 8px;
+    width: auto;
+    height: calc(100vh - 80px);
+  }
+}
+
+/* CLI picker (toolbar under the title bar) */
+.picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--bc-sky-line);
+}
+
+.providers {
+  display: flex;
+  gap: 6px;
+}
+
+.providerButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--bc-sky-line);
+  border-radius: 100px;
+  background: var(--bc-surface);
+  color: var(--ifm-font-color-base);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.providerButton:hover:not(:disabled) {
+  border-color: var(--bc-link);
+}
+
+.providerActive {
+  border-color: var(--bc-link);
+  background: var(--bc-sky-light);
+  color: var(--bc-heading);
+}
+
+[data-theme='dark'] .providerActive {
+  background: rgba(97, 198, 255, 0.15);
+  color: #ffffff;
+}
+
+.providerButton:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.providerIcon {
+  flex-shrink: 0;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.dotReady {
+  background: var(--bc-ok);
+}
+
+.dotMissing {
+  background: var(--bc-stone);
+}
+
+.modelSelect select {
+  max-width: 190px;
+  padding: 4px 8px;
+  border: 1px solid var(--bc-sky-line);
+  border-radius: 6px;
+  background: var(--bc-surface);
+  color: var(--ifm-font-color-base);
+  font: inherit;
+  font-size: 13px;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Which CLI answered, above each answer */
+.answeredBy {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 4px !important;
+  color: var(--bc-meta);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.divider {
+  margin: 4px 0 16px;
+  color: var(--bc-meta);
+  font-size: 12px;
+  text-align: center;
+}
+
+.divider::before,
+.divider::after {
+  content: ' — ';
+}
+
+/* Setup instructions for a CLI that isn't installed / logged in */
+.setup {
+  padding: 14px 16px;
+  border: 1px solid var(--bc-sky-line);
+  border-radius: 8px;
+  background: var(--bc-surface);
+  font-size: 14px;
+}
+
+.setup p {
+  margin: 0 0 10px;
+}
+
+.setupTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--bc-heading);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.step {
+  margin-top: 14px !important;
+  color: var(--bc-heading);
+  font-weight: 700;
+}
+
+.command {
+  margin-bottom: 10px;
+}
+
+.commandLabel {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--bc-meta);
+  font-size: 12px;
+}
+
+.commandRow {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.commandRow code {
+  flex: 1;
+  padding: 6px 10px;
+  overflow-x: auto;
+  white-space: nowrap;
+  font-size: 12.5px;
+}
+
+.copy,
+.checkAgain {
+  padding: 4px 12px;
+  border: 1px solid var(--bc-sky-line);
+  border-radius: 100px;
+  background: var(--bc-surface);
+  color: var(--bc-link);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.copy:hover,
+.checkAgain:hover:not(:disabled) {
+  border-color: var(--bc-link);
+}
+
+.setupNote {
+  color: var(--bc-meta);
+  font-size: 12px;
+}
+
+.setup a {
+  color: var(--bc-link);
+}
