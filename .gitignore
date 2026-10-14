@@ -1,0 +1,16 @@
+node_modules/
+build/
+.docusaurus/
+.cache-loader/
+.DS_Store
+# generated at build time
+static/llms.txt
+static/llms-full.txt
+.env
+# Google Drive downloads (internal docs, binary)
+imports/**/*.zip
+imports/**/*.docx
+docs/box/
+.chat.pid
+.chat.log
+docs/project-status/
