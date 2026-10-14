@@ -739,6 +739,12 @@
   border-bottom: 1px solid var(--bc-sky-line);
 }
 
+.statusNavIntro {
+  margin: -8px 0 12px;
+  font-size: 14px;
+  color: var(--bc-meta);
+}
+
 .statusNav ul {
   display: flex;
   flex-wrap: wrap;
@@ -768,27 +774,38 @@
   transition: background 0.15s, border-color 0.15s;
 }
 
-.statusNavLink:hover,
-.statusNavLink:focus-visible {
+/* Scoped to .statusNav and listing :visited so the site's ".markdown a:visited" / "a:hover" colors
+   (more specific than a single class) can't override them: on a visited page the active button's
+   text would otherwise turn light blue on a light blue background */
+.statusNav .statusNavLink:visited {
+  color: var(--bc-link);
+}
+
+.statusNav .statusNavLink:hover,
+.statusNav .statusNavLink:focus-visible {
   border-color: var(--bc-link);
   background: var(--bc-sky-light);
   color: var(--bc-link);
 }
 
-.statusNavActive,
-.statusNavActive:hover {
+.statusNav .statusNavActive,
+.statusNav .statusNavActive:visited,
+.statusNav .statusNavActive:hover,
+.statusNav .statusNavActive:focus-visible {
   border-color: var(--bc-navy);
   background: var(--bc-navy);
   color: #ffffff;
 }
 
-[data-theme='dark'] .statusNavLink:hover,
-[data-theme='dark'] .statusNavLink:focus-visible {
+[data-theme='dark'] .statusNav .statusNavLink:hover,
+[data-theme='dark'] .statusNav .statusNavLink:focus-visible {
   background: rgba(97, 198, 255, 0.12);
 }
 
-[data-theme='dark'] .statusNavActive,
-[data-theme='dark'] .statusNavActive:hover {
+[data-theme='dark'] .statusNav .statusNavActive,
+[data-theme='dark'] .statusNav .statusNavActive:visited,
+[data-theme='dark'] .statusNav .statusNavActive:hover,
+[data-theme='dark'] .statusNav .statusNavActive:focus-visible {
   border-color: var(--bc-accent-blue);
   background: var(--bc-accent-blue);
   color: var(--bc-navy);

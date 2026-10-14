@@ -113,6 +113,7 @@ export default function StatusNav({pages, current}) {
   const members = group ? pages.filter((p) => p.group === group) : [];
   return (
     <nav className={styles.statusNav} aria-label="Project Status pages">
+      <p className={styles.statusNavIntro}>Live GitHub activity for the Blue Core repositories (a dashboard, not documentation).</p>
       <ul>
         {pages
           .filter((p) => !p.group)

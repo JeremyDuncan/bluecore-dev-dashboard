@@ -158,7 +158,11 @@ async function syncEntry(entry, outDir) {
   await fs.mkdir(projectDir, {recursive: true});
   await fs.writeFile(
     path.join(projectDir, '_category_.json'),
-    JSON.stringify({label: entry.title ?? entry.slug, ...(entry.description && {description: entry.description})}, null, 2) + '\n',
+    JSON.stringify(
+      {label: entry.title ?? entry.slug, ...(entry.position !== undefined && {position: entry.position}), ...(entry.description && {description: entry.description})},
+      null,
+      2,
+    ) + '\n',
   );
 
   for (const filePath of matched) {
@@ -212,6 +216,8 @@ async function listOrgRepos(org) {
 
 function orgRepoEntries(org, repos) {
   const skip = new Set(org.skipRepos ?? []);
+  // pinFirst: repos listed at the top of the section, in this order (the rest stay alphabetical after them)
+  const pinned = org.pinFirst ?? [];
   return repos
     .filter((r) => !skip.has(r.name))
     .filter((r) => r.default_branch)
@@ -226,6 +232,7 @@ function orgRepoEntries(org, repos) {
       exclude: org.exclude ?? ['**/node_modules/**', '**/vendor/**', '.github/**'],
       slug: r.name,
       title: r.name,
+      ...(pinned.includes(r.name) && {position: pinned.indexOf(r.name) + 1}),
       description: r.description ?? undefined,
       hasWiki: r.has_wiki, // imported separately into the wiki section (syncOrgWikis)
       private: r.private,

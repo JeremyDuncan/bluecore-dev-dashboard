@@ -39,6 +39,84 @@ const ifSection = (dir, item) => (hasSection(dir) ? [item] : []);
 const STACK_DIR = 'blue-core-repos/bluecore-stack';
 const STACK_URL = `/${STACK_DIR}/`;
 
+// Sidebar icon for each top-level section, by its folder under docs/ (drawn in src/css/custom.css,
+// .sidebar-icon--<name>). Sections not listed get a folder icon.
+const SIDEBAR_ICONS = {
+  intro: 'home',
+  guides: 'guides',
+  'getting-started': 'guides',
+  'project-status': 'status',
+  'blue-core-repos': 'repos',
+  'other-repos': 'repos',
+  'blue-core-wiki': 'wiki',
+  design: 'design',
+  'google-drive': 'drive',
+  box: 'box',
+  reference: 'code',
+};
+
+// The docs/ folder a top-level sidebar item comes from ("guides" for a category of guides)
+function sectionDir(item) {
+  if (item.type === 'doc') return item.id.split('/')[0];
+  if (item.type !== 'category') return null;
+  const id = item.link?.id ?? item.link?.slug?.replace(/^\//, '') ?? item.items.map(sectionDir).find(Boolean);
+  return id?.split('/')[0] ?? null;
+}
+
+// Sections with their own sidebar (sidebars.js), left out of the docs sidebar
+const SEPARATE_SECTIONS = ['project-status', 'guides'];
+
+// Sections with their own sidebar (Guides, Project Status) start with a link back to the docs and a
+// header saying what the section is
+function sectionHead(title, text) {
+  return [
+    {type: 'link', label: 'Back to the docs', href: '/', className: 'section-sidebar-back'},
+    {
+      type: 'html',
+      value: `<span class="section-sidebar-title">${title}</span><span class="section-sidebar-text">${text}</span>`,
+      className: 'section-sidebar-head',
+    },
+  ];
+}
+
+// The Project Status sidebar, from the sync's _data/nav.json (the same list as the icon bar on each
+// page): a header saying what the section is, then each page with its icon, and the test suites under
+// Tests with their latest result. Falls back to the plain folder listing if there's no nav.json yet.
+function statusSidebar(items, docIds) {
+  let nav;
+  try {
+    nav = JSON.parse(fs.readFileSync(new URL('./docs/project-status/_data/nav.json', import.meta.url), 'utf8'));
+  } catch {
+    return items;
+  }
+  const docId = (p) => (p.href.replace(/\/$/, '') === '/project-status' ? 'project-status/index' : p.href.replace(/^\//, ''));
+  const exists = (p) => docIds.has(docId(p));
+  const page = (p, extra = {}) => ({type: 'doc', id: docId(p), label: p.label, className: `sidebar-icon sidebar-icon--status-${p.icon}`, ...extra});
+  return [
+    ...sectionHead('Project Status', 'Live GitHub activity for the Blue Core repositories: issues, pull requests, test runs and releases.'),
+    ...nav
+      .filter((p) => !p.group && exists(p))
+      .map((p) => {
+        const members = nav.filter((m) => m.group === p.id && exists(m));
+        if (!members.length) return page(p);
+        return {
+          type: 'category',
+          label: p.label,
+          link: {type: 'doc', id: docId(p)},
+          className: `sidebar-icon sidebar-icon--status-${p.icon}`,
+          items: members.map((m) => ({type: 'doc', id: docId(m), label: m.label, className: `status-result status-result--${m.status ?? 'none'}`})),
+        };
+      }),
+  ];
+}
+
+function withIcon(item) {
+  const dir = sectionDir(item);
+  if (!dir) return item;
+  const icon = SIDEBAR_ICONS[dir] ?? (item.type === 'category' ? 'folder' : 'page');
+  return {...item, className: [item.className, 'sidebar-icon', `sidebar-icon--${icon}`].filter(Boolean).join(' ')};
+}
+
 // Defaults target GitHub Pages; Docker sets SITE_URL/BASE_URL to serve at the root.
 const BASE_URL = process.env.BASE_URL ?? `/${REPO_NAME}/`;
 // Navbar activeBaseRegex is tested against the full path, base URL included ("/bluecore-dev-dashboard/…")
@@ -110,9 +188,18 @@ const config = {
               items.map((item) =>
                 item.type !== 'category' ? item : {...item, items: item.customProps?.hideItems ? [] : flatten(item.items)},
               );
-            const items = flatten(await defaultSidebarItemsGenerator(args));
+            if (args.item.dirName === 'project-status') {
+              return statusSidebar(await defaultSidebarItemsGenerator(args), new Set(args.docs.map((d) => d.id)));
+            }
+            if (args.item.dirName === 'guides') {
+              return [...sectionHead('Guides', 'How this site works: where its content comes from, the live GitHub data, and adding or changing docs.'), ...(await defaultSidebarItemsGenerator(args))];
+            }
+            // The docs sidebar leaves out the sections with their own sidebar (sidebars.js)
+            const items = flatten(await defaultSidebarItemsGenerator(args))
+              .filter((item) => !SEPARATE_SECTIONS.includes(sectionDir(item)))
+              .map(withIcon);
             if (!hasSection(STACK_DIR)) return items;
-            const stack = {type: 'link', label: 'Bluecore Stack: start here', href: STACK_URL, className: 'sidebar-featured'};
+            const stack = {type: 'link', label: 'Bluecore Stack: start here', href: STACK_URL, className: 'sidebar-featured sidebar-icon--stack'};
             const welcome = items.findIndex((item) => item.type === 'doc' && item.id === 'intro');
             return welcome === -1 ? [stack, ...items] : [...items.slice(0, welcome + 1), stack, ...items.slice(welcome + 1)];
           },
@@ -144,6 +231,11 @@ const config = {
       colorMode: {
         respectPrefersColorScheme: true,
       },
+      // Opening a sidebar section (by clicking it or by going to one of its pages) closes the other
+      // open sections at the same level, so only the current one stays expanded
+      docs: {
+        sidebar: {autoCollapseCategories: true},
+      },
       // Header and footer follow the Blue Core design in Figma (styles in src/css/custom.css).
       navbar: {
         logo: {
@@ -154,13 +246,27 @@ const config = {
           height: 35,
         },
         items: [
-          {to: '/', label: 'Docs', position: 'right', activeBaseRegex: activeRegex('$')},
-          ...ifSection(STACK_DIR, {to: STACK_URL, label: 'Bluecore Stack', position: 'right'}),
+          // Each link has an icon (className: navbar-icon + the icon's sidebar-icon--<name>, src/css/custom.css)
+          ...ifSection(STACK_DIR, {to: STACK_URL, label: 'Bluecore Stack', position: 'right', className: 'navbar-icon sidebar-icon--stack'}),
           // Not active on the Bluecore Stack pages, which have their own link
-          ...ifSection('blue-core-repos', {to: '/blue-core-repos', label: 'Repos', position: 'right', activeBaseRegex: activeRegex('blue-core-repos(?!/bluecore-stack)')}),
-          ...ifSection('blue-core-wiki', {to: '/blue-core-wiki', label: 'Wiki', position: 'right'}),
-          ...ifSection('project-status', {to: '/project-status', label: 'Status', position: 'right'}),
-          {href: 'https://github.com/blue-core-lod', label: 'GitHub', position: 'right'},
+          ...ifSection('blue-core-repos', {to: '/blue-core-repos', label: 'Repos', position: 'right', className: 'navbar-icon sidebar-icon--repos', activeBaseRegex: activeRegex('blue-core-repos(?!/bluecore-stack)')}),
+          ...ifSection('blue-core-wiki', {to: '/blue-core-wiki', label: 'Wiki', position: 'right', className: 'navbar-icon sidebar-icon--wiki'}),
+          // Project Status is a dashboard, not docs: set apart from the doc links by a divider
+          ...(hasSection('project-status')
+            ? [
+                {type: 'html', value: '<span class="navbar-divider" aria-hidden="true"></span>', position: 'right'},
+                {to: '/project-status', label: 'Project Status', position: 'right', className: 'navbar-icon sidebar-icon--status'},
+              ]
+            : []),
+          {href: 'https://github.com/blue-core-lod', label: 'GitHub', position: 'right', className: 'navbar-icon sidebar-icon--github'},
+          // Guides: a small "?" with a tooltip rather than a full link (the label shows in the phone menu)
+          ...ifSection('guides', {
+            to: '/guides',
+            html: '<span class="navbar-help-label">Guides</span>',
+            position: 'right',
+            className: 'navbar-help',
+            'aria-label': 'Guides: how this site works',
+          }),
         ],
       },
       // Rendered by src/theme/Footer (quick links, copyright line and the Blue Core icon).
@@ -169,7 +275,7 @@ const config = {
           {label: 'Docs', to: '/'},
           ...ifSection('blue-core-repos', {label: 'Repos', to: '/blue-core-repos'}),
           ...ifSection('blue-core-wiki', {label: 'Wiki', to: '/blue-core-wiki'}),
-          ...ifSection('project-status', {label: 'Status', to: '/project-status'}),
+          ...ifSection('project-status', {label: 'Project Status', to: '/project-status'}),
           ...ifSection('design', {label: 'Design', to: '/design'}),
           {label: 'GitHub', href: 'https://github.com/blue-core-lod'},
         ],

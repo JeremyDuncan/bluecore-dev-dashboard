@@ -102,6 +102,7 @@ To pull docs from **every repo in a GitHub organization** (or user account), add
     "includeForks": false,
     "includePrivate": false,
     "skipRepos": [],
+    "pinFirst": ["bluecore-stack"],
     "wikiSection": {"dir": "blue-core-wiki", "title": "Blue Core Wiki", "mainRepo": "bluecore_info", "position": 30}
   }
 ]
@@ -110,6 +111,8 @@ To pull docs from **every repo in a GitHub organization** (or user account), add
 **GitHub wikis:** `includeWikis: true` puts every repo wiki in the org into its own top-level section (`wikiSection`, here `/blue-core-wiki`). The `mainRepo` wiki fills the section and its Home page becomes the front page; other repos' wikis are sub-sections. For a single `readmes` entry with `files`, `"wiki": true` imports its wiki into a **Wiki** folder under that repo. The Home page becomes the front page, and wiki links (`[[Text|Page]]`, `./Page`, full wiki URLs) point at the imported pages. Repos without a wiki are skipped.
 
 `includeForks` is `false` (skip forks), `true`, or a list of fork names to include, e.g. `["marva_editor", "graph-toolbox"]` for Blue Core's own forks of upstream projects. The `projectStatus.issues` setting takes the same values.
+
+`pinFirst` lists repos to put at the top of the section's sidebar, in that order. The rest stay alphabetical after them.
 
 Keep `includePrivate: false` if the site is public. Your `GITHUB_TOKEN` can read private repos, and turning this on would publish their docs.
 

@@ -51,7 +51,7 @@ function itemLine(i) {
 // Front matter and imports every page shares: the sidebar stays visible although the pages aren't
 // listed in it, and the icon navigation sits at the top.
 // last_update is the sync date: the data is as fresh as the last sync (or live), never stale.
-const pageMeta = `hide_table_of_contents: true\ndisplayed_sidebar: docs\ncustom_edit_url: null\nlast_update:\n  date: ${new Date().toISOString().slice(0, 10)}`;
+const pageMeta = `hide_table_of_contents: true\ndisplayed_sidebar: status\ncustom_edit_url: null\nlast_update:\n  date: ${new Date().toISOString().slice(0, 10)}`;
 const navBlock = (id) =>
   `import StatusNav from '@site/src/components/ProjectStatus/StatusNav';\nimport nav from './_data/nav.json';\n\n<StatusNav pages={nav} current="${id}" />`;
 

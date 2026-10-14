@@ -305,8 +305,281 @@
   color: var(--bc-link);
 }
 
+/* The stack icon (sidebar-icon--stack, defined further down), as in the navbar */
+.sidebar-featured > .menu__link {
+  align-items: center;
+}
+
 .sidebar-featured > .menu__link::before {
-  content: '★';
+  content: '';
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin-right: 10px;
+  background-color: currentColor;
+  -webkit-mask: var(--sidebar-icon) no-repeat center / contain;
+  mask: var(--sidebar-icon) no-repeat center / contain;
+}
+
+/* Icons on the sidebar's top-level sections (the class comes from sidebarItemsGenerator in
+   docusaurus.config.js). Drawn as a mask in the text color, so they follow the theme and the
+   active/hover link color. Line icons in the style of Lucide. */
+.sidebar-icon > .menu__link::before,
+.sidebar-icon > .menu__list-item-collapsible > .menu__link::before {
+  content: '';
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin-right: 10px;
+  background-color: currentColor;
+  -webkit-mask: var(--sidebar-icon) no-repeat center / contain;
+  mask: var(--sidebar-icon) no-repeat center / contain;
+}
+
+.sidebar-icon > .menu__link,
+.sidebar-icon > .menu__list-item-collapsible > .menu__link {
+  align-items: center;
+}
+
+.sidebar-icon--home {
+  --sidebar-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 10.5 12 3l9 7.5'/%3E%3Cpath d='M5 9v12h14V9'/%3E%3Cpath d='M10 21v-6h4v6'/%3E%3C/svg%3E");
+}
+
+.sidebar-icon--guides {
+  --sidebar-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20'/%3E%3Cpath d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'/%3E%3C/svg%3E");
+}
+
+.sidebar-icon--status {
+  --sidebar-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 3v18h18'/%3E%3Cpath d='m7 15 4-4 3 3 5-6'/%3E%3C/svg%3E");
+}
+
+.sidebar-icon--repos {
+  --sidebar-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 3v12'/%3E%3Ccircle cx='18' cy='6' r='3'/%3E%3Ccircle cx='6' cy='18' r='3'/%3E%3Cpath d='M18 9a9 9 0 0 1-9 9'/%3E%3C/svg%3E");
+}
+
+.sidebar-icon--wiki {
+  --sidebar-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z'/%3E%3Cpath d='M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z'/%3E%3C/svg%3E");
+}
+
+.sidebar-icon--design {
+  --sidebar-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m12 19 7-7 3 3-7 7z'/%3E%3Cpath d='m18 13-1.5-7.5L2 2l3.5 14.5L13 18z'/%3E%3Cpath d='m2 2 7.6 7.6'/%3E%3Ccircle cx='11' cy='11' r='2'/%3E%3C/svg%3E");
+}
+
+.sidebar-icon--drive {
+  --sidebar-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M17.5 19H9a7 7 0 1 1 6.7-9h1.8a4.5 4.5 0 1 1 0 9z'/%3E%3C/svg%3E");
+}
+
+.sidebar-icon--box {
+  --sidebar-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 8 12 3 3 8v8l9 5 9-5z'/%3E%3Cpath d='m3 8 9 5 9-5'/%3E%3Cpath d='M12 13v8'/%3E%3C/svg%3E");
+}
+
+.sidebar-icon--code {
+  --sidebar-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m16 18 6-6-6-6'/%3E%3Cpath d='m8 6-6 6 6 6'/%3E%3C/svg%3E");
+}
+
+.sidebar-icon--folder {
+  --sidebar-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 6a2 2 0 0 1 2-2h4l2 3h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/%3E%3C/svg%3E");
+}
+
+.sidebar-icon--page {
+  --sidebar-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/%3E%3Cpath d='M14 2v6h6'/%3E%3C/svg%3E");
+}
+
+/* ---------- Project Status: a dashboard kept apart from the docs ---------- */
+
+/* Navbar: a divider between the doc links and Project Status, which gets a chart icon */
+.navbar-divider {
+  display: block;
+  width: 1px;
+  height: 22px;
+  margin: 0 10px;
+  background: var(--ifm-navbar-link-color);
+  opacity: 0.35;
+}
+
+/* In the phone menu the links are stacked, so the divider is a horizontal line */
+.navbar-sidebar .navbar-divider {
+  width: auto;
+  height: 1px;
+  margin: 8px 12px;
+}
+
+/* Navbar links with an icon (className "navbar-icon sidebar-icon--<name>" in docusaurus.config.js):
+   the same icon shapes as the sidebar, drawn in the link color */
+.navbar-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.navbar-icon::before {
+  content: '';
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  background-color: currentColor;
+  -webkit-mask: var(--sidebar-icon) no-repeat center / contain;
+  mask: var(--sidebar-icon) no-repeat center / contain;
+}
+
+/* Guides and Project Status sidebars: "Back to the docs", then a header saying what the section is */
+.section-sidebar-back > .menu__link {
+  align-items: center;
+  font-size: 14px;
+  color: var(--bc-meta);
+}
+
+.section-sidebar-back > .menu__link::before {
+  content: '';
+  width: 16px;
+  height: 16px;
   margin-right: 6px;
-  color: var(--bc-accent-blue);
+  background-color: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m15 18-6-6 6-6'/%3E%3C/svg%3E") no-repeat center / contain;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m15 18-6-6 6-6'/%3E%3C/svg%3E") no-repeat center / contain;
+}
+
+/* Docusaurus marks an external-looking link with an icon; this one is internal */
+.section-sidebar-back svg {
+  display: none;
+}
+
+.section-sidebar-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 8px 0 10px;
+  padding: 12px 12px 14px;
+  border-bottom: 1px solid var(--bc-sky-line, rgba(127, 127, 127, 0.3));
+}
+
+.section-sidebar-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--bc-link);
+}
+
+.section-sidebar-text {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--bc-meta);
+}
+
+/* Test suites under Tests: a dot with the latest result instead of an icon */
+.status-result > .menu__link {
+  align-items: center;
+}
+
+.status-result > .menu__link::before {
+  content: '';
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  margin-right: 10px;
+  border-radius: 50%;
+  background: var(--bc-stone, #9aa3ad);
+}
+
+.status-result--success > .menu__link::before {
+  background: var(--bc-ok, #1f9d55);
+}
+
+.status-result--failure > .menu__link::before {
+  background: var(--ifm-color-danger);
+}
+
+.sidebar-icon--status-overview {
+  --sidebar-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='3.5' width='7' height='7' rx='1.5'/%3E%3Crect x='13.5' y='3.5' width='7' height='7' rx='1.5'/%3E%3Crect x='3.5' y='13.5' width='7' height='7' rx='1.5'/%3E%3Crect x='13.5' y='13.5' width='7' height='7' rx='1.5'/%3E%3C/svg%3E");
+}
+
+.sidebar-icon--status-board {
+  --sidebar-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='4' width='4.5' height='15' rx='1'/%3E%3Crect x='9.75' y='4' width='4.5' height='9' rx='1'/%3E%3Crect x='16' y='4' width='4.5' height='12' rx='1'/%3E%3C/svg%3E");
+}
+
+.sidebar-icon--status-issues {
+  --sidebar-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='8.5'/%3E%3Ccircle cx='12' cy='12' r='2' fill='black'/%3E%3C/svg%3E");
+}
+
+.sidebar-icon--status-pulls {
+  --sidebar-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='6' cy='5.5' r='2.2'/%3E%3Ccircle cx='6' cy='18.5' r='2.2'/%3E%3Ccircle cx='18' cy='18.5' r='2.2'/%3E%3Cpath d='M6 7.7v8.6M18 16.3V9.5a3 3 0 0 0-3-3h-4'/%3E%3Cpath d='M13 4.2l-2.3 2.3 2.3 2.3'/%3E%3C/svg%3E");
+}
+
+.sidebar-icon--status-drift {
+  --sidebar-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8h13M14 4.5L17.5 8 14 11.5'/%3E%3Cpath d='M20 16H9M12 12.5L8.5 16l3.5 3.5'/%3E%3C/svg%3E");
+}
+
+.sidebar-icon--status-tests {
+  --sidebar-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 3.5h6M10 3.5v6.2L4.8 18.4A1.5 1.5 0 0 0 6.1 20.5h11.8a1.5 1.5 0 0 0 1.3-2.1L14 9.7V3.5'/%3E%3Cpath d='M7.4 14.5h9.2'/%3E%3C/svg%3E");
+}
+
+.sidebar-icon--status-releases {
+  --sidebar-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20.3 13.3l-7 7a1.6 1.6 0 0 1-2.3 0L3.5 12.8V3.5h9.3l7.5 7.5a1.6 1.6 0 0 1 0 2.3z'/%3E%3Ccircle cx='8' cy='8' r='1.4' fill='black'/%3E%3C/svg%3E");
+}
+
+/* Icons not used by a sidebar section: Bluecore Stack (navbar and the featured sidebar link) and GitHub */
+.sidebar-icon--stack {
+  --sidebar-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m12 2 10 5-10 5L2 7z'/%3E%3Cpath d='m2 17 10 5 10-5'/%3E%3Cpath d='m2 12 10 5 10-5'/%3E%3C/svg%3E");
+}
+
+.sidebar-icon--github {
+  --sidebar-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black'%3E%3Cpath d='M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56v-1.97c-3.2.7-3.87-1.54-3.87-1.54-.52-1.33-1.28-1.69-1.28-1.69-1.04-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.76 2.7 1.25 3.36.96.1-.75.4-1.25.73-1.54-2.56-.29-5.25-1.28-5.25-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.41-2.7 5.38-5.27 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z'/%3E%3C/svg%3E");
+}
+
+/* Guides: a "?" in the navbar with a tooltip (the label is only shown in the phone menu) */
+.navbar-help {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  --sidebar-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3'/%3E%3Cpath d='M12 17h.01'/%3E%3C/svg%3E");
+}
+
+.navbar-help::before {
+  content: '';
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  background-color: currentColor;
+  -webkit-mask: var(--sidebar-icon) no-repeat center / contain;
+  mask: var(--sidebar-icon) no-repeat center / contain;
+}
+
+.navbar__items .navbar-help-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.navbar-sidebar .navbar-help::before {
+  margin-right: 6px;
+}
+
+.navbar__items .navbar-help::after {
+  content: 'Guides: how this site works, where its content comes from, the live GitHub data, and how to add or change docs.';
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 10;
+  width: 260px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #0d1b2e;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+  white-space: normal;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s;
+  pointer-events: none;
+}
+
+.navbar__items .navbar-help:hover::after,
+.navbar__items .navbar-help:focus-visible::after {
+  opacity: 1;
+  visibility: visible;
 }

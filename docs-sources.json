@@ -80,6 +80,9 @@
       ],
       "includePrivate": false,
       "skipRepos": [],
+      "pinFirst": [
+        "bluecore-stack"
+      ],
       "enabled": true,
       "wikiSection": {
         "dir": "blue-core-wiki",
