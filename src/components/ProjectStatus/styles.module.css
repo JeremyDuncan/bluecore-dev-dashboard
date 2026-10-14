@@ -923,3 +923,134 @@
   color: var(--bc-meta);
   font-size: 12px;
 }
+
+/* ---------- Pull Requests ---------- */
+.summaryButton {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.summaryButton:hover strong,
+.summaryButton:focus-visible strong {
+  text-decoration: underline;
+}
+
+/* Stale PR: no update for the stale period */
+.staleRow td:first-child {
+  box-shadow: inset 3px 0 0 var(--bc-warning);
+}
+
+.warnText {
+  color: #b7791f;
+}
+
+[data-theme='dark'] .warnText {
+  color: var(--bc-warning);
+}
+
+.added {
+  color: var(--bc-ok);
+}
+
+.removed {
+  color: var(--bc-error);
+}
+
+/* ---------- Version Drift ---------- */
+.driftList {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 24px;
+  padding: 0;
+  list-style: none;
+}
+
+.driftCard {
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--bc-sky-line);
+  border-left-width: 4px;
+  border-radius: 8px;
+  background: var(--bc-surface);
+}
+
+.drift_ok {
+  border-left-color: var(--bc-ok);
+}
+
+.drift_warning {
+  border-left-color: var(--bc-warning);
+}
+
+.drift_behind {
+  border-left-color: var(--bc-error);
+}
+
+.drift_unknown {
+  border-left-color: var(--bc-stone);
+}
+
+.driftHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.driftName {
+  color: var(--bc-heading);
+  font-size: 16px;
+}
+
+.driftSummary {
+  margin: 6px 0 8px;
+}
+
+.driftFacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: 0;
+  color: var(--bc-meta);
+  font-size: 13px;
+}
+
+.driftFacts code {
+  font-size: 12px;
+}
+
+.driftCommits {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: var(--bc-meta);
+  font-size: 13px;
+}
+
+.badText {
+  color: var(--bc-error);
+}
+
+/* "check": needs a look (orange) */
+.pill_warning {
+  background: rgba(244, 140, 6, 0.18);
+  color: #b45309;
+}
+
+[data-theme='dark'] .pill_warning {
+  color: #ffb257;
+}
+
+.driftCard.drift_warning {
+  border-left-color: #f48c06;
+}
+
+.driftTags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}

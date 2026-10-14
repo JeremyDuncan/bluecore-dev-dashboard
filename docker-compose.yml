@@ -19,6 +19,9 @@ x-app: &app
     - .:/app
     - /app/node_modules # keep the container's node_modules, not the host's
     - /app/mcp/node_modules
+    # Docusaurus's generated files hold absolute paths (/app/… here, /Users/… on the host), so the
+    # container keeps its own copy: a build on the host can't break the running dev server
+    - /app/.docusaurus
     # Local repos referenced as "/sources/<repo>" in docs-sources.json
     - ${SOURCES_DIR:-../..}:/sources:ro
     # Box Drive folder, for "boxFolders" in docs-sources.json (set BOX_DIR in .env)
@@ -33,7 +36,8 @@ services:
   # MCP server: lets AI agents search and read the docs (tools: search_docs, read_doc, list_docs)
   mcp:
     <<: *app
-    command: ["node", "mcp/server.mjs", "--http"]
+    # --watch: restarts when the server's code (mcp/*.mjs) changes, so code edits show up without a restart
+    command: ["node", "--watch", "mcp/server.mjs", "--http"]
     environment:
       BASE_URL: /
       DOCS_SITE_URL: ${DOCS_SITE_URL:-http://localhost:3000} # links in search results point here

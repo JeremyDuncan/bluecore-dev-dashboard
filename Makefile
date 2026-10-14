@@ -34,7 +34,7 @@ mcp:       ## Only the MCP server for AI agents (http://localhost:3001/mcp)
 	docker compose up --build --renew-anon-volumes mcp
 
 chat:      ## Only the "Ask the docs" chat helper (make up / make prod start it too) → http://localhost:3002
-	node chat/server.mjs
+	node --watch chat/server.mjs
 
 shell:     ## Shell inside the dev container
 	docker compose run --rm docs bash

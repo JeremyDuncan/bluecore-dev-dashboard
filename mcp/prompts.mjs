@@ -9,6 +9,30 @@ const user = (textBody) => ({messages: [{role: 'user', content: {type: 'text', t
 
 export function registerPrompts(server) {
   server.registerPrompt(
+    'diagnose_failure',
+    {
+      title: 'Diagnose a failing test',
+      description: "Why a test run failed (the integration suite or a repo's own tests) and how to fix it.",
+      argsSchema: {
+        suite: z.string().optional().describe('Suite or repo, e.g. "bluecore_api" (default: the integration suite)'),
+        test: z.string().optional().describe('Part of a test name, to focus on one test'),
+      },
+    },
+    ({suite, test}) =>
+      user(`Diagnose the latest failing run of ${suite ? `the "${suite}" tests` : 'the integration tests'}${test ? `, focusing on tests matching "${test}"` : ''}.
+
+1. Call diagnose_test_failure${suite ? ` with suite "${suite}"` : ''}${test ? ` and test "${test}"` : ''}.
+2. If it reports a flaky test or an infrastructure error (timeouts, registry or network errors), say so and stop: suggest a rerun.
+3. Otherwise read the failing test and the most relevant changed files with get_file. For integration failures, also check version_drift and the recent changes of the repo that started the run.
+4. Answer in Markdown:
+   - **Likely cause** (one or two sentences, with your confidence: high / medium / low)
+   - **Evidence** (the error line and the change that explains it, linked)
+   - **Suggested fix** (concrete: which file, what to change), or the next thing to check if you're unsure
+
+Don't invent details the tools didn't show.`),
+  );
+
+  server.registerPrompt(
     'standup_summary',
     {
       title: 'Standup summary',

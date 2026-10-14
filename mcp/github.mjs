@@ -6,12 +6,12 @@
 
 const GRAPHQL = 'https://api.github.com/graphql';
 
-function headers(token, accept = 'application/vnd.github+json') {
+export function headers(token, accept = 'application/vnd.github+json') {
   if (!token) throw new Error('GITHUB_TOKEN is not set');
   return {Authorization: `Bearer ${token}`, Accept: accept, 'User-Agent': 'bluecore-dev-dashboard'};
 }
 
-async function graphql(query, variables, token) {
+export async function graphql(query, variables, token) {
   const res = await fetch(GRAPHQL, {
     method: 'POST',
     headers: {...headers(token), 'Content-Type': 'application/json'},
@@ -128,7 +128,7 @@ export async function fetchProject({org, number}, token) {
   };
 }
 
-async function rest(url, token) {
+export async function rest(url, token) {
   const res = await fetch(url, {headers: headers(token)});
   if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
   return res.json();

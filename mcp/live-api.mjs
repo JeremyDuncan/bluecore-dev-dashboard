@@ -3,6 +3,8 @@
 //   GET /api/github/project/<org>/<number>   project board (only boards listed in docs-sources.json)
 //   GET /api/github/issues/<org>             open issues per repo (only the configured org)
 //   GET /api/github/releases/<org>           latest releases per repo (only the configured org)
+//   GET /api/github/pulls/<org>              open pull requests per repo (only the configured org)
+//   GET /api/github/drift/<org>              version drift between releases and the stack's images
 //   GET /api/github/ci/<org>/<repo>/<file>   integration test runs + parsed test results
 //
 // The GitHub token stays in this container; browsers only get the (cached) results.
@@ -10,6 +12,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {fetchIssues, fetchProject, fetchReleases, fetchWorkflowRuns, listRepos, logCacheFromSnapshot, testSuites} from './github.mjs';
+import {fetchVersionDrift} from './drift.mjs';
+import {fetchPullRequests} from './pulls.mjs';
 
 const SOURCES = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../docs-sources.json');
 const CACHE_MS = Number(process.env.LIVE_CACHE_SECONDS ?? 120) * 1000;
@@ -87,6 +91,10 @@ export async function handleLiveApi(req, res, pathname) {
       send(res, 200, (await integrationTestData(suite)).data, origin);
     } else if (kind === 'releases' && cfg.releases?.org === org) {
       send(res, 200, await cached(`releases:${org}`, () => fetchReleases(cfg.releases, token)), origin);
+    } else if (kind === 'pulls' && cfg.pullRequests && cfg.issues?.org === org) {
+      send(res, 200, (await pullsData()).data, origin);
+    } else if (kind === 'drift' && cfg.versionDrift && cfg.issues?.org === org) {
+      send(res, 200, (await driftData()).data, origin);
     } else {
       send(res, 404, {error: 'unknown endpoint'}, origin);
     }
@@ -134,6 +142,19 @@ export function issuesData() {
 export function releasesData() {
   const cfg = config();
   return liveOrSnapshot(`releases:${cfg.releases.org}`, () => fetchReleases(cfg.releases, process.env.GITHUB_TOKEN), `releases-${cfg.releases.org}.json`);
+}
+
+// Open PRs in the same repos as the issues page (private repos stay out)
+export function pullsData() {
+  const cfg = config();
+  const org = cfg.issues.org;
+  return liveOrSnapshot(`pulls:${org}`, () => fetchPullRequests({...cfg.issues, ...cfg.pullRequests, org}, process.env.GITHUB_TOKEN), `pulls-${org}.json`);
+}
+
+export function driftData() {
+  const cfg = config();
+  const org = cfg.issues.org;
+  return liveOrSnapshot(`drift:${org}`, () => fetchVersionDrift({org, ...cfg.versionDrift}, process.env.GITHUB_TOKEN), `drift-${org}.json`);
 }
 
 // Repos the tools may read: the same filter as the issues page (public, not archived, listed forks),

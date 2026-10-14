@@ -19,6 +19,7 @@ import {extractSection, findPage, getIndex, headings, search} from './docs-index
 import {handleLiveApi, prewarm} from './live-api.mjs';
 import {registerApiTools} from './api-tools.mjs';
 import {registerDocsHealthTool} from './docs-health.mjs';
+import {registerDiagnoseTool} from './diagnose.mjs';
 import {registerGitHubTools} from './github-tools.mjs';
 import {registerPrompts} from './prompts.mjs';
 
@@ -124,6 +125,7 @@ function createServer() {
   );
 
   registerGitHubTools(server);
+  registerDiagnoseTool(server);
   registerApiTools(server);
   registerDocsHealthTool(server);
   registerPrompts(server);

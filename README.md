@@ -126,6 +126,10 @@ The token needs the `read:project` scope: `gh auth refresh -s read:project`, the
 
 **Repo tests** (`projectStatus.repoTests`): the same health page for each repository's own test workflow (pytest, Jest, Vitest or Playwright), plus a **Tests** page comparing every suite. On the Tests pages a second row of links, each with a pass/fail dot and a tooltip, switches between suites.
 
+**Pull Requests** (`projectStatus.pullRequests`): every open PR in the org's repos, oldest first, with review status, CI result, merge conflicts and size. PRs with no update for `staleDays` (14) are highlighted.
+
+**Version Drift** (`projectStatus.versionDrift`): for each service the stack runs, its latest release compared with the `:latest` image the stack's compose files use (when it was built, unreleased commits, failed publishes), and whether services lock the latest `bluecore-models`.
+
 **What's New** (`projectStatus.releases`): the latest release of each repo as "Updates" cards (the Figma product-page box), then a release timeline with the full notes. Live like the other status pages.
 
 ### "Last updated" dates
@@ -208,7 +212,10 @@ ngrok http 8080 --basic-auth="bluecore:a-long-password"     # terminal 2 (passwo
 | `fork_changes` | For forks (marva_editor, graph-toolbox): what the fork changed vs its upstream project: commits ahead/behind, files added/modified by folder, commit messages, and a file's diff. |
 | `ci_status` | Latest GitHub Actions run of every workflow per repo (default branch), with the failed steps. |
 | `recent_changes` | Pull requests merged since a date (default 7 days), grouped by repo; bot dependency updates hidden by default. |
-| `integration_tests` | Integration test health: latest result, pass rate, durations, failures by stage, most-failing tests (still failing or fixed), triggers, recent runs. |
+| `integration_tests` | Test health of the integration suite or any repo's own tests: latest result, pass rate, durations, failures by stage, most-failing tests (still failing or fixed), triggers, recent runs. |
+| `diagnose_test_failure` | Evidence for why a test run failed: the failing tests' error output, what changed since the last passing run, whether a test is flaky, and hints from common error patterns. The calling agent turns it into a diagnosis (or use the `diagnose_failure` prompt). |
+| `list_pull_requests` | Open PRs across the org: age, review status, requested reviewers, CI, conflicts, stale ones. Filter by repo, author, reviewer or status. |
+| `version_drift` | Whether the stack runs each service's latest release (image build date, unreleased commits, failed publishes), and whether services lock the latest bluecore-models. |
 | `api_endpoints` / `api_endpoint` / `api_schema` | The Blue Core API from its live OpenAPI spec (`apiReference` in `docs-sources.json`): endpoint list, one endpoint in detail (parameters, body, responses, auth, example `curl`), and data models. |
 | `docs_health` | Cleanup list: stale pages, broken links between pages (missing pages or headings), near-empty pages, repos without docs. |
 

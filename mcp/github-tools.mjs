@@ -5,7 +5,7 @@
 import {z} from 'zod';
 import {ciMetrics, failureStage, formatDuration, triggerName} from './ci-metrics.mjs';
 import {fetchCiStatus, fetchFailedSteps, fetchFile, fetchForkChanges, fetchIssue, fetchMergedPRs, fetchTree, searchCode, searchIssues} from './github.mjs';
-import {allTestSuites, allowedRepos, githubConfig, integrationTestData, issuesData, projectData, releasesData} from './live-api.mjs';
+import {allTestSuites, allowedRepos, driftData, githubConfig, integrationTestData, issuesData, projectData, pullsData, releasesData} from './live-api.mjs';
 
 const text = (t) => ({content: [{type: 'text', text: t}]});
 const fail = (t) => ({...text(t), isError: true});
@@ -532,6 +532,91 @@ export function registerGitHubTools(server) {
         } catch (err) {
           return fail(err.message);
         }
+      },
+    );
+  }
+
+  // --- Open pull requests --------------------------------------------------------------------------
+  if (cfg.pullRequests) {
+    server.registerTool(
+      'list_pull_requests',
+      {
+        title: 'Open pull requests',
+        description:
+          `Open pull requests across the ${org} repos, oldest first: age, days since the last update (stale after ${cfg.pullRequests.staleDays ?? 14}), review status (needs review / changes requested / approved / draft), ` +
+          'requested reviewers, CI result of the latest commit, merge conflicts and size. Answers "what is waiting for review?", "what is stuck?", "what is ready to merge?".',
+        inputSchema: {
+          repo: z.string().optional().describe('Only this repo'),
+          author: z.string().optional().describe('Only PRs by this GitHub user'),
+          reviewer: z.string().optional().describe('Only PRs waiting for this reviewer'),
+          review: z.enum(['needs review', 'changes requested', 'approved', 'draft']).optional(),
+          stale_only: z.boolean().optional().describe('Only PRs with no update for the stale period'),
+          include_drafts: z.boolean().optional().describe('Include draft PRs (default false)'),
+        },
+        annotations: readOnly,
+      },
+      async ({repo, author, reviewer, review, stale_only, include_drafts}) => {
+        let result;
+        try {
+          result = await pullsData();
+        } catch (err) {
+          return fail(`Couldn't load pull requests: ${err.message}`);
+        }
+        const list = result.data.pulls.filter(
+          (p) =>
+            (!repo || p.repo === repo) &&
+            (!author || lower(p.author) === lower(author)) &&
+            (!reviewer || p.reviewers.some((r) => lower(r) === lower(reviewer))) &&
+            (!review || p.review === review) &&
+            (!stale_only || p.stale) &&
+            (include_drafts || review === 'draft' || !p.draft),
+        );
+        const ready = list.filter((p) => p.review === 'approved' && p.ci === 'passing' && !p.conflicts);
+        const lines = list.map(
+          (p) =>
+            `- ${p.repo}#${p.number}: ${p.title} — @${p.author} · ${p.review}${p.reviewers.length ? ` (waiting on ${p.reviewers.map((r) => `@${r}`).join(', ')})` : ''} · CI ${p.ci ?? 'none'}` +
+            `${p.conflicts ? ' · merge conflicts' : ''} · opened ${p.ageDays}d ago, updated ${p.idleDays}d ago${p.stale ? ' · STALE' : ''} · +${p.size.additions} −${p.size.deletions}\n  ${p.url}`,
+        );
+        return text(
+          `${list.length} open pull requests (${freshness(result)}). By review status: ${countBy(list, (p) => p.review) || 'none'}. ` +
+            `Ready to merge (approved, CI passing, no conflicts): ${ready.length}. Stale: ${list.filter((p) => p.stale).length}.\n\n${lines.join('\n') || 'None.'}`,
+        );
+      },
+    );
+  }
+
+  // --- Version drift --------------------------------------------------------------------------------
+  if (cfg.versionDrift) {
+    server.registerTool(
+      'version_drift',
+      {
+        title: 'Version drift between releases and the stack',
+        description:
+          "For each service the stack runs (API, workflows, Sinopia, Marva): its latest release, the image the stack's compose files use and when it was built, unreleased commits on the main branch, and whether the last image publish failed. " +
+          'For shared libraries (bluecore-models): the latest release versus what each service locks. Use it when something works in a repo but fails in the stack or the integration tests.',
+        inputSchema: {},
+        annotations: readOnly,
+      },
+      async () => {
+        let result;
+        try {
+          result = await driftData();
+        } catch (err) {
+          return fail(`Couldn't check version drift: ${err.message}`);
+        }
+        const d = result.data;
+        const services = d.services.map(
+          (s) =>
+            `- **${s.name}** (${s.repo}) — ${s.status.toUpperCase()}: ${s.summary}\n  image ${s.image ?? '?'} built ${day(s.imageBuiltAt) || '?'} · latest release ${s.release?.tag ?? 'none'} (${day(s.release?.publishedAt)})` +
+            (s.unreleased?.count ? ` · ${s.unreleased.count} unreleased commits on ${s.branch}: ${s.unreleased.commits.map((c) => c.message).slice(0, 3).join('; ')}` : '') +
+            (s.publish ? ` · last publish ${s.publish.conclusion ?? s.publish.status}` : ''),
+        );
+        const libs = d.libraries.map(
+          (l) =>
+            `- **${l.name}** — ${l.status.toUpperCase()}: ${l.summary} Latest ${l.release?.tag ?? '?'}; ` +
+            l.users.map((u) => `${u.repo}: ${u.inRelease ?? '?'} in its release ${u.releaseTag ?? ''}, ${u.onMain ?? '?'} on main`).join('; '),
+        );
+        return text(`Version drift (${freshness(result)}), stack: ${d.stackRepo}\n\nServices:\n${services.join('\n')}\n\nLibraries:\n${libs.join('\n') || 'none'}`);
       },
     );
   }

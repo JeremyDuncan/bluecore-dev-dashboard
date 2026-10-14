@@ -63,7 +63,9 @@ The sidebar shows **Project Status** as one link, to an overview page with a car
 | Grid | Overview |
 | Columns | Project board (local only) |
 | Circle with a dot | Repo Issues |
+| Branches | Pull Requests |
 | Flask | Tests: every test suite, with a second row of links to each one |
+| Two arrows | Version Drift |
 | Tag | What's New |
 
 - **Tooltips:** hover over or tab to an icon to see what the page shows, with counts from the last sync. On phones only the icons are shown.
@@ -166,6 +168,43 @@ On these pages, "Where failures happen" uses stages that fit unit-test workflows
 
 The sync reuses test logs it already parsed, from the previous snapshot, and the deploy keeps them between runs with `actions/cache`. As a result, only logs of new runs are downloaded: a cold sync of all ten suites takes about 3.5 minutes, a warm one about a minute. The live server loads repo test data when a page asks for it, not at startup.
 
+### Pull Requests (`pullRequests`)
+
+Every open pull request in the same repos as Repo Issues, oldest first:
+
+- **Review status:** needs review, changes requested, approved or draft. It comes from branch protection, or else each reviewer's latest review.
+- **CI:** the combined result of all checks on the PR's latest commit.
+- **Stale:** no update for `staleDays` (default 14). Stale PRs have a yellow edge.
+- **At the top:** counts of PRs waiting for review, with changes requested, ready to merge (approved, CI passing, no conflicts) and stale. Click one to filter.
+
+Drafts are hidden unless you tick **Show drafts**. The code is in `mcp/pulls.mjs`.
+
+### Version Drift (`versionDrift`)
+
+Answers "it works in my repo, why does it fail in the stack?". For each service in `services`:
+
+| Check | How |
+|---|---|
+| Which image the stack uses | The `image: ${VAR:-default}` lines in the stack's compose files (`stack.files`) |
+| When that image was built | The GitHub container registry, which serves public images without a token |
+| Latest release, unreleased commits | GitHub releases and a compare of the release tag with the branch |
+| Did the last publish fail? | The repo's `publish.yml` runs |
+
+Each service gets a status:
+
+- **Behind (red):** the stack pins an older tag, the last publish failed, or the image is older than the latest release.
+- **Check (yellow):** commits on the main branch aren't released yet, so the stack doesn't have them.
+- **Current (green):** the stack runs the latest release.
+
+`imageTracksBranch: true` (Marva) means the image is rebuilt on every push to `branch`. It's checked against that branch instead of against releases: when it's current, the card says the stack runs the latest release, and unreleased commits aren't listed, because the image already has them.
+
+For each library in `libraries` (bluecore-models), the page compares its latest release with the version each service locks in `uv.lock`: both in the service's latest release (what its image contains) and on its main branch.
+
+Each service card also shows the version it uses:
+
+- **Yellow:** older than the latest release.
+- **Red:** different from the version the other services use. That's the riskiest case, because the services share data through these models. The code is in `mcp/drift.mjs`.
+
 ### What's New (`releases`)
 
 The latest release of each repo as "Latest versions" cards, then a release timeline (25 at a time, filterable by repo).
@@ -208,6 +247,18 @@ curl -s http://localhost:3001/api/github/ci/blue-core-lod/bluecore-stack/bluecor
 ```
 
 ## The same data for AI agents
+
+`list_pull_requests` and `version_drift` use the same cached data as their pages.
+
+**Diagnosing a failing test:** `diagnose_test_failure` (in `mcp/diagnose.mjs`) collects the evidence for a failed run. An MCP tool can't reason on its own, so the agent that calls it writes the diagnosis. The tool returns:
+
+- the failing tests' error output (pytest tracebacks, Jest, Vitest or Playwright errors), or the failed step's error lines for lint, type check and build failures;
+- the commits and files changed since the last passing run, or a note that it passed on the same commit (flaky or external);
+- each failing test's history, and whether it passed in another run of the same commit;
+- hints from common error patterns: import errors, unreachable services, authentication, database, assertions, infrastructure limits.
+
+In Claude Code, the `/mcp__docs__diagnose_failure` prompt runs it, reads the relevant files and writes the likely cause, the evidence and a fix.
+
 
 The MCP tools `project_board`, `list_issues`, `list_releases` and `integration_tests` use the same cached data as the pages. `integration_tests` covers every suite: pass a `suite` such as `bluecore_api` or `marva_editor (unit)`. When GitHub can't be reached they fall back to the snapshot and say so in their answer. Other GitHub tools (`get_issue`, `search_issues`, `ci_status`, `search_code`, `fork_changes`, …) call GitHub directly. The full list is in the repo `README.md`.
 

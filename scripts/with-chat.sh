@@ -18,7 +18,7 @@ if curl -sf "http://localhost:$PORT/health" >/dev/null 2>&1; then
 elif ! command -v node >/dev/null 2>&1; then
   echo "[chat] Skipping Ask the docs: Node.js isn't installed on this machine (https://nodejs.org)"
 else
-  node chat/server.mjs >"$LOG_FILE" 2>&1 &
+  node --watch chat/server.mjs >"$LOG_FILE" 2>&1 & # restarts when its code changes
   echo $! >"$PID_FILE"
   started=1
   echo "[chat] Ask the docs helper started → http://localhost:$PORT (log: $LOG_FILE)"
