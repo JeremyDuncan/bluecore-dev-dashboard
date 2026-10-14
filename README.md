@@ -180,8 +180,8 @@ ngrok http 8080 --basic-auth="bluecore:a-long-password"     # terminal 2 (passwo
 1. Edit `GITHUB_ORG` / `REPO_NAME` at the top of `docusaurus.config.js`.
 2. Push this folder to a GitHub repo.
 3. Go to **Settings → Pages → Source: GitHub Actions**.
-4. Every push to `main` deploys (`.github/workflows/deploy.yml`), and so does a nightly run. Each deploy pulls the GitHub docs fresh (`npm run sync:readmes`) before building, so they're never stored in the repo.
-5. The public site has only public content: GitHub docs and the public Project Status pages (refreshed nightly). It has no Drive, Box, Figma or project board (those are local only), no live data and no chat. If the Integration Tests page has no test details, add a `STATUS_GITHUB_TOKEN` repo secret (any token with public read access).
+4. Every push to `main` deploys (`.github/workflows/deploy.yml`), and so does an hourly run. Each deploy pulls the GitHub docs fresh (`npm run sync:readmes`) before building, so they're never stored in the repo.
+5. The public site has only public content: GitHub docs and the public Project Status pages (refreshed hourly). It has no Drive, Box, Figma or project board (those are local only), no live data and no chat. If the Integration Tests page has no test details, add a `STATUS_GITHUB_TOKEN` repo secret (any token with public read access).
 
 ## Using your AI agent
 - `STYLE_GUIDE.md` sets the rules every agent-written page must follow.

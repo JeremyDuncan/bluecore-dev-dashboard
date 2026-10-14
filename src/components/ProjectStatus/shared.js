@@ -60,7 +60,7 @@ export function LiveBadge({live, error, fetchedAt, sourceUrl, sourceLabel}) {
     <div className={styles.statusBar}>
       <span
         className={`${styles.badge} ${live ? styles.badgeLive : liveEnabled ? styles.badgeSnapshot : ''}`}
-        title={liveEnabled ? (error ?? undefined) : 'Refreshed from GitHub every night'}
+        title={liveEnabled ? (error ?? undefined) : 'Refreshed from GitHub every hour'}
         suppressHydrationWarning
       >
         <span className={styles.dot} aria-hidden="true" />

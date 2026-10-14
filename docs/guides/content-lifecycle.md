@@ -12,7 +12,7 @@ This page explains where each part of the site comes from, which command refresh
 | **Hand-written** | `docs/guides/`, `docs/intro.md` | Yes | Editing the file |
 | **Pulled from GitHub** | `docs/blue-core-repos/`, `docs/blue-core-wiki/` | **No** | Every `make up`, `make prod`, `make sync` and GitHub Pages deploy |
 | **Local only** | `docs/google-drive/`, `docs/box/`, `docs/design/` (Figma) | **No** | `make up` / `make prod` / `make sync`, from files on your machine |
-| **Live** | Project board, Repo Issues, Integration Tests, What's New (`docs/project-status/`) | **No** | The browser, every 5 minutes. On the public site, the nightly deploy, without the private board. See [Live GitHub data](./live-github-data.md). |
+| **Live** | Project board, Repo Issues, Integration Tests, What's New (`docs/project-status/`) | **No** | The browser, every 5 minutes. On the public site, the hourly deploy, without the private board. See [Live GitHub data](./live-github-data.md). |
 
 Only hand-written pages are in git. Everything else is rebuilt on each machine from its source, and `.gitignore` covers every generated folder, so internal content can't be committed by accident.
 
@@ -89,12 +89,12 @@ The `prod` images include your local-only content (Drive, Box, Figma, the privat
 
 ## The public GitHub Pages site
 
-`.github/workflows/deploy.yml` runs on every push to `main` and nightly. It:
+`.github/workflows/deploy.yml` runs on every push to `main` and every hour. It:
 
 1. pulls the GitHub repo docs and wikis (`npm run sync:readmes`), public repos only;
 2. builds with `LIVE_API_URL=''` and `CHAT_API_URL=''`, so there is no live data and no chat box.
 
-It also builds the Project Status pages with `PUBLIC_BUILD=1`, which leaves out the private project board. Drive, Box and Figma aren't on the CI machine, so the public site has no trace of them. The nightly run is how the public site picks up changes to repo docs and wikis.
+It also builds the Project Status pages with `PUBLIC_BUILD=1`, which leaves out the private project board. Drive, Box and Figma aren't on the CI machine, so the public site has no trace of them. The hourly run is how the public site picks up changes to repo docs and wikis.
 
 ## Which command do I need?
 
@@ -108,7 +108,7 @@ It also builds the Project Status pages with `PUBLIC_BUILD=1`, which leaves out 
 | Add or remove the Figma design notes | Add or remove `docs/design/`, then restart `make up` |
 | See a new project board or workflow | Add it to `docs-sources.json`, then `make sync` |
 | Update my local production site | `make prod` |
-| Update the public site | Push to `main`, or wait for the nightly deploy |
+| Update the public site | Push to `main`, or wait for the hourly deploy |
 
 ## Related
 

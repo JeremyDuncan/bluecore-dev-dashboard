@@ -15,7 +15,7 @@ Add an entry to `docs-sources.json`:
 { "repo": "my-org/my-repo", "path": "README.md", "slug": "my-repo", "title": "My Repo" }
 ```
 
-Then run `make sync` locally. The public site picks it up on its next deploy (every push to `main`, and nightly).
+Then run `make sync` locally. The public site picks it up on its next deploy (every push to `main`, and hourly).
 
 ## Commands
 

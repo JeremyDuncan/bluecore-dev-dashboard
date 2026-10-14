@@ -3,9 +3,10 @@ name: Deploy docs
 on:
   push:
     branches: [main]
-  # Nightly: the GitHub docs aren't committed, so re-deploying is how the site picks up their changes
+  # Hourly (at :17, away from GitHub's busy top of the hour): the GitHub docs and Project Status data
+  # aren't committed, so re-deploying is how the public site picks up their changes
   schedule:
-    - cron: '0 6 * * *'
+    - cron: '17 * * * *'
   workflow_dispatch:
 
 permissions:

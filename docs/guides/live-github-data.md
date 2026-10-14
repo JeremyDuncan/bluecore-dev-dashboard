@@ -38,7 +38,7 @@ Every Project Status page has a badge at the top:
 
 - **Live · updated N min ago:** the last request to the MCP server worked.
 - **Snapshot from the last sync · date:** the live request failed. **Hover over the badge** to see the error.
-- **As of date:** this site has no live API (the public GitHub Pages site). The data is from the last deploy, which runs nightly.
+- **As of date:** this site has no live API (the public GitHub Pages site). The data is from the last deploy, which runs every hour.
 
 ### Freshness
 
@@ -72,7 +72,7 @@ The sidebar shows **Project Status** as one link, to an overview page with a car
 
 ### Public site vs. local
 
-The GitHub Pages deploy runs the sync with `PUBLIC_BUILD=1`, which **leaves out project boards** because they're private. Repo Issues, Integration Tests and What's New are built from public repos and are on the public site, refreshed nightly. To publish a board that is public, add `"public": true` to its entry in `projects`.
+The GitHub Pages deploy runs the sync with `PUBLIC_BUILD=1`, which **leaves out project boards** because they're private. Repo Issues, Integration Tests and What's New are built from public repos and are on the public site, refreshed hourly. To publish a board that is public, add `"public": true` to its entry in `projects`.
 
 ### Project board (`projects`)
 
@@ -155,7 +155,7 @@ The latest release of each repo as "Latest versions" cards, then a release timel
 |---|---|---|
 | `make up` (dev, :3000) | `http://localhost:3001/api/github/...` | `mcp` container directly |
 | `make prod` (:8080) | `/api/live/github/...` (same address) | nginx forwards to `mcp-prod:3001`, so it also works through ngrok |
-| GitHub Pages | Nothing (`LIVE_API_URL=''`) | Data from the nightly deploy. The project board is left out (`PUBLIC_BUILD=1`). |
+| GitHub Pages | Nothing (`LIVE_API_URL=''`) | Data from the last deploy (hourly). The project board is left out (`PUBLIC_BUILD=1`). |
 
 The page reads the address from `customFields.liveApiUrl` in `docusaurus.config.js` (set with `LIVE_API_URL`).
 
