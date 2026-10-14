@@ -101,7 +101,7 @@ function Bars({rows, color}) {
 }
 
 export default function IntegrationTests({snapshot, apiPath, kind = 'integration'}) {
-  const {data, live, error} = useLiveData(snapshot, apiPath);
+  const {data, live, error, refresh, refreshing} = useLiveData(snapshot, apiPath);
   const m = useMemo(() => ciMetrics(data), [data]);
   const [showAll, setShowAll] = useState(false);
 
@@ -125,7 +125,7 @@ export default function IntegrationTests({snapshot, apiPath, kind = 'integration
 
   return (
     <div className={styles.wrapper}>
-      <LiveBadge live={live} error={error} fetchedAt={data.fetchedAt} sourceUrl={`https://github.com/${data.org}/${data.repo}/actions/workflows/${data.workflow}`} sourceLabel="Open in GitHub Actions" />
+      <LiveBadge live={live} error={error} refresh={refresh} refreshing={refreshing} fetchedAt={data.fetchedAt} sourceUrl={`https://github.com/${data.org}/${data.repo}/actions/workflows/${data.workflow}`} sourceLabel="Open in GitHub Actions" />
 
       <div className={styles.kpis}>
         {latest && (

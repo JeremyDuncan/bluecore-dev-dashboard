@@ -46,6 +46,7 @@ Every Project Status page has a badge at the top:
 |---|---|---|
 | Browser refresh | 5 minutes | `REFRESH_MS` in `src/components/ProjectStatus/shared.js` |
 | Server cache | 2 minutes (failed requests aren't cached) | `LIVE_CACHE_SECONDS` |
+| **Refresh** button | On demand: skips the server cache (data fetched in the last 10 s is reused) | Next to the Live badge; only where the live API runs (local development), not on the public site |
 | Snapshot | Until the next sync (`make up` / `make prod` / `make sync`) | n/a |
 
 So live data is at most about 7 minutes old.

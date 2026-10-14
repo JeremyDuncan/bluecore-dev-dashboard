@@ -156,7 +156,7 @@ function compareEnvs(envs) {
   return a.services
     .map((r) => [r, b.services.find((x) => x.repo === r.repo && x.name === r.name)])
     .filter(([x, y]) => y && x.deployed !== y.deployed)
-    .map(([x, y]) => `${x.name}: ${a.name} runs ${x.deployed ?? '?'}, ${b.name} runs ${y.deployed ?? '?'}`);
+    .map(([x, y]) => `${x.name}: ${a.name} ${x.deployed ? `runs ${x.deployed}` : "doesn't report its version"}, ${b.name} ${y.deployed ? `runs ${y.deployed}` : "doesn't report its version"}`);
 }
 
 function Environments({data}) {
@@ -164,7 +164,12 @@ function Environments({data}) {
   if (!envs.length) return null;
   const names = envs[0].services.map((r) => r.name);
   const latestOf = (repo) => data.services.find((x) => x.repo === repo)?.release;
-  const libNames = [...new Set(envs.flatMap((e) => e.libraries.map((l) => `${l.name}|${l.viaRepo}`)))];
+  // Shared libraries (bluecore-models): one group each, with a row per service that uses it
+  const libGroups = [...new Set(envs.flatMap((e) => e.libraries.map((l) => l.name)))].map((name) => ({
+    name,
+    latest: data.libraries.find((l) => l.name === name)?.release,
+    users: [...new Map(envs.flatMap((e) => e.libraries.filter((l) => l.name === name).map((l) => [l.viaRepo, l.via]))).entries()],
+  }));
   const notes = envs.flatMap((e) => e.services.filter((r) => r.status !== 'ok').map((r) => ({env: e.name, ...r})));
   const comparison = compareEnvs(envs);
   return (
@@ -197,30 +202,36 @@ function Environments({data}) {
                 </tr>
               );
             })}
-            {libNames.map((key) => {
-              const [lib, via] = key.split('|');
-              const latest = data.libraries.find((l) => l.name === lib)?.release;
-              return (
-                <tr key={key}>
+          </tbody>
+          {libGroups.map((g) => (
+            <tbody key={g.name} className={styles.libGroup}>
+              <tr className={styles.libGroupHead}>
+                <td title="Shared library: the version each deployed service uses">{g.name}</td>
+                <td>{g.latest ? <a href={g.latest.url}>{g.latest.tag}</a> : '–'}</td>
+                {envs.map((e) => (
+                  <td key={e.name} />
+                ))}
+              </tr>
+              {g.users.map(([repo, via]) => (
+                <tr key={repo} className={styles.libUser}>
                   <td>
-                    {lib}
-                    <span className={styles.suiteKind}>in the deployed {via}</span>
+                    <span className={styles.libUserName}>used by {via}</span>
                   </td>
-                  <td>{latest ? <a href={latest.url}>{latest.tag}</a> : '–'}</td>
+                  <td />
                   {envs.map((e) => {
-                    const l = e.libraries.find((x) => x.name === lib && x.viaRepo === via);
+                    const l = e.libraries.find((x) => x.name === g.name && x.viaRepo === repo);
                     return (
                       <td
                         key={e.name}
-                        title={l ? `${via} ${l.viaVersion} locks ${lib} ${l.version ?? '?'}${l.mismatch ? `, not the same as the other services on ${e.name}` : ''}` : undefined}>
+                        title={l ? `${via} ${l.viaVersion} locks ${g.name} ${l.version ?? '?'}${l.mismatch ? `, not the same as the other services on ${e.name}` : ''}` : `${via} doesn't report its version on ${e.name}`}>
                         {l ? <span className={`${styles.pill} ${styles[`pill_${CELL[l.status]}`] ?? ''}`}>{l.mismatch ? `${l.version} · differs` : (l.version ?? 'unknown')}</span> : '–'}
                       </td>
                     );
                   })}
                 </tr>
-              );
-            })}
-          </tbody>
+              ))}
+            </tbody>
+          ))}
         </table>
       </div>
       <ul className={styles.envNotes}>
@@ -267,12 +278,12 @@ function Environments({data}) {
 }
 
 export default function VersionDrift({snapshot, apiPath}) {
-  const {data, live, error} = useLiveData(snapshot, apiPath);
+  const {data, live, error, refresh, refreshing} = useLiveData(snapshot, apiPath);
   const rows = [...data.services, ...data.libraries];
   const off = rows.filter((r) => r.status !== 'ok').length;
   return (
     <div className={styles.wrapper}>
-      <LiveBadge live={live} error={error} fetchedAt={data.fetchedAt} sourceUrl={`https://github.com/${data.org}/${data.stackRepo}`} sourceLabel={`${data.stackRepo} in GitHub`} />
+      <LiveBadge live={live} error={error} refresh={refresh} refreshing={refreshing} fetchedAt={data.fetchedAt} sourceUrl={`https://github.com/${data.org}/${data.stackRepo}`} sourceLabel={`${data.stackRepo} in GitHub`} />
       <p className={styles.total}>
         <strong>{off ? `${off} of ${rows.length} need attention` : `All ${rows.length} are current`}</strong>. When something works in its own repo but fails in the stack or the integration tests, check here first.
       </p>

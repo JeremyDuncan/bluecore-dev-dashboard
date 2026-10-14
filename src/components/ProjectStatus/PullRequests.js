@@ -14,7 +14,7 @@ function Pill({tone, children}) {
 }
 
 export default function PullRequests({snapshot, apiPath}) {
-  const {data, live, error} = useLiveData(snapshot, apiPath);
+  const {data, live, error, refresh, refreshing} = useLiveData(snapshot, apiPath);
   const [query, setQuery] = useState('');
   const [repo, setRepo] = useState('');
   const [author, setAuthor] = useState('');
@@ -43,7 +43,7 @@ export default function PullRequests({snapshot, apiPath}) {
 
   return (
     <div className={styles.wrapper}>
-      <LiveBadge live={live} error={error} fetchedAt={data.fetchedAt} sourceUrl={`https://github.com/pulls?q=is%3Aopen+is%3Apr+org%3A${data.org}`} sourceLabel="Open PRs in GitHub" />
+      <LiveBadge live={live} error={error} refresh={refresh} refreshing={refreshing} fetchedAt={data.fetchedAt} sourceUrl={`https://github.com/pulls?q=is%3Aopen+is%3Apr+org%3A${data.org}`} sourceLabel="Open PRs in GitHub" />
 
       <ul className={styles.summary} aria-label="Pull requests by status">
         <li>

@@ -7,7 +7,7 @@ import styles from './styles.module.css';
 const day = (iso) => new Date(iso).toLocaleDateString(undefined, {year: 'numeric', month: 'short', day: 'numeric'});
 
 export default function RepoIssues({snapshot, apiPath}) {
-  const {data, live, error} = useLiveData(snapshot, apiPath);
+  const {data, live, error, refresh, refreshing} = useLiveData(snapshot, apiPath);
   const [query, setQuery] = useState('');
   const [repo, setRepo] = useState('');
   const [label, setLabel] = useState('');
@@ -41,6 +41,8 @@ export default function RepoIssues({snapshot, apiPath}) {
       <LiveBadge
         live={live}
         error={error}
+        refresh={refresh}
+        refreshing={refreshing}
         fetchedAt={data.fetchedAt}
         sourceUrl={`https://github.com/orgs/${data.org}/repositories`}
         sourceLabel="Repositories in GitHub"

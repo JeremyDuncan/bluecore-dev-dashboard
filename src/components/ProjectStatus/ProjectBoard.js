@@ -68,7 +68,7 @@ function Column({name, items, collapsible}) {
 }
 
 export default function ProjectBoard({snapshot, apiPath}) {
-  const {data, live, error} = useLiveData(snapshot, apiPath);
+  const {data, live, error, refresh, refreshing} = useLiveData(snapshot, apiPath);
   const [query, setQuery] = useState('');
   const [repo, setRepo] = useState('');
   const [assignee, setAssignee] = useState('');
@@ -107,7 +107,7 @@ export default function ProjectBoard({snapshot, apiPath}) {
 
   return (
     <div className={styles.wrapper}>
-      <LiveBadge live={live} error={error} fetchedAt={data.fetchedAt} sourceUrl={data.url} sourceLabel="Open the board in GitHub" />
+      <LiveBadge live={live} error={error} refresh={refresh} refreshing={refreshing} fetchedAt={data.fetchedAt} sourceUrl={data.url} sourceLabel="Open the board in GitHub" />
 
       <ul className={styles.summary} aria-label="Items per status">
         {columns.map((c) => (

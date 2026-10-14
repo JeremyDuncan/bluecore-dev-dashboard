@@ -11,7 +11,7 @@ const day = (iso) => new Date(iso).toLocaleDateString(undefined, {year: 'numeric
 const tidy = (h) => h.replace(/\s+by @\S+ in (https:\/\/\S+\/pull\/(\d+))\s*$/, ' (#$2)').replace(/\s+by @\S+\s*$/, '');
 
 export default function WhatsNew({snapshot, apiPath}) {
-  const {data, live, error} = useLiveData(snapshot, apiPath);
+  const {data, live, error, refresh, refreshing} = useLiveData(snapshot, apiPath);
   const [repo, setRepo] = useState('');
   const [shown, setShown] = useState(PAGE);
 
@@ -25,7 +25,7 @@ export default function WhatsNew({snapshot, apiPath}) {
 
   return (
     <div className={styles.wrapper}>
-      <LiveBadge live={live} error={error} fetchedAt={data.fetchedAt} />
+      <LiveBadge live={live} error={error} refresh={refresh} refreshing={refreshing} fetchedAt={data.fetchedAt} />
 
       <p className={styles.sectionTitle}>Latest versions</p>
       <div className={styles.updatesGrid}>

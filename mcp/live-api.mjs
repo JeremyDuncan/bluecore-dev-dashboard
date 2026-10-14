@@ -7,6 +7,8 @@
 //   GET /api/github/drift/<org>              version drift between releases and the stack's images
 //   GET /api/github/ci/<org>/<repo>/<file>   integration test runs + parsed test results
 //
+// Results are cached for LIVE_CACHE_SECONDS; `?refresh=1` (the pages' Refresh button) skips the cache.
+//
 // The GitHub token stays in this container; browsers only get the (cached) results.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -42,9 +44,12 @@ function allowedOrigin(origin) {
   return extra.includes(origin) ? origin : null;
 }
 
-function cached(key, load) {
+const MIN_REFRESH_MS = 10 * 1000; // a forced refresh reuses anything fetched in the last 10s
+
+// `fresh`: ignore the cache (the Refresh button), unless the data is only seconds old
+function cached(key, load, fresh = false) {
   const hit = cache.get(key);
-  if (hit && Date.now() - hit.at < CACHE_MS) return hit.promise;
+  if (hit && Date.now() - hit.at < (fresh ? MIN_REFRESH_MS : CACHE_MS)) return hit.promise;
   const promise = load();
   cache.set(key, {at: Date.now(), promise});
   promise.catch(() => cache.delete(key)); // don't cache failures
@@ -76,25 +81,26 @@ export async function handleLiveApi(req, res, pathname) {
   }
 
   const [, , , kind, org, number] = pathname.split('/'); // '', 'api', 'github', kind, org, number
+  const fresh = new URL(req.url, 'http://x').searchParams.has('refresh');
   try {
     if (kind === 'project') {
       const project = (cfg.projects ?? []).find((p) => p.org === org && String(p.number) === number);
       if (!project) return send(res, 404, {error: 'unknown project'}, origin), true;
-      send(res, 200, await cached(`project:${org}/${number}`, () => fetchProject(project, token)), origin);
+      send(res, 200, await cached(`project:${org}/${number}`, () => fetchProject(project, token), fresh), origin);
     } else if (kind === 'issues' && cfg.issues?.org === org) {
-      send(res, 200, await cached(`issues:${org}`, () => fetchIssues(cfg.issues, token)), origin);
+      send(res, 200, await cached(`issues:${org}`, () => fetchIssues(cfg.issues, token), fresh), origin);
     } else if (kind === 'ci') {
       // /api/github/ci/<org>/<repo>/<workflow file>
       const [, , , , , repo, workflow] = pathname.split('/');
       const suite = testSuites(cfg).find((s) => s.repo === repo && s.workflow === workflow && s.org === org);
       if (!suite) return send(res, 404, {error: 'unknown workflow'}, origin), true;
-      send(res, 200, (await integrationTestData(suite)).data, origin);
+      send(res, 200, (await integrationTestData(suite, {fresh})).data, origin);
     } else if (kind === 'releases' && cfg.releases?.org === org) {
-      send(res, 200, await cached(`releases:${org}`, () => fetchReleases(cfg.releases, token)), origin);
+      send(res, 200, await cached(`releases:${org}`, () => fetchReleases(cfg.releases, token), fresh), origin);
     } else if (kind === 'pulls' && cfg.pullRequests && cfg.issues?.org === org) {
-      send(res, 200, (await pullsData()).data, origin);
+      send(res, 200, (await pullsData({fresh})).data, origin);
     } else if (kind === 'drift' && cfg.versionDrift && cfg.issues?.org === org) {
-      send(res, 200, (await driftData()).data, origin);
+      send(res, 200, (await driftData({fresh})).data, origin);
     } else {
       send(res, 404, {error: 'unknown endpoint'}, origin);
     }
@@ -113,10 +119,10 @@ export const githubConfig = config;
 
 // Live data (cached like the pages' API), or the snapshot from the last sync if GitHub can't be
 // reached. Returns {data, live, error?}.
-async function liveOrSnapshot(key, load, snapshotFile) {
+async function liveOrSnapshot(key, load, snapshotFile, fresh = false) {
   try {
     if (!process.env.GITHUB_TOKEN) throw new Error('GITHUB_TOKEN is not set');
-    return {data: await cached(key, load), live: true};
+    return {data: await cached(key, load, fresh), live: true};
   } catch (err) {
     try {
       return {data: JSON.parse(fs.readFileSync(path.join(SNAPSHOT_DIR, snapshotFile), 'utf8')), live: false, error: err.message};
@@ -145,16 +151,16 @@ export function releasesData() {
 }
 
 // Open PRs in the same repos as the issues page (private repos stay out)
-export function pullsData() {
+export function pullsData({fresh} = {}) {
   const cfg = config();
   const org = cfg.issues.org;
-  return liveOrSnapshot(`pulls:${org}`, () => fetchPullRequests({...cfg.issues, ...cfg.pullRequests, org}, process.env.GITHUB_TOKEN), `pulls-${org}.json`);
+  return liveOrSnapshot(`pulls:${org}`, () => fetchPullRequests({...cfg.issues, ...cfg.pullRequests, org}, process.env.GITHUB_TOKEN), `pulls-${org}.json`, fresh);
 }
 
-export function driftData() {
+export function driftData({fresh} = {}) {
   const cfg = config();
   const org = cfg.issues.org;
-  return liveOrSnapshot(`drift:${org}`, () => fetchVersionDrift({org, ...cfg.versionDrift}, process.env.GITHUB_TOKEN), `drift-${org}.json`);
+  return liveOrSnapshot(`drift:${org}`, () => fetchVersionDrift({org, ...cfg.versionDrift}, process.env.GITHUB_TOKEN), `drift-${org}.json`, fresh);
 }
 
 // Repos the tools may read: the same filter as the issues page (public, not archived, listed forks),
@@ -180,9 +186,9 @@ function seedLogCache(file) {
   }
 }
 // `suite` is an entry from testSuites(config())
-export function integrationTestData(suite) {
+export function integrationTestData(suite, {fresh} = {}) {
   seedLogCache(suite.dataFile);
-  return liveOrSnapshot(`ci:${suite.repo}/${suite.workflow}`, () => fetchWorkflowRuns(suite, process.env.GITHUB_TOKEN, logCache), suite.dataFile);
+  return liveOrSnapshot(`ci:${suite.repo}/${suite.workflow}`, () => fetchWorkflowRuns(suite, process.env.GITHUB_TOKEN, logCache), suite.dataFile, fresh);
 }
 
 export const allTestSuites = () => testSuites(config());

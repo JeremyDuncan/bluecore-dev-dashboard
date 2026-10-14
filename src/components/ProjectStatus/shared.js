@@ -1,5 +1,5 @@
 // Shared pieces for the Project Status pages: live data loading, the Live/Snapshot badge, labels.
-import React, {useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import styles from './styles.module.css';
 
@@ -7,34 +7,43 @@ const REFRESH_MS = 5 * 60 * 1000;
 
 // Starts with the snapshot written by the last sync, then switches to live data from the
 // MCP container (customFields.liveApiUrl) and refreshes it every 5 minutes. If the live API
-// isn't reachable (e.g. on GitHub Pages), the snapshot stays.
+// isn't reachable (e.g. on GitHub Pages), the snapshot stays. `refresh()` (the Refresh button) asks
+// the live API to skip its cache and fetch from GitHub now.
 export function useLiveData(snapshot, apiPath) {
   const {siteConfig} = useDocusaurusContext();
   const base = siteConfig.customFields?.liveApiUrl;
   const [state, setState] = useState({data: snapshot, live: false, error: null});
+  const [refreshing, setRefreshing] = useState(false);
+
+  const load = useCallback(
+    async (fresh = false) => {
+      try {
+        const res = await fetch(`${base.replace(/\/$/, '')}${apiPath}${fresh ? '?refresh=1' : ''}`);
+        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? `HTTP ${res.status}`);
+        const data = await res.json();
+        setState({data, live: true, error: null});
+      } catch (err) {
+        setState((s) => ({...s, live: false, error: err.message}));
+      }
+    },
+    [base, apiPath],
+  );
 
   useEffect(() => {
     if (!base || !apiPath) return undefined;
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const res = await fetch(`${base.replace(/\/$/, '')}${apiPath}`);
-        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? `HTTP ${res.status}`);
-        const data = await res.json();
-        if (!cancelled) setState({data, live: true, error: null});
-      } catch (err) {
-        if (!cancelled) setState((s) => ({...s, live: false, error: err.message}));
-      }
-    };
     load();
     const timer = setInterval(load, REFRESH_MS);
-    return () => {
-      cancelled = true;
-      clearInterval(timer);
-    };
-  }, [base, apiPath]);
+    return () => clearInterval(timer);
+  }, [base, apiPath, load]);
 
-  return state;
+  const refresh = useCallback(async () => {
+    if (!base || !apiPath) return;
+    setRefreshing(true);
+    await load(true);
+    setRefreshing(false);
+  }, [base, apiPath, load]);
+
+  return {...state, refresh: base && apiPath ? refresh : null, refreshing};
 }
 
 function timeAgo(iso) {
@@ -46,7 +55,7 @@ function timeAgo(iso) {
   return new Date(iso).toLocaleDateString();
 }
 
-export function LiveBadge({live, error, fetchedAt, sourceUrl, sourceLabel}) {
+export function LiveBadge({live, error, fetchedAt, sourceUrl, sourceLabel, refresh, refreshing}) {
   // No live API on this site (the public GitHub Pages build): the data is from the last deploy,
   // which is expected, so say when it's from rather than flagging it as a fallback.
   const liveEnabled = Boolean(useDocusaurusContext().siteConfig.customFields?.liveApiUrl);
@@ -70,6 +79,15 @@ export function LiveBadge({live, error, fetchedAt, sourceUrl, sourceLabel}) {
             ? `Snapshot from the last sync · ${new Date(fetchedAt).toLocaleString()}`
             : `As of ${new Date(fetchedAt).toLocaleString()}`}
       </span>
+      {refresh && (
+        <button type="button" className={styles.refreshButton} onClick={refresh} disabled={refreshing} title="Fetch the latest data from GitHub now">
+          <span className={refreshing ? styles.spinning : undefined} aria-hidden="true">
+            ↻
+          </span>
+          {refreshing ? 'Refreshing…' : 'Refresh'}
+        </button>
+      )}
+      <span className={styles.statusBarSpacer} />
       {sourceUrl && (
         <a className={styles.sourceLink} href={sourceUrl}>
           {sourceLabel} →
