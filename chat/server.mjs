@@ -156,7 +156,9 @@ async function ask(res, origin, {provider, model, question, sessionId}) {
     running--;
     if (!finished) {
       const hint = provider.loginHint?.(stderr);
-      send('error', {message: `${provider.name} exited (${code}).${hint ? ` ${hint}` : ''}`, detail: stderr.slice(-500)});
+      // A conversation reopened from the history that the CLI no longer has (cleared, or another machine)
+      const lost = sessionId && /no conversation|not found|session/i.test(stderr) ? ` ${provider.name} no longer has this conversation. Start a new chat to ask again.` : '';
+      send('error', {message: `${provider.name} exited (${code}).${hint ? ` ${hint}` : ''}${lost}`, detail: stderr.slice(-500)});
     }
     res.end();
   });

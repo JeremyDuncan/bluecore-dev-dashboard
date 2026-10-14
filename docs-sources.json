@@ -200,24 +200,28 @@
         {
           "name": "Blue Core API",
           "repo": "bluecore_api",
-          "imageVar": "BLUECORE_API_IMAGE"
+          "imageVar": "BLUECORE_API_IMAGE",
+          "health": "/api/health"
         },
         {
           "name": "Workflows (Airflow)",
           "repo": "bluecore-workflows",
-          "imageVar": "BLUECORE_WORKFLOWS_IMAGE"
+          "imageVar": "BLUECORE_WORKFLOWS_IMAGE",
+          "health": "/workflows/health"
         },
         {
           "name": "Sinopia",
           "repo": "sinopia_editor",
-          "imageVar": "SINOPIA_IMAGE"
+          "imageVar": "SINOPIA_IMAGE",
+          "health": "/sinopia/health"
         },
         {
           "name": "Marva",
           "repo": "marva_editor",
           "imageVar": "MARVA_IMAGE",
           "branch": "bluecore-main",
-          "imageTracksBranch": true
+          "imageTracksBranch": true,
+          "health": "/marva/health"
         }
       ],
       "libraries": [
@@ -231,7 +235,17 @@
           ]
         }
       ],
-      "_note": "Each service: its latest release vs the image the stack's compose files use (imageVar). imageTracksBranch: the image is rebuilt on every push to branch, not on releases. Libraries: latest release vs the version each service locks in uv.lock."
+      "_note": "Each service: its latest release vs the image the stack's compose files use (imageVar). imageTracksBranch: the image is rebuilt on every push to branch, not on releases. Libraries: latest release vs the version each service locks in uv.lock. environments: deployed sites; each service's health path must return JSON with \"version\".",
+      "environments": [
+        {
+          "name": "dev",
+          "url": "https://dev.bcld.info"
+        },
+        {
+          "name": "stage",
+          "url": "https://stage.bcld.info"
+        }
+      ]
     }
   },
   "apiReference": [

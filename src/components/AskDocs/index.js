@@ -1,11 +1,13 @@
 // "Ask the docs" chat box (bottom-right on every page). Questions go to the chat helper
 // (chat/server.mjs, started by `make up` / `make prod`), which answers with the AI CLI you pick
-// (Claude Code or Codex) and the docs MCP tools.
+// (Claude Code or Codex) and the docs MCP tools. Past conversations are kept in this browser
+// (history.js) and can be reopened and continued from the History view.
 import React, {useEffect, useRef, useState} from 'react';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Markdown from './Markdown';
 import useWindowFrame from './useWindowFrame';
 import {CliPicker, ProviderIcon, SetupCard, useCli} from './CliPicker';
+import {clearHistory, deleteChat, groupByDay, loadHistory, newChatId, saveChat} from './history';
 import styles from './styles.module.css';
 
 const STORAGE_KEY = 'ask-docs-chat';
@@ -70,6 +72,10 @@ export default function AskDocs() {
   const inputRef = useRef(null);
   const win = useWindowFrame(open);
   const cli = useCli(apiUrl, open);
+  const [view, setView] = useState('chat'); // 'chat' | 'history'
+  const [history, setHistory] = useState([]);
+  const [historyQuery, setHistoryQuery] = useState('');
+  const [confirmClear, setConfirmClear] = useState(false);
   // On small screens the panel is a fixed sheet (no moving or resizing)
   const [compact, setCompact] = useState(false);
   useEffect(() => {
@@ -82,6 +88,11 @@ export default function AskDocs() {
 
   useEffect(() => setChat(load()), []);
   useEffect(() => save(chat), [chat]);
+  useEffect(() => setHistory(loadHistory()), []);
+  // Save the conversation to the history once an answer has finished (not on every streamed word)
+  useEffect(() => {
+    if (!busy && chat.id) setHistory(saveChat(chat));
+  }, [chat, busy]);
   useEffect(() => {
     listRef.current?.scrollTo({top: listRef.current.scrollHeight});
   }, [chat, open]);
@@ -129,6 +140,8 @@ export default function AskDocs() {
     const meta = {provider: provider.id, providerName: provider.name, icon: provider.icon, model: provider.models.find((m) => m.id === cli.model)?.label ?? cli.model};
     setChat((c) => ({
       ...c,
+      id: c.id ?? newChatId(),
+      createdAt: c.createdAt ?? new Date().toISOString(),
       messages: [
         ...c.messages,
         ...(switched ? [{role: 'divider', text: `Switched to ${provider.name} · new conversation`}] : []),
@@ -172,9 +185,32 @@ export default function AskDocs() {
   function newChat() {
     abortRef.current?.abort();
     setChat({messages: [], sessionId: null, sessionProvider: null});
+    setView('chat');
+  }
+
+  // Reopen a saved conversation. Follow-ups continue it with the same assistant session.
+  function openChat(entry) {
+    setChat({id: entry.id, createdAt: entry.createdAt, messages: entry.messages, sessionId: entry.sessionId, sessionProvider: entry.sessionProvider});
+    setView('chat');
+  }
+
+  function removeChat(id) {
+    setHistory(deleteChat(id));
+    if (chat.id === id) setChat({messages: [], sessionId: null, sessionProvider: null});
   }
 
   const ready = Boolean(cli.provider?.ready);
+  // History only shows while the chat itself works (the helper is reachable and lists its CLIs)
+  const chatAvailable = !cli.offline && Boolean(cli.providers?.length);
+  const shownHistory = history.filter(
+    (c) => !historyQuery || `${c.title} ${c.messages.map((m) => m.text).join(' ')}`.toLowerCase().includes(historyQuery.toLowerCase()),
+  );
+  const when = (iso) => {
+    const d = new Date(iso);
+    return d.toDateString() === new Date().toDateString()
+      ? d.toLocaleTimeString(undefined, {hour: 'numeric', minute: '2-digit'})
+      : d.toLocaleDateString(undefined, {month: 'short', day: 'numeric'});
+  };
 
   return (
     <>
@@ -194,7 +230,18 @@ export default function AskDocs() {
             title={!win.fullscreen && !compact ? 'Drag to move · double-click for fullscreen' : undefined}>
             <span className={styles.title}>Ask the docs</span>
             <span className={styles.headerActions}>
-              {chat.messages.length > 0 && (
+              {chatAvailable && (
+                <button
+                  type="button"
+                  onClick={() => (setView(view === 'history' ? 'chat' : 'history'), setConfirmClear(false))}
+                  className={styles.textButton}
+                  disabled={busy}
+                  aria-pressed={view === 'history'}
+                  title={busy ? 'Wait for the answer to finish' : 'Past conversations in this browser'}>
+                  {view === 'history' ? 'Back to chat' : 'History'}
+                </button>
+              )}
+              {(chat.messages.length > 0 || view === 'history') && (
                 <button type="button" onClick={newChat} className={styles.textButton}>
                   New chat
                 </button>
@@ -222,6 +269,64 @@ export default function AskDocs() {
               </button>
             </span>
           </header>
+          {view === 'history' && chatAvailable ? (
+            <div className={styles.messages}>
+              <input
+                type="search"
+                className={styles.historySearch}
+                value={historyQuery}
+                onChange={(e) => setHistoryQuery(e.target.value)}
+                placeholder="Search past conversations"
+                aria-label="Search past conversations"
+              />
+              {shownHistory.length === 0 && (
+                <p className={styles.intro}>{history.length ? 'No conversations match.' : 'No saved conversations yet. They appear here after your first question.'}</p>
+              )}
+              {groupByDay(shownHistory).map(([label, chats]) => (
+                <section key={label} className={styles.historyGroup}>
+                  <p className={styles.historyLabel}>{label}</p>
+                  <ul className={styles.historyList}>
+                    {chats.map((c) => (
+                      <li key={c.id} className={`${styles.historyItem} ${c.id === chat.id ? styles.historyCurrent : ''}`}>
+                        <button type="button" className={styles.historyOpen} onClick={() => openChat(c)}>
+                          {c.icon && <ProviderIcon icon={c.icon} size={16} />}
+                          <span className={styles.historyText}>
+                            <span className={styles.historyTitle}>{c.title}</span>
+                            <span className={styles.historyMeta} suppressHydrationWarning>
+                              {c.questions} question{c.questions === 1 ? '' : 's'} · {c.providerName ?? 'Assistant'} · {when(c.updatedAt)}
+                            </span>
+                          </span>
+                        </button>
+                        <button type="button" className={styles.historyDelete} onClick={() => removeChat(c.id)} aria-label={`Delete “${c.title}”`} title="Delete">
+                          ×
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ))}
+              {history.length > 0 &&
+                (confirmClear ? (
+                  <p className={styles.historyClear}>
+                    Delete all {history.length} conversations?{' '}
+                    <button type="button" className={styles.textButton} onClick={() => (setHistory(clearHistory()), setConfirmClear(false), newChat())}>
+                      Delete all
+                    </button>
+                    <button type="button" className={styles.textButton} onClick={() => setConfirmClear(false)}>
+                      Cancel
+                    </button>
+                  </p>
+                ) : (
+                  <p className={styles.historyClear}>
+                    <button type="button" className={styles.textButton} onClick={() => setConfirmClear(true)}>
+                      Clear history
+                    </button>
+                  </p>
+                ))}
+              <p className={styles.historyNote}>Saved in this browser only. Opening a conversation lets you keep asking follow-ups.</p>
+            </div>
+          ) : (
+          <>
           <CliPicker cli={cli} disabled={busy} />
 
           <div className={styles.messages} ref={listRef} aria-live="polite">
@@ -309,6 +414,8 @@ export default function AskDocs() {
           <p className={styles.footnote}>
             Answered by {cli.provider?.name ?? 'your AI CLI'} from these docs, using your own account. Check the linked pages.
           </p>
+          </>
+          )}
           {!win.fullscreen &&
             !compact &&
             ['n', 'e', 's', 'w', 'ne', 'nw', 'se', 'sw'].map((dir) => (

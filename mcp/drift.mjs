@@ -13,8 +13,8 @@ export function composeImages(text) {
   return images;
 }
 
-// Build date of a public ghcr.io image (e.g. "ghcr.io/blue-core-lod/sinopia:latest"), or null
-export async function imageBuiltAt(ref) {
+// Build date and labels of a public ghcr.io image (e.g. "ghcr.io/blue-core-lod/sinopia:latest"), or null
+export async function imageInfo(ref) {
   const m = ref?.match(/^ghcr\.io\/([^:@]+)(?::([^@]+))?$/);
   if (!m) return null;
   const [, name, tag = 'latest'] = m;
@@ -28,11 +28,13 @@ export async function imageBuiltAt(ref) {
       manifest = await (await fetch(`https://ghcr.io/v2/${name}/manifests/${manifest.manifests[0].digest}`, {headers: {...auth, Accept: accept}})).json();
     }
     const config = await (await fetch(`https://ghcr.io/v2/${name}/blobs/${manifest.config.digest}`, {headers: auth})).json();
-    return config.created ?? null;
+    return {created: config.created ?? null, labels: config.config?.Labels ?? {}};
   } catch {
     return null;
   }
 }
+
+export const imageBuiltAt = async (ref) => (await imageInfo(ref))?.created ?? null;
 
 // Version locked for a package in a uv.lock file
 export function uvLockVersion(text, pkg) {
@@ -56,9 +58,9 @@ async function serviceDrift(org, svc, images, token) {
   const branch = svc.branch ?? info.default_branch;
   const image = images[svc.imageVar] ?? null;
   const tag = image?.split(':').pop() ?? null;
-  const [release, builtAt, head, publish] = await Promise.all([
+  const [release, imageMeta, head, publish] = await Promise.all([
     latestRelease(org, svc.repo, token),
-    imageBuiltAt(image),
+    imageInfo(image),
     rest(`https://api.github.com/repos/${org}/${svc.repo}/commits/${encodeURIComponent(branch)}`, token).catch(() => null),
     rest(`https://api.github.com/repos/${org}/${svc.repo}/actions/workflows/${svc.publishWorkflow ?? 'publish.yml'}/runs?per_page=1`, token)
       .then((d) => d.workflow_runs?.[0] ?? null)
@@ -68,6 +70,7 @@ async function serviceDrift(org, svc, images, token) {
     ? await rest(`https://api.github.com/repos/${org}/${svc.repo}/compare/${encodeURIComponent(release.tag_name)}...${encodeURIComponent(branch)}`, token).catch(() => null)
     : null;
   const headDate = head?.commit?.committer?.date ?? null;
+  const builtAt = imageMeta?.created ?? null;
 
   // Verdict, most serious first
   let status = 'ok';
@@ -177,7 +180,89 @@ async function libraryDrift(org, lib, token) {
   };
 }
 
-export async function fetchVersionDrift({org, stack, services = [], libraries = []}, token) {
+// --- Deployed environments (e.g. dev.bcld.info, stage.bcld.info) ---------------------------------
+
+// GET a JSON health/version endpoint on a deployed site: {up, version, body} (never throws)
+async function probe(url) {
+  try {
+    const res = await fetch(url, {signal: AbortSignal.timeout(10000), redirect: 'manual', headers: {'User-Agent': 'bluecore-dev-dashboard'}});
+    const up = res.status < 500;
+    const body = (res.headers.get('content-type') ?? '').includes('json') ? await res.json().catch(() => null) : null;
+    return {up, status: res.status, version: body?.version ?? null, body};
+  } catch (err) {
+    return {up: false, status: null, version: null, error: err.name === 'TimeoutError' ? 'timed out' : err.message};
+  }
+}
+
+// One service on one environment: the deployed version compared with the releases
+function deployedStatus(svc, result, releases) {
+  if (!result.up) return {status: 'down', summary: `Not reachable${result.error ? ` (${result.error})` : result.status ? ` (HTTP ${result.status})` : ''}.`};
+  if (result.status === 404) return {status: 'unknown', deployed: null, summary: `No version endpoint at ${svc.health} yet (HTTP 404).`};
+  if (result.status >= 400) return {status: 'unknown', deployed: null, summary: `The version endpoint returned HTTP ${result.status}.`};
+  const deployed = result.version;
+  if (!deployed) return {status: 'unknown', deployed: null, summary: 'The health endpoint answers but reports no version.'};
+  const latest = releases[0];
+  const index = releases.findIndex((r) => clean(r.tag) === clean(deployed));
+  if (latest && clean(latest.tag) === clean(deployed)) return {status: 'ok', deployed, summary: `Runs the latest release, ${latest.tag}.`};
+  if (index > 0) {
+    const missing = releases.slice(0, index);
+    return {
+      status: 'behind',
+      deployed,
+      missing: missing.map((r) => ({tag: r.tag, url: r.url, publishedAt: r.publishedAt})),
+      summary: `${missing.length} release${missing.length === 1 ? '' : 's'} behind: ${missing.map((r) => r.tag).join(', ')} ${missing.length === 1 ? "isn't" : "aren't"} deployed.`,
+    };
+  }
+  if (latest && compareVersions(deployed, latest.tag) > 0) return {status: 'ahead', deployed, summary: `Runs ${deployed}, newer than the latest release (${latest.tag}): an unreleased build.`};
+  return {status: 'unknown', deployed, summary: `Runs ${deployed}, which isn't one of the last ${releases.length} releases.`};
+}
+
+async function environmentDrift(env, services, serviceRows, releasesByRepo) {
+  const base = env.url.replace(/\/$/, '');
+  const rows = [];
+  for (const svc of services) {
+    if (!svc.health) continue;
+    const result = await probe(`${base}${svc.health}`);
+    rows.push({name: svc.name, repo: svc.repo, healthUrl: `${base}${svc.health}`, ...deployedStatus(svc, result, releasesByRepo[svc.repo] ?? [])});
+  }
+  return {name: env.name, url: env.url, reachable: rows.some((r) => r.status !== 'down'), services: rows};
+}
+
+// Libraries on an environment, through the services that use them: the version locked in the
+// release each service has deployed (locks: "repo@version" → library version)
+function deployedLibraries(env, libraryRows, locks) {
+  const rows = [];
+  for (const lib of libraryRows) {
+    for (const u of lib.users ?? []) {
+      const svc = env.services.find((r) => r.repo === u.repo);
+      if (!svc?.deployed) continue;
+      const version = locks[`${lib.repo}:${u.repo}@${clean(svc.deployed)}`] ?? null;
+      rows.push({
+        name: lib.name,
+        via: svc.name,
+        viaRepo: u.repo,
+        viaVersion: svc.deployed,
+        version,
+        latest: lib.latest,
+        status: !version ? 'unknown' : lib.latest && compareVersions(version, lib.latest) < 0 ? 'behind' : 'ok',
+      });
+    }
+  }
+  // Services on the same site sharing data through different library versions: the riskiest case
+  const mismatches = [];
+  for (const name of new Set(rows.map((r) => r.name))) {
+    const known = rows.filter((r) => r.name === name && r.version);
+    if (new Set(known.map((r) => clean(r.version))).size < 2) continue;
+    for (const r of known) {
+      r.mismatch = true;
+      r.status = 'mismatch';
+    }
+    mismatches.push({name, summary: `On ${env.name}, ${known.map((r) => `${r.via} uses ${name} ${r.version}`).join(' but ')}.`});
+  }
+  return {rows, mismatches};
+}
+
+export async function fetchVersionDrift({org, stack, services = [], libraries = [], environments = []}, token) {
   let images = {};
   for (const file of stack?.files ?? ['compose.yaml']) {
     const f = await fetchFile({org, repo: stack.repo, path: file}, token).catch(() => null);
@@ -187,6 +272,38 @@ export async function fetchVersionDrift({org, stack, services = [], libraries = 
   for (const svc of services) serviceRows.push(await serviceDrift(org, svc, images, token).catch((err) => ({...svc, status: 'unknown', summary: err.message})));
   const libraryRows = [];
   for (const lib of libraries) libraryRows.push(await libraryDrift(org, lib, token).catch((err) => ({...lib, status: 'unknown', summary: err.message})));
+
+  // Deployed environments: what each site reports, compared with the releases
+  const environmentRows = [];
+  if (environments.length) {
+    const releasesByRepo = {};
+    for (const repo of new Set(services.filter((svc) => svc.health).map((svc) => svc.repo))) {
+      const list = await rest(`https://api.github.com/repos/${org}/${repo}/releases?per_page=30`, token).catch(() => []);
+      releasesByRepo[repo] = list.filter((r) => !r.draft).map((r) => ({tag: r.tag_name, url: r.html_url, publishedAt: r.published_at}));
+    }
+    for (const env of environments) environmentRows.push(await environmentDrift(env, services, serviceRows, releasesByRepo));
+    // Library versions locked in each deployed release (each tag read once)
+    const locks = {};
+    for (const lib of libraryRows) {
+      for (const u of lib.users ?? []) {
+        for (const env of environmentRows) {
+          const svc = env.services.find((r) => r.repo === u.repo);
+          const key = svc?.deployed && `${lib.repo}:${u.repo}@${clean(svc.deployed)}`;
+          if (!key || key in locks) continue;
+          const tag = releasesByRepo[u.repo]?.find((r) => clean(r.tag) === clean(svc.deployed))?.tag ?? svc.deployed;
+          locks[key] = await fetchFile({org, repo: u.repo, path: 'uv.lock', ref: tag}, token)
+            .then((f) => uvLockVersion(f.text ?? '', lib.package ?? lib.repo))
+            .catch(() => null);
+        }
+      }
+    }
+    for (const env of environmentRows) {
+      const {rows, mismatches} = deployedLibraries(env, libraryRows, locks);
+      env.libraries = rows;
+      env.libraryMismatches = mismatches;
+    }
+  }
+
   // Show on each service which version of each shared library it uses
   for (const svc of serviceRows) {
     svc.libraries = libraryRows
@@ -196,5 +313,5 @@ export async function fetchVersionDrift({org, stack, services = [], libraries = 
       })
       .filter(Boolean);
   }
-  return {org, stackRepo: stack?.repo, services: serviceRows, libraries: libraryRows, fetchedAt: new Date().toISOString()};
+  return {org, stackRepo: stack?.repo, services: serviceRows, libraries: libraryRows, environments: environmentRows, fetchedAt: new Date().toISOString()};
 }

@@ -128,7 +128,7 @@ The token needs the `read:project` scope: `gh auth refresh -s read:project`, the
 
 **Pull Requests** (`projectStatus.pullRequests`): every open PR in the org's repos, oldest first, with review status, CI result, merge conflicts and size. PRs with no update for `staleDays` (14) are highlighted.
 
-**Version Drift** (`projectStatus.versionDrift`): for each service the stack runs, its latest release compared with the `:latest` image the stack's compose files use (when it was built, unreleased commits, failed publishes), and whether services lock the latest `bluecore-models`.
+**Version Drift** (`projectStatus.versionDrift`): what's deployed on dev.bcld.info and stage.bcld.info (read from each service's health endpoint) compared with the latest releases, and for each service the stack runs, its latest release compared with the `:latest` image the stack's compose files use (when it was built, unreleased commits, failed publishes), and whether services lock the latest `bluecore-models`.
 
 **What's New** (`projectStatus.releases`): the latest release of each repo as "Updates" cards (the Figma product-page box), then a release timeline with the full notes. Live like the other status pages.
 
@@ -149,6 +149,8 @@ An **Ask the docs** button sits at the bottom-right of every page. Answers come 
 | **Codex** | the models your account offers (read from Codex) | `npm install -g @openai/codex` | `codex login` |
 
 The panel shows each CLI with its icon and a ready/not-ready dot, a model menu, and step-by-step setup (with copy buttons) for a CLI that isn't installed or logged in yet. Each answer is labeled with the CLI and model that wrote it. Switching CLI starts a new conversation; switching model doesn't. The choice is remembered per browser.
+
+**History:** past conversations are saved in your browser (`localStorage`, the latest 50) and listed under **History** in the chat panel, grouped by day and searchable. Open one to keep asking follow-ups (the CLI resumes its session), or delete one or all. History is never sent to a server, so people using your site through a tunnel only see their own. It only shows when the chat itself is available.
 
 `make up` and `make prod` start the chat helper (`chat/server.mjs`, http://localhost:3002) in the background and stop it when you press Ctrl+C or run `make down`. Its log is in `.chat.log`. If Node.js isn't installed, they skip it and the site runs without the chat. `make chat` runs only the helper.
 

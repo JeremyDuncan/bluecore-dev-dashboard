@@ -181,7 +181,26 @@ Drafts are hidden unless you tick **Show drafts**. The code is in `mcp/pulls.mjs
 
 ### Version Drift (`versionDrift`)
 
-Answers "it works in my repo, why does it fail in the stack?". For each service in `services`:
+Answers "it works in my repo, why does it fail in the stack?", and "what's actually running on dev and stage?".
+
+#### Deployed environments
+
+For each site in `environments` (dev.bcld.info and stage.bcld.info), the page reads each service's `health` endpoint, such as `/api/health`, which returns `{"version": "0.35.2"}`. These are the same endpoints the stack's own status page uses. It then compares the version with the service's releases:
+
+| Cell | Meaning |
+|---|---|
+| Green version | Runs the latest release |
+| Red "N behind" | Older than the latest release. The notes below the table link to each release that isn't deployed. |
+| Orange | Newer than the latest release: an unreleased build |
+| Grey | The version isn't known (no version endpoint), or the site didn't answer |
+
+- **bluecore-models** shows the version locked in each deployed service's release (the API and Workflows). If they differ on the same site, both cells say "differs" in red, and a note says which versions each service uses, since both share the same database.
+- **bluecore-workflows** reports its version at `/workflows/health`, like the other services.
+- **Notes:** below the table, the page lists any service that differs between dev and stage, and any that isn't on the latest release.
+
+#### The stack's images
+
+For each service in `services`:
 
 | Check | How |
 |---|---|

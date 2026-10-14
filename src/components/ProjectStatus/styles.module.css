@@ -1054,3 +1054,24 @@
   flex-wrap: wrap;
   gap: 6px;
 }
+
+/* Deployed environments table */
+.envTable td,
+.envTable th {
+  white-space: nowrap;
+}
+
+.envLink,
+.envLink:hover {
+  text-decoration: none !important;
+}
+
+.envNotes {
+  margin: 10px 0 8px;
+  padding-left: 20px;
+  font-size: 14px;
+}
+
+.envNotes li {
+  margin-bottom: 4px;
+}

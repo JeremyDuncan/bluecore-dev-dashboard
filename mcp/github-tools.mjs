@@ -592,7 +592,7 @@ export function registerGitHubTools(server) {
       {
         title: 'Version drift between releases and the stack',
         description:
-          "For each service the stack runs (API, workflows, Sinopia, Marva): its latest release, the image the stack's compose files use and when it was built, unreleased commits on the main branch, and whether the last image publish failed. " +
+          "What's deployed on dev and stage (each site's health endpoints) compared with the latest releases, and for each service the stack runs (API, workflows, Sinopia, Marva): its latest release, the image the stack's compose files use and when it was built, unreleased commits on the main branch, and whether the last image publish failed. " +
           'For shared libraries (bluecore-models): the latest release versus what each service locks. Use it when something works in a repo but fails in the stack or the integration tests.',
         inputSchema: {},
         annotations: readOnly,
@@ -616,7 +616,18 @@ export function registerGitHubTools(server) {
             `- **${l.name}** — ${l.status.toUpperCase()}: ${l.summary} Latest ${l.release?.tag ?? '?'}; ` +
             l.users.map((u) => `${u.repo}: ${u.inRelease ?? '?'} in its release ${u.releaseTag ?? ''}, ${u.onMain ?? '?'} on main`).join('; '),
         );
-        return text(`Version drift (${freshness(result)}), stack: ${d.stackRepo}\n\nServices:\n${services.join('\n')}\n\nLibraries:\n${libs.join('\n') || 'none'}`);
+        const envs = (d.environments ?? []).map(
+          (e) =>
+            `**${e.name}** (${e.url}):\n` +
+            e.services.map((r) => `- ${r.name}: ${r.deployed ?? 'unknown'} — ${r.status.toUpperCase()}: ${r.summary}`).join('\n') +
+            (e.libraries.length ? `\n${e.libraries.map((l) => `- ${l.name} (in ${l.viaRepo} ${l.viaVersion}): ${l.version ?? 'unknown'}, latest ${l.latest ?? '?'}`).join('\n')}` : '') +
+            (e.libraryMismatches?.length ? `\n${e.libraryMismatches.map((m) => `- MISMATCH: ${m.summary}`).join('\n')}` : ''),
+        );
+        return text(
+          `Version drift (${freshness(result)}), stack: ${d.stackRepo}\n\n` +
+            (envs.length ? `Deployed environments (from each site's health endpoints):\n${envs.join('\n\n')}\n\n` : '') +
+            `Services (what the stack's compose files run):\n${services.join('\n')}\n\nLibraries:\n${libs.join('\n') || 'none'}`,
+        );
       },
     );
   }

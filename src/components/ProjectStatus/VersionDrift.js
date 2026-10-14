@@ -132,6 +132,140 @@ function LibraryCard({l, services}) {
   );
 }
 
+// --- Deployed environments ---------------------------------------------------------------------
+
+const CELL = {ok: 'success', behind: 'failure', mismatch: 'failure', down: 'failure', ahead: 'warning', unknown: 'cancelled'};
+
+function EnvCell({r}) {
+  if (!r) return <td>–</td>;
+  const label =
+    r.status === 'down' ? 'down' : r.status === 'behind' ? `${r.deployed} · ${r.missing.length} behind` : r.deployed ?? 'unknown';
+  return (
+    <td title={r.summary}>
+      <a href={r.healthUrl} className={styles.envLink}>
+        <span className={`${styles.pill} ${styles[`pill_${CELL[r.status]}`] ?? ''}`}>{label}</span>
+      </a>
+    </td>
+  );
+}
+
+// What differs between dev and stage (nothing when they match)
+function compareEnvs(envs) {
+  if (envs.length < 2) return [];
+  const [a, b] = envs;
+  return a.services
+    .map((r) => [r, b.services.find((x) => x.repo === r.repo && x.name === r.name)])
+    .filter(([x, y]) => y && x.deployed !== y.deployed)
+    .map(([x, y]) => `${x.name}: ${a.name} runs ${x.deployed ?? '?'}, ${b.name} runs ${y.deployed ?? '?'}`);
+}
+
+function Environments({data}) {
+  const envs = data.environments ?? [];
+  if (!envs.length) return null;
+  const names = envs[0].services.map((r) => r.name);
+  const latestOf = (repo) => data.services.find((x) => x.repo === repo)?.release;
+  const libNames = [...new Set(envs.flatMap((e) => e.libraries.map((l) => `${l.name}|${l.viaRepo}`)))];
+  const notes = envs.flatMap((e) => e.services.filter((r) => r.status !== 'ok').map((r) => ({env: e.name, ...r})));
+  const comparison = compareEnvs(envs);
+  return (
+    <>
+      <p className={styles.sectionTitle}>Deployed environments</p>
+      <div className={styles.tableWrap}>
+        <table className={`${styles.table} ${styles.envTable}`}>
+          <thead>
+            <tr>
+              <th>Service</th>
+              <th>Latest release</th>
+              {envs.map((e) => (
+                <th key={e.name}>
+                  <a href={e.url}>{e.name}</a>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {names.map((name) => {
+              const repo = envs[0].services.find((r) => r.name === name)?.repo;
+              const latest = latestOf(repo);
+              return (
+                <tr key={name}>
+                  <td>{name}</td>
+                  <td>{latest ? <a href={latest.url}>{latest.tag}</a> : '–'}</td>
+                  {envs.map((e) => (
+                    <EnvCell key={e.name} r={e.services.find((r) => r.name === name)} />
+                  ))}
+                </tr>
+              );
+            })}
+            {libNames.map((key) => {
+              const [lib, via] = key.split('|');
+              const latest = data.libraries.find((l) => l.name === lib)?.release;
+              return (
+                <tr key={key}>
+                  <td>
+                    {lib}
+                    <span className={styles.suiteKind}>in the deployed {via}</span>
+                  </td>
+                  <td>{latest ? <a href={latest.url}>{latest.tag}</a> : '–'}</td>
+                  {envs.map((e) => {
+                    const l = e.libraries.find((x) => x.name === lib && x.viaRepo === via);
+                    return (
+                      <td
+                        key={e.name}
+                        title={l ? `${via} ${l.viaVersion} locks ${lib} ${l.version ?? '?'}${l.mismatch ? `, not the same as the other services on ${e.name}` : ''}` : undefined}>
+                        {l ? <span className={`${styles.pill} ${styles[`pill_${CELL[l.status]}`] ?? ''}`}>{l.mismatch ? `${l.version} · differs` : (l.version ?? 'unknown')}</span> : '–'}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <ul className={styles.envNotes}>
+        {comparison.map((d) => (
+          <li key={d}>
+            <strong className={styles.warnText}>{d}</strong>
+          </li>
+        ))}
+        {envs.flatMap((e) =>
+          (e.libraryMismatches ?? []).map((m) => (
+            <li key={`${e.name}-${m.name}`}>
+              <strong className={styles.badText}>{m.summary}</strong> Services that share the database should use the same {m.name}.
+            </li>
+          )),
+        )}
+        {notes.map((n) => (
+          <li key={`${n.env}-${n.name}`}>
+            <strong>
+              {n.name} on {n.env}:
+            </strong>{' '}
+            {n.summary}
+            {n.missing?.length > 0 && (
+              <>
+                {' '}
+                Missing:{' '}
+                {n.missing.map((m, i) => (
+                  <React.Fragment key={m.tag}>
+                    {i > 0 && ', '}
+                    <a href={m.url}>{m.tag}</a>
+                  </React.Fragment>
+                ))}
+                .
+              </>
+            )}
+          </li>
+        ))}
+      </ul>
+      <p className={styles.note}>
+        Read from each site's health endpoint (e.g. <code>/api/health</code>), the same ones the stack's own status page uses. Hover over a version for details; click it to open
+        the endpoint.
+      </p>
+    </>
+  );
+}
+
 export default function VersionDrift({snapshot, apiPath}) {
   const {data, live, error} = useLiveData(snapshot, apiPath);
   const rows = [...data.services, ...data.libraries];
@@ -142,6 +276,8 @@ export default function VersionDrift({snapshot, apiPath}) {
       <p className={styles.total}>
         <strong>{off ? `${off} of ${rows.length} need attention` : `All ${rows.length} are current`}</strong>. When something works in its own repo but fails in the stack or the integration tests, check here first.
       </p>
+
+      <Environments data={data} />
 
       <p className={styles.sectionTitle}>Services in the stack</p>
       <ul className={styles.driftList}>

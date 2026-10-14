@@ -166,6 +166,9 @@ function driftPage(data, {dataFile, position}) {
     (s) => `- **${esc(s.name)}** (${esc(s.repo)}): ${esc(s.summary)} Latest release ${esc(s.release?.tag ?? 'none')}, image \`${esc(s.image ?? '?')}\` built ${day(s.imageBuiltAt) || '?'}.`,
   );
   const libs = data.libraries.map((l) => `- **${esc(l.name)}**: ${esc(l.summary)} ${l.users.map((u) => `${esc(u.repo)} locks ${esc(u.inRelease ?? '?')} in its release, ${esc(u.onMain ?? '?')} on main`).join('; ')}.`);
+  const envs = (data.environments ?? []).map(
+    (e) => `**${esc(e.name)}** (${e.url}): ${e.services.map((r) => `${esc(r.name)} ${esc(r.deployed ?? 'unknown')} (${esc(r.summary)})`).join('; ')}${(e.libraryMismatches ?? []).map((m) => ` **Mismatch:** ${esc(m.summary)}`).join('')}`,
+  );
   return `---
 title: "Version Drift"
 description: "Whether the stack runs the latest release of each Blue Core service and library."
@@ -184,7 +187,7 @@ ${navBlock('version-drift')}
 <details>
 <summary>Text version (as of the last sync, ${stamp(data.fetchedAt)})</summary>
 
-${services.join('\n')}
+${envs.length ? `Deployed:\n\n${envs.map((e) => `- ${e}`).join('\n')}\n\nStack:\n\n` : ''}${services.join('\n')}
 
 ${libs.join('\n')}
 
