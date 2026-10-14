@@ -8,3 +8,7 @@ build
 .chat.pid
 .chat.log
 **/node_modules
+# Drive downloads are converted by the sync (bind-mounted), never needed inside an image
+imports
+.idea
+.claude

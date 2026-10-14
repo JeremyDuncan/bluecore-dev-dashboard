@@ -3,14 +3,28 @@ build/
 .docusaurus/
 .cache-loader/
 .DS_Store
+.env
+.chat.pid
+.chat.log
 # generated at build time
 static/llms.txt
 static/llms-full.txt
-.env
-# Google Drive downloads (internal docs, binary)
-imports/**/*.zip
-imports/**/*.docx
+
+# Pulled from GitHub on every sync/build, never committed
+docs/blue-core-repos/
+docs/blue-core-wiki/
+
+# Local-only content: internal docs that exist only on machines that have the source files
+docs/google-drive/
 docs/box/
-.chat.pid
-.chat.log
+docs/design/
 docs/project-status/
+# Whatever developers drop into imports/ (Drive downloads); only the folder layout is committed
+imports/**
+!imports/**/
+!imports/README.md
+!imports/**/.gitkeep
+
+# Personal editor / agent settings
+.idea/
+.claude/settings.local.json

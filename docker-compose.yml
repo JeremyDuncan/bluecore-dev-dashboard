@@ -11,6 +11,7 @@ x-app: &app
   image: bluecore-dev-dashboard-dev
   environment:
     BASE_URL: /
+    SYNC_FORCE: ${SYNC_FORCE:-} # `SYNC_FORCE=1 make sync` converts unchanged Drive/Box files again
   env_file:
     - path: .env
       required: false
