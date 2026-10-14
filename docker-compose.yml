@@ -1,0 +1,74 @@
+# Everyday use:
+#   docker compose up                          → live preview at http://localhost:3000
+#   docker compose run --rm sync               → pull Google Docs / READMEs / code docs
+#   docker compose --profile prod up --build   → production build served by nginx at http://localhost:8080
+#   Both also start the MCP server for AI agents at http://localhost:3001/mcp (dev: live docs/, prod: build snapshot)
+
+x-app: &app
+  build:
+    context: .
+    target: dev
+  image: bluecore-dev-dashboard-dev
+  environment:
+    BASE_URL: /
+  env_file:
+    - path: .env
+      required: false
+  volumes:
+    - .:/app
+    - /app/node_modules # keep the container's node_modules, not the host's
+    - /app/mcp/node_modules
+    # Local repos referenced as "/sources/<repo>" in docs-sources.json
+    - ${SOURCES_DIR:-../..}:/sources:ro
+    # Box Drive folder, for "boxFolders" in docs-sources.json (set BOX_DIR in .env)
+    - ${BOX_DIR:-./imports/box}:/box:ro
+
+services:
+  docs:
+    <<: *app
+    ports:
+      - "3000:3000"
+
+  # MCP server: lets AI agents search and read the docs (tools: search_docs, read_doc, list_docs)
+  mcp:
+    <<: *app
+    command: ["node", "mcp/server.mjs", "--http"]
+    environment:
+      BASE_URL: /
+      DOCS_SITE_URL: ${DOCS_SITE_URL:-http://localhost:3000} # links in search results point here
+    ports:
+      - "127.0.0.1:3001:3001" # this machine only: the docs include internal Google Drive pages
+
+  sync:
+    <<: *app
+    command: ["npm", "run", "sync"]
+    profiles: ["tools"]
+
+  web:
+    build:
+      context: .
+      target: prod
+    image: bluecore-dev-dashboard
+    ports:
+      - "8080:80"
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # reach the chat helper on this machine (built in on Docker Desktop)
+    profiles: ["prod"]
+
+  # Production MCP server: indexes the same docs/ snapshot baked into the web image
+  mcp-prod:
+    build:
+      context: .
+      target: mcp
+      args:
+        SITE_URL: ${DOCS_SITE_URL:-http://localhost:8080} # links in search results point at the prod site
+    image: bluecore-dev-dashboard-mcp
+    env_file: # GITHUB_TOKEN for the live Project Status data
+      - path: .env
+        required: false
+    environment:
+      MCP_ALLOWED_HOSTS: ${MCP_ALLOWED_HOSTS:-}
+    ports:
+      - "127.0.0.1:3001:3001" # same port as the dev server, so agent configs work for both
+    restart: unless-stopped
+    profiles: ["prod"]
