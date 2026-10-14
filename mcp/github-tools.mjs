@@ -684,6 +684,7 @@ export function registerGitHubTools(server) {
           for (const r of data.runs.slice(0, n)) {
             lines.push(
               `- #${r.number} ${r.status === 'completed' ? r.conclusion : r.status} · ${r.createdAt.slice(0, 16).replace('T', ' ')} · ${formatDuration(r.durationSec)} · ${triggerName(r)} · ${r.branch}@${r.sha}` +
+                (r.pr ? ` · PR ${r.pr.repo}#${r.pr.number}${r.pr.title ? ` "${r.pr.title}"` : ''} ${r.pr.url}` : '') +
                 (r.tests ? ` · tests ${r.tests.passed}✓ ${r.tests.failed}✗` : '') +
                 (r.conclusion === 'failure' ? ` · failed in ${failureStage(r)}${r.failedSteps?.length ? ` (${r.failedSteps.join(', ')})` : ''}` : '') +
                 `\n  ${r.url}`,

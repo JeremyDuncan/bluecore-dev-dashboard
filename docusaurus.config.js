@@ -75,6 +75,9 @@ const config = {
     },
   },
 
+  // Links to other sites open in a new tab
+  clientModules: ['./src/clientModules/externalLinks.js'],
+
   customFields: {
     contactEmail: 'contact@bluecore.info', // shown in the footer (from the Blue Core design)
     // Live GitHub data for the Project Status pages, served by the MCP container. Empty = snapshot only.

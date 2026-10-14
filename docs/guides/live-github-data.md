@@ -115,7 +115,7 @@ Health of a GitHub Actions workflow. It's built for the `bluecore-stack` **Bluec
 | Where failures happen | Failed step names grouped into Image build / Tests / Setup / Other |
 | By trigger | Which repo's workflow dispatched the run (e.g. `api-integration`), or `push`, `schedule`, … |
 | Most-failing tests | `FAILED` / `ERROR` lines from the pytest output, and whether each test still fails |
-| Recent runs | Links to the runs on GitHub |
+| Recent runs | Links to the runs on GitHub, and to the pull request that started each run |
 
 ```json
 "integrationTests": [
@@ -136,6 +136,7 @@ Health of a GitHub Actions workflow. It's built for the `bluecore-stack` **Bluec
 | `org` | Defaults to `issues.org` |
 | `runs` | How many recent runs to read (max 100) |
 | `parseLogs` | How many recent **passing** runs to download logs for. Logs of every failed run are always read. |
+| `callers` | Integration tests only: each run-name prefix another repo dispatches with (e.g. `api-integration`) → that repo. The page follows the caller's run to its PR. Push runs link to their branch's PR without it. |
 | `slug`, `pageTitle` | Optional page URL and title |
 
 How logs are read:

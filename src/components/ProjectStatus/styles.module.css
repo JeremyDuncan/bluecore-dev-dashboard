@@ -924,6 +924,20 @@
   font-size: 12px;
 }
 
+/* The PR that started a test run: "repo #123" with its title below */
+.prCell {
+  white-space: nowrap;
+}
+
+.prTitle {
+  display: block;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--bc-meta);
+  font-size: 12px;
+}
+
 /* ---------- Pull Requests ---------- */
 .summaryButton {
   padding: 0;

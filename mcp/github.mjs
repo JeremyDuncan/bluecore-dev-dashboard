@@ -528,17 +528,56 @@ export function logCacheFromSnapshot(snapshot, cache = new Map()) {
     if (r.status === 'completed' && (r.tests || r.failedSteps?.length || r.noJobs)) {
       cache.set(r.id, {failedSteps: r.failedSteps ?? [], tests: r.tests ?? null, ...(r.noJobs && {noJobs: true})});
     }
+    if (r.pr !== undefined) cache.set(`pr:${r.id}`, r.pr); // the PR that started it never changes
   }
   return cache;
+}
+
+const prLink = (org, repo, number, title) => ({repo, number, title: title ?? null, url: `https://github.com/${org}/${repo}/pull/${number}`});
+
+// The pull request that started a run, or null:
+// - a push or pull_request run: the PR GitHub lists for its branch
+// - a run dispatched by another repo's workflow (run name "api-integration-<run id>-<attempt>"): the PR
+//   behind that caller run, in the repo `callers` maps the prefix to. Fork PRs aren't listed on the
+//   run, so those are looked up by branch.
+async function runPullRequest(org, repo, raw, callers, token) {
+  if (raw.pull_requests?.length) {
+    const number = raw.pull_requests[0].number;
+    if (raw.event === 'pull_request') return prLink(org, repo, number, raw.display_title); // the run's title is the PR's
+    const pr = await rest(`https://api.github.com/repos/${org}/${repo}/pulls/${number}`, token).catch(() => null);
+    return prLink(org, repo, number, pr?.title);
+  }
+  const m = raw.event === 'workflow_dispatch' && /^([a-z0-9-]+?)-(\d+)-\d+$/.exec(raw.display_title ?? '');
+  const callerRepo = m && callers[m[1]];
+  if (!callerRepo) return null;
+  const caller = await rest(`https://api.github.com/repos/${org}/${callerRepo}/actions/runs/${m[2]}`, token);
+  const listed = caller.pull_requests?.[0];
+  if (listed) return prLink(org, callerRepo, listed.number, caller.event === 'pull_request' ? caller.display_title : null);
+  const owner = caller.head_repository?.owner?.login;
+  if (!owner || !caller.head_branch) return null;
+  const [pr] = await rest(`https://api.github.com/repos/${org}/${callerRepo}/pulls?state=all&head=${owner}:${encodeURIComponent(caller.head_branch)}&per_page=1`, token);
+  return pr ? prLink(org, callerRepo, pr.number, pr.title) : null;
 }
 
 // Recent runs of one workflow, with test results parsed from the logs of every failed run and of
 // the latest `parseLogs` other completed runs. `logCache` (a Map: run id → parsed result) avoids
 // downloading the same log twice.
-export async function fetchWorkflowRuns({org, repo, workflow, runs = 100, parseLogs = 40}, token, logCache = new Map()) {
+export async function fetchWorkflowRuns({org, repo, workflow, runs = 100, parseLogs = 40, callers = {}}, token, logCache = new Map()) {
   const wf = await rest(`https://api.github.com/repos/${org}/${repo}/actions/workflows/${encodeURIComponent(workflow)}`, token);
   const data = await rest(`https://api.github.com/repos/${org}/${repo}/actions/workflows/${encodeURIComponent(workflow)}/runs?per_page=${Math.min(runs, 100)}`, token);
   const list = data.workflow_runs.map(runSummary);
+  // Which PR started each run (cached in logCache as "pr:<run id>"; a failed lookup is retried next time)
+  for (const [i, run] of list.entries()) {
+    const key = `pr:${run.id}`;
+    if (!logCache.has(key)) {
+      try {
+        logCache.set(key, await runPullRequest(org, repo, data.workflow_runs[i], callers, token));
+      } catch {
+        continue;
+      }
+    }
+    run.pr = logCache.get(key);
+  }
   let withResults = 0; // passing runs with test results so far (newest first): budget parseLogs
   for (const run of list) {
     if (run.status !== 'completed' || run.conclusion === 'cancelled' || run.conclusion === 'skipped') continue;

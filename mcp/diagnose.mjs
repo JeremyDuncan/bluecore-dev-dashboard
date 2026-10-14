@@ -107,6 +107,7 @@ export async function diagnoseFailure(suite, {run: runNumber, test} = {}, token)
   out.push(`# ${suite.title ?? suite.repo}: run #${run.number} ${run.conclusion}`);
   out.push(`- Run: ${run.url}`);
   out.push(`- Started ${day(run.createdAt)} UTC by ${triggerName(run)}${run.actor ? ` (${run.actor})` : ''} on ${run.branch ?? '?'} at commit ${run.sha}: "${run.title}"`);
+  if (run.pr) out.push(`- Started by pull request ${run.pr.repo}#${run.pr.number}${run.pr.title ? ` "${run.pr.title}"` : ''}: ${run.pr.url}`);
   out.push(`- Failed in: ${failureStage(run)}${run.failedSteps?.length ? ` (${run.failedSteps.join(', ')})` : ''}`);
   if (run.tests) out.push(`- Tests: ${run.tests.passed} passed, ${run.tests.failed} failed, ${run.tests.errors} errors, ${run.tests.skipped} skipped`);
 

@@ -137,7 +137,15 @@
         "workflow": "bluecore-integration-test.yml",
         "title": "Bluecore Integration Test",
         "runs": 100,
-        "parseLogs": 30
+        "parseLogs": 30,
+        "callers": {
+          "api-integration": "bluecore_api",
+          "workflows-integration": "bluecore-workflows",
+          "models-integration": "bluecore-models",
+          "sinopia-integration": "sinopia_editor",
+          "marva-integration": "marva_editor"
+        },
+        "_note": "callers: the run-name prefix each repo's stack-integration.yml dispatches with → that repo, so each run links to the PR that started it"
       }
     ],
     "repoTests": [

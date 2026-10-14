@@ -51,6 +51,7 @@ function RunChart({runs}) {
               <rect x={i * bw + 1} y={H - h} width={Math.max(bw - 2, 1)} height={h} rx="1.5" fill={OUTCOME[r.conclusion] ?? 'var(--bc-accent-blue)'}>
                 <title>
                   {`#${r.number} ${r.status === 'completed' ? r.conclusion : r.status} · ${when(r.createdAt)} · ${formatDuration(r.durationSec)} · ${triggerName(r)}` +
+                    (r.pr ? ` · ${r.pr.repo} #${r.pr.number}${r.pr.title ? ` ${r.pr.title}` : ''}` : '') +
                     (r.tests ? ` · tests ${r.tests.passed}✓ ${r.tests.failed}✗` : '') +
                     (r.conclusion === 'failure' ? ` · failed in ${failureStage(r)}` : '')}
                 </title>
@@ -261,6 +262,7 @@ export default function IntegrationTests({snapshot, apiPath, kind = 'integration
               <th>Started</th>
               <th>Time</th>
               <th>Trigger</th>
+              <th>Pull request</th>
               <th>Tests</th>
               <th>Failed in</th>
             </tr>
@@ -277,6 +279,16 @@ export default function IntegrationTests({snapshot, apiPath, kind = 'integration
                 <td suppressHydrationWarning>{when(r.createdAt)}</td>
                 <td>{formatDuration(r.durationSec)}</td>
                 <td>{triggerName(r)}</td>
+                <td>
+                  {r.pr ? (
+                    <a href={r.pr.url} title={r.pr.title ?? undefined} className={styles.prCell}>
+                      {r.pr.repo} #{r.pr.number}
+                      {r.pr.title && <span className={styles.prTitle}>{r.pr.title}</span>}
+                    </a>
+                  ) : (
+                    '–'
+                  )}
+                </td>
                 <td>{r.tests ? `${r.tests.passed}✓ ${r.tests.failed ? `${r.tests.failed}✗` : ''}` : '–'}</td>
                 <td>{r.conclusion === 'failure' ? `${failureStage(r)}${r.failedSteps?.length ? `: ${r.failedSteps.join(', ')}` : ''}` : ''}</td>
               </tr>
