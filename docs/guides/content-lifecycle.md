@@ -9,7 +9,7 @@ This page explains where each part of the site comes from, which command refresh
 
 | Kind | Examples | Committed? | Refreshed by |
 |---|---|---|---|
-| **Hand-written** | `docs/guides/`, `docs/intro.md` | Yes | Editing the file |
+| **Hand-written** | `docs/guides/`, `docs/intro.mdx` | Yes | Editing the file |
 | **Pulled from GitHub** | `docs/blue-core-repos/`, `docs/blue-core-wiki/` | **No** | Every `make up`, `make prod`, `make sync` and GitHub Pages deploy |
 | **Local only** | `docs/google-drive/`, `docs/box/`, `docs/design/` (Figma) | **No** | `make up` / `make prod` / `make sync`, from files on your machine |
 | **Live** | Project board, Repo Issues, Integration Tests, What's New (`docs/project-status/`) | **No** | The browser, every 5 minutes. On the public site, the hourly deploy, without the private board. See [Live GitHub data](./live-github-data.md). |

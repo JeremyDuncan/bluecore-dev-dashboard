@@ -1,0 +1,57 @@
+---
+title: Guides
+sidebar_label: Overview
+sidebar_position: 1
+hide_table_of_contents: true
+---
+
+import {Card, Cards, Part} from '@site/src/components/Welcome';
+
+# Guides
+
+How this documentation site works: where its content comes from, how the live GitHub data is fetched, and how to add or change docs. Read these if a page is missing or out of date, or before you add a new source.
+
+<Part icon="guides" title="The guides">
+  Three short guides, each about one part of the site.
+</Part>
+
+<Cards>
+  <Card icon="drive" title="How content gets onto the site" to="/guides/content-lifecycle" meta="Sync, git and the public site">
+    The four kinds of content, which command refreshes each, and why internal content never reaches git or the public site.
+  </Card>
+  <Card icon="status" title="Live GitHub data" to="/guides/live-github-data" meta="Project Status">
+    Where the Project Status pages get their data, how fresh it is, and how to add a board or test suite.
+  </Card>
+  <Card icon="design" title="How these docs work" to="/guides/writing-docs" meta="Writing and sources">
+    Adding or changing pages, adding a source in `docs-sources.json`, and the commands you need.
+  </Card>
+</Cards>
+
+<Part icon="help" title="Common questions">
+  Jump straight to the answer.
+</Part>
+
+<Cards>
+  <Card icon="page" title="A page is missing or out of date" to="/guides/content-lifecycle#which-command-do-i-need">
+    Which command brings it back or refreshes it.
+  </Card>
+  <Card icon="code" title="What does each command do?" to="/guides/content-lifecycle#what-each-command-does">
+    `make up`, `make sync`, `make prod` and the rest, side by side.
+  </Card>
+  <Card icon="box" title="Why aren't Drive or Box pages showing?" to="/guides/content-lifecycle#local-only-sections">
+    They're local only, and need the files on your machine.
+  </Card>
+  <Card icon="status" title="A status page says “Snapshot”" to="/guides/live-github-data#troubleshooting">
+    Why the live data isn't loading, and what to check.
+  </Card>
+  <Card icon="status-tests" title="Add a project board or test suite" to="/guides/live-github-data#adding-a-board-or-workflow">
+    The settings to add in `docs-sources.json`.
+  </Card>
+  <Card icon="repos" title="Add a new docs source" to="/guides/writing-docs#adding-a-new-source">
+    Pull in another repo, wiki, Drive folder or Box folder.
+  </Card>
+</Cards>
+
+<Part icon="stack" title="Related">
+  What's in the docs and where to start: the [Welcome](/) page, and the [Bluecore Stack](/blue-core-repos/bluecore-stack/) docs.
+</Part>

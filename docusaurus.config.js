@@ -232,9 +232,10 @@ const config = {
         respectPrefersColorScheme: true,
       },
       // Opening a sidebar section (by clicking it or by going to one of its pages) closes the other
-      // open sections at the same level, so only the current one stays expanded
+      // open sections at the same level, so only the current one stays expanded. hideable: a button at
+      // the bottom of the sidebar hides it (and an arrow brings it back) for more reading room.
       docs: {
-        sidebar: {autoCollapseCategories: true},
+        sidebar: {autoCollapseCategories: true, hideable: true},
       },
       // Header and footer follow the Blue Core design in Figma (styles in src/css/custom.css).
       navbar: {

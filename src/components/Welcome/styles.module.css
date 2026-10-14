@@ -1,0 +1,145 @@
+/* Welcome page (docs/intro.mdx) */
+
+.icon {
+  display: inline-block;
+  flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask: var(--sidebar-icon) no-repeat center / contain;
+  mask: var(--sidebar-icon) no-repeat center / contain;
+}
+
+/* Part heading: icon in a circle, title, one line of explanation */
+.part {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin: 48px 0 18px;
+  padding-top: 28px;
+  border-top: 1px solid var(--bc-sky-line);
+}
+
+.partIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--bc-sky-light);
+  color: var(--bc-link);
+}
+
+[data-theme='dark'] .partIcon {
+  background: rgba(97, 198, 255, 0.12);
+}
+
+.wrapper .partTitle,
+.partTitle {
+  margin: 0 0 4px;
+}
+
+.partText {
+  margin: 0;
+  color: var(--bc-meta);
+}
+
+/* Card grid */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.cols2 {
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+.card,
+.card:visited {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 18px;
+  border: 1px solid var(--bc-sky-line);
+  border-radius: 12px;
+  background: var(--bc-surface);
+  color: var(--ifm-font-color-base);
+  text-decoration: none !important;
+  transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+
+.card:hover {
+  border-color: var(--bc-link);
+  color: var(--ifm-font-color-base);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+.cardHead {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--bc-link);
+  font-size: 17px;
+}
+
+/* Plain text color: the card is a link, and the site's link colors would otherwise apply */
+/* Icon level with the first line of a title that wraps */
+.cardHead .icon {
+  margin-top: 1px;
+}
+
+.cardText,
+.cardMeta {
+  color: var(--ifm-font-color-base);
+}
+
+.cardText {
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+/* MDX wraps text written on its own lines in a paragraph */
+.partText p,
+.cardText p {
+  margin: 0;
+}
+
+.card .cardMeta {
+  margin-top: auto;
+  padding-top: 4px;
+  color: var(--bc-meta);
+  font-size: 13px;
+}
+
+/* "Start here" panel */
+.featured {
+  margin: 24px 0 8px;
+  padding: 20px 22px;
+  border: 1px solid var(--bc-link);
+  border-left-width: 5px;
+  border-radius: 12px;
+  background: var(--bc-sky-light);
+}
+
+[data-theme='dark'] .featured {
+  background: rgba(97, 198, 255, 0.08);
+}
+
+.featuredTitle,
+.featuredTitle:visited {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  color: var(--bc-link);
+  font-size: 22px;
+  font-weight: 700;
+  text-decoration: none !important;
+}
+
+.featuredBody > :last-child {
+  margin-bottom: 0;
+}
