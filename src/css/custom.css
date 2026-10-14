@@ -298,3 +298,15 @@
   background-color: var(--bc-navy);
   border-color: var(--bc-navy);
 }
+
+/* Sidebar link to the Bluecore Stack docs (developers' starting point), see docusaurus.config.js */
+.sidebar-featured > .menu__link {
+  font-weight: 600;
+  color: var(--bc-link);
+}
+
+.sidebar-featured > .menu__link::before {
+  content: '★';
+  margin-right: 6px;
+  color: var(--bc-accent-blue);
+}

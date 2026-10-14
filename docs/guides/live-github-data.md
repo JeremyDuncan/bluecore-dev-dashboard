@@ -37,7 +37,8 @@ sequenceDiagram
 Every Project Status page has a badge at the top:
 
 - **Live · updated N min ago:** the last request to the MCP server worked.
-- **Snapshot from the last sync · date:** the live request failed or isn't configured. **Hover over the badge** to see the error.
+- **Snapshot from the last sync · date:** the live request failed. **Hover over the badge** to see the error.
+- **As of date:** this site has no live API (the public GitHub Pages site). The data is from the last deploy, which runs nightly.
 
 ### Freshness
 
@@ -52,6 +53,26 @@ So live data is at most about 7 minutes old.
 ## The pages
 
 All pages live under `/project-status`. Their settings are in the `projectStatus` block of `docs-sources.json`.
+
+### Navigating between them
+
+The sidebar shows **Project Status** as one link, to an overview page with a card for each page. Each page also has a row of icon links at the top:
+
+| Icon | Page |
+|---|---|
+| Grid | Overview |
+| Columns | Project board (local only) |
+| Circle with a dot | Repo Issues |
+| Flask | Integration Tests |
+| Tag | What's New |
+
+- **Tooltips:** hover over or tab to an icon to see what the page shows, with counts from the last sync. On phones only the icons are shown.
+- **Where the links come from:** the sync writes them to `_data/nav.json`, so the row only lists pages this build has.
+- **How the dropdown is hidden:** `customProps.hideItems` in the section's `_category_.json` and `sidebarItemsGenerator` in `docusaurus.config.js`.
+
+### Public site vs. local
+
+The GitHub Pages deploy runs the sync with `PUBLIC_BUILD=1`, which **leaves out project boards** because they're private. Repo Issues, Integration Tests and What's New are built from public repos and are on the public site, refreshed nightly. To publish a board that is public, add `"public": true` to its entry in `projects`.
 
 ### Project board (`projects`)
 
@@ -134,7 +155,7 @@ The latest release of each repo as "Latest versions" cards, then a release timel
 |---|---|---|
 | `make up` (dev, :3000) | `http://localhost:3001/api/github/...` | `mcp` container directly |
 | `make prod` (:8080) | `/api/live/github/...` (same address) | nginx forwards to `mcp-prod:3001`, so it also works through ngrok |
-| GitHub Pages | n/a | Project Status is local only (git-ignored and not synced in CI), so the public site has no Status section or link. |
+| GitHub Pages | Nothing (`LIVE_API_URL=''`) | Data from the nightly deploy. The project board is left out (`PUBLIC_BUILD=1`). |
 
 The page reads the address from `customFields.liveApiUrl` in `docusaurus.config.js` (set with `LIVE_API_URL`).
 

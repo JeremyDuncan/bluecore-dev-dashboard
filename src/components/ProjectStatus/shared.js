@@ -47,6 +47,9 @@ function timeAgo(iso) {
 }
 
 export function LiveBadge({live, error, fetchedAt, sourceUrl, sourceLabel}) {
+  // No live API on this site (the public GitHub Pages build): the data is from the last deploy,
+  // which is expected, so say when it's from rather than flagging it as a fallback.
+  const liveEnabled = Boolean(useDocusaurusContext().siteConfig.customFields?.liveApiUrl);
   // Re-render every minute so "x min ago" stays current
   const [, tick] = useState(0);
   useEffect(() => {
@@ -55,9 +58,17 @@ export function LiveBadge({live, error, fetchedAt, sourceUrl, sourceLabel}) {
   }, []);
   return (
     <div className={styles.statusBar}>
-      <span className={`${styles.badge} ${live ? styles.badgeLive : styles.badgeSnapshot}`} title={error ?? undefined} suppressHydrationWarning>
+      <span
+        className={`${styles.badge} ${live ? styles.badgeLive : liveEnabled ? styles.badgeSnapshot : ''}`}
+        title={liveEnabled ? (error ?? undefined) : 'Refreshed from GitHub every night'}
+        suppressHydrationWarning
+      >
         <span className={styles.dot} aria-hidden="true" />
-        {live ? `Live · updated ${timeAgo(fetchedAt)}` : `Snapshot from the last sync · ${new Date(fetchedAt).toLocaleString()}`}
+        {live
+          ? `Live · updated ${timeAgo(fetchedAt)}`
+          : liveEnabled
+            ? `Snapshot from the last sync · ${new Date(fetchedAt).toLocaleString()}`
+            : `As of ${new Date(fetchedAt).toLocaleString()}`}
       </span>
       {sourceUrl && (
         <a className={styles.sourceLink} href={sourceUrl}>

@@ -34,6 +34,16 @@ const fileDates = {
 const hasSection = (dir) => fs.existsSync(new URL(`./docs/${dir}`, import.meta.url));
 const ifSection = (dir, item) => (hasSection(dir) ? [item] : []);
 
+// The bluecore-stack repo docs (environment setup, testing, local development): developers' starting
+// point, so it gets its own navbar link and a sidebar link right under Welcome.
+const STACK_DIR = 'blue-core-repos/bluecore-stack';
+const STACK_URL = `/${STACK_DIR}/`;
+
+// Defaults target GitHub Pages; Docker sets SITE_URL/BASE_URL to serve at the root.
+const BASE_URL = process.env.BASE_URL ?? `/${REPO_NAME}/`;
+// Navbar activeBaseRegex is tested against the full path, base URL included ("/bluecore-dev-dashboard/…")
+const activeRegex = (pattern) => `^${BASE_URL}${pattern}`;
+
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'Blue Core Docs',
@@ -46,9 +56,8 @@ const config = {
     experimental_vcs: inGitRepo ? 'default-v1' : fileDates,
   },
 
-  // Defaults target GitHub Pages; Docker sets SITE_URL/BASE_URL to serve at the root.
   url: process.env.SITE_URL ?? `https://${GITHUB_ORG.toLowerCase()}.github.io`,
-  baseUrl: process.env.BASE_URL ?? `/${REPO_NAME}/`,
+  baseUrl: BASE_URL,
   organizationName: GITHUB_ORG,
   projectName: REPO_NAME,
 
@@ -89,6 +98,19 @@ const config = {
           showLastUpdateTime: true,
           showLastUpdateAuthor: true,
           editUrl: `https://github.com/${GITHUB_ORG}/${REPO_NAME}/tree/main/`,
+          // A category whose _category_.json sets customProps.hideItems shows as a single link to its
+          // index page. Project Status uses it: its pages link to each other with icons (StatusNav).
+          async sidebarItemsGenerator({defaultSidebarItemsGenerator, ...args}) {
+            const flatten = (items) =>
+              items.map((item) =>
+                item.type !== 'category' ? item : {...item, items: item.customProps?.hideItems ? [] : flatten(item.items)},
+              );
+            const items = flatten(await defaultSidebarItemsGenerator(args));
+            if (!hasSection(STACK_DIR)) return items;
+            const stack = {type: 'link', label: 'Bluecore Stack: start here', href: STACK_URL, className: 'sidebar-featured'};
+            const welcome = items.findIndex((item) => item.type === 'doc' && item.id === 'intro');
+            return welcome === -1 ? [stack, ...items] : [...items.slice(0, welcome + 1), stack, ...items.slice(welcome + 1)];
+          },
         },
         blog: false,
         theme: {
@@ -127,8 +149,10 @@ const config = {
           height: 35,
         },
         items: [
-          {to: '/', label: 'Docs', position: 'right', activeBaseRegex: '^/$'},
-          ...ifSection('blue-core-repos', {to: '/blue-core-repos', label: 'Repos', position: 'right'}),
+          {to: '/', label: 'Docs', position: 'right', activeBaseRegex: activeRegex('$')},
+          ...ifSection(STACK_DIR, {to: STACK_URL, label: 'Bluecore Stack', position: 'right'}),
+          // Not active on the Bluecore Stack pages, which have their own link
+          ...ifSection('blue-core-repos', {to: '/blue-core-repos', label: 'Repos', position: 'right', activeBaseRegex: activeRegex('blue-core-repos(?!/bluecore-stack)')}),
           ...ifSection('blue-core-wiki', {to: '/blue-core-wiki', label: 'Wiki', position: 'right'}),
           ...ifSection('project-status', {to: '/project-status', label: 'Status', position: 'right'}),
           {href: 'https://github.com/blue-core-lod', label: 'GitHub', position: 'right'},

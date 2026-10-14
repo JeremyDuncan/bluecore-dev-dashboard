@@ -30,11 +30,17 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      # Public content only: GitHub repo docs and wikis. Drive, Box, Figma and Project Status are
-      # local-only, so they're simply absent here.
+      # Public content only: GitHub repo docs and wikis, then Project Status without the private
+      # project board (PUBLIC_BUILD). Drive, Box and Figma are local-only, so they're simply absent here.
       - run: npm run sync:readmes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # higher rate limit; only sees public repos of the org
+      - run: npm run sync:status
+        env:
+          PUBLIC_BUILD: '1'
+          # Optional STATUS_GITHUB_TOKEN secret (a token with public read access) if the default token
+          # can't read another org's Actions logs; without them the Integration Tests page has no test details.
+          GITHUB_TOKEN: ${{ secrets.STATUS_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
       - run: npm run build
         env:
           LIVE_API_URL: '' # no live GitHub data on the public site (there's no server to hold the token)

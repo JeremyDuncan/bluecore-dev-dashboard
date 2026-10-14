@@ -691,3 +691,186 @@
 [data-theme='dark'] .pill_failure {
   color: #ff8a8a;
 }
+
+/* ---------- Icon navigation between the Project Status pages (StatusNav.js) ---------- */
+.statusNav {
+  margin: 0 0 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--bc-sky-line);
+}
+
+.statusNav ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.statusNavItem {
+  position: relative;
+  margin: 0;
+}
+
+.statusNavLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--bc-sky-line);
+  border-radius: 100px;
+  background: var(--bc-surface);
+  color: var(--bc-link);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none !important;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.statusNavLink:hover,
+.statusNavLink:focus-visible {
+  border-color: var(--bc-link);
+  background: var(--bc-sky-light);
+  color: var(--bc-link);
+}
+
+.statusNavActive,
+.statusNavActive:hover {
+  border-color: var(--bc-navy);
+  background: var(--bc-navy);
+  color: #ffffff;
+}
+
+[data-theme='dark'] .statusNavLink:hover,
+[data-theme='dark'] .statusNavLink:focus-visible {
+  background: rgba(97, 198, 255, 0.12);
+}
+
+[data-theme='dark'] .statusNavActive,
+[data-theme='dark'] .statusNavActive:hover {
+  border-color: var(--bc-accent-blue);
+  background: var(--bc-accent-blue);
+  color: var(--bc-navy);
+}
+
+/* Tooltip: shown on hover and on keyboard focus */
+.statusTip {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 20;
+  width: max-content;
+  max-width: min(300px, 80vw);
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: var(--bc-navy);
+  color: #ffffff;
+  font-size: 13px;
+  line-height: 1.45;
+  box-shadow: 0 6px 18px rgba(9, 29, 109, 0.25);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity 0.12s, transform 0.12s, visibility 0.12s;
+  pointer-events: none;
+}
+
+.statusTip strong {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--bc-accent-blue);
+}
+
+.statusNavItem:hover .statusTip,
+.statusNavItem:focus-within .statusTip {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+
+[data-theme='dark'] .statusTip {
+  border: 1px solid var(--bc-sky-line);
+  background: #0d1b2e;
+}
+
+/* Phones: icons only (the tooltip and aria-describedby still describe each link) */
+@media (max-width: 600px) {
+  .statusNavLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .statusNavLink {
+    padding: 10px;
+  }
+}
+
+/* ---------- Overview cards on /project-status ---------- */
+.statusCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.statusCards li {
+  margin: 0;
+}
+
+.statusCard {
+  display: flex;
+  gap: 14px;
+  height: 100%;
+  padding: 18px;
+  border: 1px solid var(--bc-sky-line);
+  border-radius: 8px;
+  background: var(--bc-surface);
+  color: inherit;
+  text-decoration: none !important;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.statusCard:hover,
+.statusCard:focus-visible {
+  border-color: var(--bc-link);
+  box-shadow: 0 4px 14px rgba(0, 60, 175, 0.12);
+  color: inherit;
+}
+
+.statusCardIcon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  background: var(--bc-sky-light);
+  color: var(--bc-core-blue);
+}
+
+[data-theme='dark'] .statusCardIcon {
+  background: rgba(97, 198, 255, 0.12);
+  color: var(--bc-accent-blue);
+}
+
+.statusCardTitle {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--bc-heading);
+  font-size: 17px;
+}
+
+.statusCardText {
+  display: block;
+  color: var(--bc-meta);
+  font-size: 14px;
+  line-height: 1.5;
+}

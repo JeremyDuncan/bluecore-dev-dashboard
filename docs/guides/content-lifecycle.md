@@ -12,7 +12,7 @@ This page explains where each part of the site comes from, which command refresh
 | **Hand-written** | `docs/guides/`, `docs/intro.md` | Yes | Editing the file |
 | **Pulled from GitHub** | `docs/blue-core-repos/`, `docs/blue-core-wiki/` | **No** | Every `make up`, `make prod`, `make sync` and GitHub Pages deploy |
 | **Local only** | `docs/google-drive/`, `docs/box/`, `docs/design/` (Figma) | **No** | `make up` / `make prod` / `make sync`, from files on your machine |
-| **Live** | Project board, Repo Issues, Integration Tests, What's New (`docs/project-status/`) | **No** | The browser, every 5 minutes. See [Live GitHub data](./live-github-data.md). |
+| **Live** | Project board, Repo Issues, Integration Tests, What's New (`docs/project-status/`) | **No** | The browser, every 5 minutes. On the public site, the nightly deploy, without the private board. See [Live GitHub data](./live-github-data.md). |
 
 Only hand-written pages are in git. Everything else is rebuilt on each machine from its source, and `.gitignore` covers every generated folder, so internal content can't be committed by accident.
 
@@ -84,7 +84,7 @@ You can run `make sync` while `make up` is running. The sync runs in its own sho
 A later `make sync` doesn't change the running images. Run `make prod` again to publish new content. The live Project Status data is the exception: `mcp-prod` fetches it from GitHub, so it stays current without a rebuild.
 
 :::warning
-The `prod` images include your local-only content (Drive, Box, Figma, Project Status). Treat them as internal, and put a login in front of them if you share them (see "Sharing your local production site" in the README).
+The `prod` images include your local-only content (Drive, Box, Figma, the private project board). Treat them as internal, and put a login in front of them if you share them (see "Sharing your local production site" in the README).
 :::
 
 ## The public GitHub Pages site
@@ -94,7 +94,7 @@ The `prod` images include your local-only content (Drive, Box, Figma, Project St
 1. pulls the GitHub repo docs and wikis (`npm run sync:readmes`), public repos only;
 2. builds with `LIVE_API_URL=''` and `CHAT_API_URL=''`, so there is no live data and no chat box.
 
-Drive, Box, Figma and Project Status aren't on the CI machine, so the public site has no trace of them. The nightly run is how the public site picks up changes to repo docs and wikis.
+It also builds the Project Status pages with `PUBLIC_BUILD=1`, which leaves out the private project board. Drive, Box and Figma aren't on the CI machine, so the public site has no trace of them. The nightly run is how the public site picks up changes to repo docs and wikis.
 
 ## Which command do I need?
 
