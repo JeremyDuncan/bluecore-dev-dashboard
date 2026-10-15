@@ -1,0 +1,89 @@
+---
+title: "Project and issue tools"
+sidebar_label: "Project and issues"
+sidebar_position: 2
+hide_table_of_contents: true
+description: "The project board, issues, pull requests and releases, live from GitHub."
+---
+
+import {GroupNav, Tool, Tools} from '@site/src/components/McpTools';
+
+# Project and issue tools
+
+<GroupNav current="project" />
+
+The project board, issues, pull requests and releases, live from GitHub.
+
+<Tools>
+
+<Tool
+  name="project_board"
+  title="GitHub project board"
+  source="github"
+  args="board, status, repo, assignee, label, query, include_done, summary_only, limit"
+  uses={["What's in review, blocked or in progress", "Counts per status and assignee with summary_only", "One person's or one repo's cards"]}
+  ask="What's In Review on the Blue Core MVP board?">
+  Items on the Blue Core project board with their status column, assignees, labels, milestone and sub-issue progress. Done items are left out unless you ask for them.
+</Tool>
+
+<Tool
+  name="list_issues"
+  title="Open repo issues"
+  source="github"
+  args="repo, label, assignee, query, limit"
+  uses={["Open bugs in one repo", "Everything assigned to you", "Issues about a feature, by text"]}
+  ask="Which open bluecore_api issues are labeled bug?">
+  Open issues (not pull requests) across the org's repositories, filtered by repo, label, assignee or text, most recently updated first.
+</Tool>
+
+<Tool
+  name="get_issue"
+  title="Read an issue or pull request"
+  source="github"
+  args="repo*, number*, max_comments"
+  uses={["Read an issue before you work on it", "Catch up on a discussion's latest comments", "See where an issue sits on the board"]}
+  ask="Summarize bluecore_api#194 (Parity with Sinopia API) and what's left to do.">
+  One issue or pull request in full: description, labels, assignees, state, latest comments, and its status on the project board.
+</Tool>
+
+<Tool
+  name="search_issues"
+  title="Search issues and pull requests"
+  source="github"
+  args="query*, state, limit"
+  uses={["Find closed issues and merged PRs (list_issues only has open ones)", "Has this bug been reported or fixed before?", "GitHub search syntax: is:pr is:merged, author:, label:"]}
+  ask="Was there ever an issue about Keycloak token refresh?">
+  GitHub search over all of the org's issues and pull requests, open and closed.
+</Tool>
+
+<Tool
+  name="list_pull_requests"
+  title="Open pull requests"
+  source="github"
+  args="repo, author, reviewer, review, stale_only, include_drafts"
+  uses={["What's waiting for review, or for your review", "What's stuck (no update for 14 days)", "What's approved, green and ready to merge"]}
+  ask="Which PRs are waiting on my review?">
+  Open pull requests, oldest first: age, review status, requested reviewers, CI result of the latest commit, merge conflicts and size.
+</Tool>
+
+<Tool
+  name="recent_changes"
+  title="Recently merged pull requests"
+  source="github"
+  args="since, repo, include_bots"
+  uses={["What changed this week", "Material for a standup or weekly update", "What landed in a repo since your last pull"]}
+  ask="What merged in the stack since Monday?">
+  Pull requests merged since a date (seven days ago by default), grouped by repo. Bot dependency updates are hidden unless you ask for them.
+</Tool>
+
+<Tool
+  name="list_releases"
+  title="Releases"
+  source="github"
+  args="repo, limit, include_notes"
+  uses={["What's in the latest release of a service", "Release notes for a changelog"]}
+  ask="What changed in the last two bluecore-models releases?">
+  Releases of the org's repositories, newest first: version, date, author and highlights, or the full notes.
+</Tool>
+
+</Tools>

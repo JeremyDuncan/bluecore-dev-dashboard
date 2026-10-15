@@ -1,6 +1,7 @@
 ---
 title: Notes
 sidebar_position: 4
+sidebar_class_name: sidebar-icon sidebar-icon--notes
 ---
 
 **Notes** is your own notebook on this site: Markdown notes you can read, write, tag and search here, that AI agents can read and add to, and that are also an [Obsidian](https://obsidian.md) vault. This page explains how to set it up, where the notes live, and how the site, Obsidian and AI agents share them.

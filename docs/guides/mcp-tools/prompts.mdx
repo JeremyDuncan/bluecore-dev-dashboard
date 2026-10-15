@@ -1,0 +1,36 @@
+---
+title: Prompts
+sidebar_position: 4
+hide_table_of_contents: true
+description: The MCP server's ready-made reports, and their slash commands in Claude Code.
+---
+
+import {Prompt, Prompts} from '@site/src/components/McpTools';
+
+# Prompts
+
+Prompts are ready-made reports. In Claude Code each one is a slash command; other agents list them as prompts or templates.
+
+<Prompts>
+  <Prompt name="standup_summary" args="since, person">
+    What the team finished, is working on and is blocked by since the last working day, plus CI health.
+  </Prompt>
+  <Prompt name="weekly_update" args="since">
+    A weekly progress update: merged work per repo, releases, board movement, test health and what's next.
+  </Prompt>
+  <Prompt name="diagnose_failure" args="suite, test">
+    Why a test run failed, in the integration suite or a repo's own tests, and how to fix it.
+  </Prompt>
+  <Prompt name="summarize_epic" args="repo*, number*">
+    An epic's status: what it is, its sub-issues and where each stands on the board, who's on it, and risks.
+  </Prompt>
+  <Prompt name="onboarding_plan" args="focus, name">
+    A first-week plan for a new Blue Core developer: setup, what to read, the architecture and good first issues.
+  </Prompt>
+  <Prompt name="docs_cleanup" args="section">
+    A prioritized list of documentation fixes (broken links, outdated pages, missing docs) with where to fix each.
+  </Prompt>
+  <Prompt name="notes_review" args="since, tag">
+    What changed in your notes, your open tasks, notes written by AI to check, and what needs tidying.
+  </Prompt>
+</Prompts>

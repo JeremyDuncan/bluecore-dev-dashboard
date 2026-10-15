@@ -1,0 +1,107 @@
+---
+title: "Notes tools: writing"
+sidebar_label: "Notes: write"
+sidebar_position: 7
+hide_table_of_contents: true
+description: "The server's only writes. Agents use them only when you ask, and none of them deletes anything."
+---
+
+import {GroupNav, Tool, Tools} from '@site/src/components/McpTools';
+
+# Notes tools: writing
+
+<GroupNav current="notes-write" />
+
+The server's only writes. Agents use them only when you ask, and none of them deletes anything.
+
+<Tools>
+
+<Tool
+  name="create_note"
+  title="Create a note"
+  access="write"
+  source="notes"
+  args="title*, body, template, tags, folder, author, model"
+  uses={["Save steps you just worked out", "Start a note from a template", "Write up a diagnosis or standup"]}
+  ask="Save a note with the steps to export the Keycloak realm, tagged keycloak.">
+  Adds a note, optionally from a template. Never overwrites: a title that's taken gets a number added. The note records which agent and model wrote it.
+</Tool>
+
+<Tool
+  name="update_note"
+  title="Update a note"
+  access="write"
+  source="notes"
+  args="note*, append, body, add_tags, remove_tags, move_to, model"
+  uses={["Append today's findings to a running note", "Retag or move a note to another folder"]}
+  ask="Add what we found about the token refresh to my Keycloak note.">
+  Appends to a note (preferred), replaces its text, adds or removes tags, or moves it. The note records the AI edit until you next save it yourself.
+</Tool>
+
+<Tool
+  name="complete_task"
+  title="Tick or untick a task"
+  access="write"
+  source="notes"
+  args="note*, line*, text*, done"
+  uses={["Tick off a to-do once the work is done"]}
+  ask="Mark the “update compose file” task as done.">
+  Ticks a checklist item. It checks the task's text first, so it refuses if the note changed since `list_tasks` instead of ticking the wrong box.
+</Tool>
+
+<Tool
+  name="rename_note"
+  title="Rename a note"
+  access="write"
+  source="notes"
+  args="note*, title*"
+  uses={["Give a note a clearer title without breaking links"]}
+  ask="Rename “Untitled” to “Sinopia login checklist”.">
+  Renames a note and updates the [[links]] to it in other notes.
+</Tool>
+
+<Tool
+  name="pin_note"
+  title="Pin or unpin a note"
+  access="write"
+  source="notes"
+  args="note*, pinned"
+  uses={["Keep a current-sprint note at the top of the list"]}
+  ask="Pin my sprint planning note.">
+  Pinned notes show at the top of the Notes page.
+</Tool>
+
+<Tool
+  name="duplicate_note"
+  title="Duplicate a note"
+  access="write"
+  source="notes"
+  args="note*, title, folder"
+  uses={["Start this week's note from last week's"]}
+  ask="Copy my sprint notes to “Sprint 15 notes”.">
+  Copies a note's text, tags and properties to a new note. Never overwrites.
+</Tool>
+
+<Tool
+  name="save_template"
+  title="Save a note template"
+  access="write"
+  source="notes"
+  args="name, from_note, body, tags, replace, model"
+  uses={["Turn a note you like into a reusable template", "Write a template for bug reports or meeting notes"]}
+  ask="Make a template from my standup note.">
+  Creates or updates a template in `Templates/`, from an existing note or from Markdown. Placeholders: `{{title}}`, `{{date}}`, `{{time}}`.
+</Tool>
+
+<Tool
+  name="attach_image"
+  title="Add an image to the notes"
+  access="write"
+  source="notes"
+  args="data*, mime_type*, name, note, caption"
+  uses={["Save a diagram the agent drew into a note"]}
+  ask="Attach this diagram to my architecture note.">
+  Saves an image to `attachments/` and optionally embeds it at the end of a note with a caption.
+</Tool>
+
+</Tools>

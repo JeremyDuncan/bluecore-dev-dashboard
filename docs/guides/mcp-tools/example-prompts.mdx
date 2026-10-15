@@ -1,0 +1,124 @@
+---
+title: Example prompts
+sidebar_position: 2
+hide_table_of_contents: true
+description: Real prompts for Blue Core work, ready to copy into Claude Code, Codex or Ask the docs.
+---
+
+import {Example, ExamplePrompts} from '@site/src/components/McpTools';
+
+# Example prompts
+
+Real prompts for real Blue Core work. Copy one into Claude Code, Codex or **Ask the docs** as it is, or change the repo, issue or date. The agent picks the tools; **Uses** shows the ones it will most likely call.
+
+<ExamplePrompts>
+
+<Example
+  category="Docs and onboarding"
+  tools="search_docs, read_doc, list_issues"
+  prompt="I'm new to Blue Core and will mostly work on the API. Make me a first-week plan: the setup steps for running the Bluecore stack locally, what to read first, how the services fit together, and three good first issues in bluecore_api."
+/>
+
+<Example
+  category="Docs and onboarding"
+  tools="search_docs, read_doc"
+  prompt="How do I run the Bluecore stack locally with only bluecore_api and bluecore-workflows built from my local checkouts? Give me the exact commands from the bluecore-stack docs and link the pages you used."
+/>
+
+<Example
+  category="Docs and onboarding"
+  tools="docs_health, read_doc"
+  prompt="Find stale pages and broken links in the Blue Core wiki, and give me a prioritized fix list that says where to edit each one."
+/>
+
+<Example
+  category="Project and planning"
+  tools="project_board, list_pull_requests"
+  prompt="What's In Review on the Blue Core MVP board, who is assigned to each item, and which of the linked pull requests have failing CI or merge conflicts?"
+/>
+
+<Example
+  category="Project and planning"
+  tools="get_issue, project_board"
+  prompt="Summarize the epic bluecore-workflows#98 (deduplication detection and resolution): its sub-issues, where each stands on the board, who is working on it, and the risks."
+/>
+
+<Example
+  category="Project and planning"
+  tools="recent_changes, project_board, ci_status"
+  prompt="Write my standup: what merged across blue-core-lod since yesterday, what is blocked or waiting in review on the MVP board, and anything red in CI."
+/>
+
+<Example
+  category="Code and API"
+  tools="api_endpoint, api_schema"
+  prompt="Give me a curl request that creates a work with POST /works/ on dev, with a valid request body and the Keycloak bearer token header. Explain each required field."
+/>
+
+<Example
+  category="Code and API"
+  tools="search_code, get_file, api_endpoints"
+  prompt="Where does bluecore_api check the Keycloak token, and which endpoints need auth? Show me the relevant code with file paths."
+/>
+
+<Example
+  category="Code and API"
+  tools="fork_changes, get_file"
+  prompt="What has our marva_editor fork changed compared with upstream? List the changed files and summarize why, based on the commit messages."
+/>
+
+<Example
+  category="Tests and CI"
+  tools="integration_tests, diagnose_test_failure, get_file"
+  prompt="The Bluecore Integration Test failed. Find the failing run, show me the error, list what changed since the last passing run, tell me whether it's flaky, and suggest a fix."
+/>
+
+<Example
+  category="Tests and CI"
+  tools="diagnose_test_failure, search_issues, recent_changes"
+  prompt="test_work_create_and_readback_with_auth failed 7 times in the integration suite this month. What was the error, which change fixed it, and could it come back?"
+/>
+
+<Example
+  category="Tests and CI"
+  tools="integration_tests"
+  prompt="Compare the test health of bluecore_api, bluecore-models and bluecore-workflows: pass rate, which stage fails most, durations, and their most-failing tests."
+/>
+
+<Example
+  category="Releases and deploys"
+  tools="version_drift, list_releases"
+  prompt="Is stage running the latest bluecore_api and bluecore-workflows releases? List anything merged on main that hasn't been released yet."
+/>
+
+<Example
+  category="Releases and deploys"
+  tools="version_drift, ci_status"
+  prompt="My change works in bluecore_api but fails in the stack. Check which images the stack uses, which bluecore-models version each service locks, and whether the last image publish failed."
+/>
+
+<Example
+  category="Releases and deploys"
+  tools="list_releases, recent_changes"
+  prompt="Draft release notes for the next bluecore-models release from the pull requests merged since the last release, grouped into features, fixes and maintenance."
+/>
+
+<Example
+  category="Notes"
+  tools="list_templates, list_note_tags, create_note"
+  prompt="Save a How-to note with the steps we just used to fix the integration test, tagged integration-tests and bluecore_api, using my How-to template."
+/>
+
+<Example
+  category="Notes"
+  tools="list_notes, list_tasks"
+  prompt="What did I note about Keycloak in the last two weeks, and which tasks in those notes are still open?"
+/>
+
+<Example
+  category="Notes"
+  tools="list_notes, notes_health"
+  prompt="Review my notes: what changed this week, which notes an AI wrote that I should check, and what needs tidying, like broken links or notes without tags."
+/>
+
+</ExamplePrompts>

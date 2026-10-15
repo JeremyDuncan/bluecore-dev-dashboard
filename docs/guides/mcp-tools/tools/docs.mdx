@@ -1,0 +1,59 @@
+---
+title: "Docs tools"
+sidebar_label: "Docs"
+sidebar_position: 1
+hide_table_of_contents: true
+description: "Search and read this site: guides, repo docs, the wiki, and Drive and Box pages on machines that have them."
+---
+
+import {GroupNav, Tool, Tools} from '@site/src/components/McpTools';
+
+# Docs tools
+
+<GroupNav current="docs" />
+
+Search and read this site: guides, repo docs, the wiki, and Drive and Box pages on machines that have them.
+
+<Tools>
+
+<Tool
+  name="search_docs"
+  title="Search documentation"
+  source="docs"
+  args="query*, limit, path_prefix"
+  uses={["Find the page that explains a setup step, config key or error", "Narrow to one section with path_prefix, e.g. blue-core-wiki"]}
+  ask="How do I export the Keycloak realm?">
+  Full-text (BM25) search over every docs page. Returns the best-matching sections with a snippet, the page path for `read_doc` and the site URL. Short keyword queries work best.
+</Tool>
+
+<Tool
+  name="read_doc"
+  title="Read a documentation page"
+  source="docs"
+  args="page*, section, max_chars"
+  uses={["Read a page found by search_docs", "Pull one section of a long page by its heading"]}
+  ask="Read the Configuration page and list the required environment variables.">
+  Returns one page as Markdown, by path or URL. Pass `section` to get only one heading's part of a long page.
+</Tool>
+
+<Tool
+  name="list_docs"
+  title="List documentation pages"
+  source="docs"
+  args="path_prefix"
+  uses={["See what exists before searching", "Map a section, e.g. everything under google-drive"]}
+  ask="What pages are in the Blue Core wiki?">
+  Lists every page as path and title, optionally only under a `docs/` folder.
+</Tool>
+
+<Tool
+  name="docs_health"
+  title="Docs health"
+  source="docs"
+  args="section, stale_after_days, limit"
+  uses={["Find stale pages and broken links before a release", "Spot repos with no README or docs"]}
+  ask="What in the wiki is out of date or broken?">
+  A cleanup list for the site: stale pages, broken links between pages (missing pages or headings), near-empty pages and Blue Core repos without docs.
+</Tool>
+
+</Tools>

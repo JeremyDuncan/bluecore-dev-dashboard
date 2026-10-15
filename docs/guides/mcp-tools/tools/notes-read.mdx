@@ -1,0 +1,129 @@
+---
+title: "Notes tools: reading"
+sidebar_label: "Notes: read"
+sidebar_position: 6
+hide_table_of_contents: true
+description: "Your Markdown notes vault, also an Obsidian vault."
+---
+
+import {GroupNav, Tool, Tools} from '@site/src/components/McpTools';
+
+# Notes tools: reading
+
+<GroupNav current="notes-read" />
+
+Your Markdown notes vault, also an Obsidian vault.
+
+<Tools>
+
+<Tool
+  name="search_notes"
+  title="Search notes"
+  source="notes"
+  args="query*, limit"
+  uses={["What did I write about X?", "Find your own fix for an error you've seen before"]}
+  ask="Search my notes for the Marva login error.">
+  Keyword search over note titles, tags and text. Every word must match.
+</Tool>
+
+<Tool
+  name="list_notes"
+  title="List notes"
+  source="notes"
+  args="tag, folder, since, until, sort, limit"
+  uses={["Notes from last week", "Everything tagged keycloak", "One folder's notes"]}
+  ask="What did I note about keycloak last week?">
+  Notes, newest first, filtered by tag, folder or date range.
+</Tool>
+
+<Tool
+  name="read_note"
+  title="Read a note"
+  source="notes"
+  args="note*, section, include_images"
+  uses={["Read a note by path or [[title]]", "One section of a long note", "Look at the screenshots it embeds with include_images"]}
+  ask="Read my Sinopia setup note, including its screenshots.">
+  One note as Markdown, with its tags, dates and the notes that link to it.
+</Tool>
+
+<Tool
+  name="related_notes"
+  title="Related notes"
+  source="notes"
+  args="note*"
+  uses={["Follow a topic across notes", "Find [[links]] to notes that don't exist yet"]}
+  ask="What's connected to my Keycloak notes?">
+  What a note links to, what links to it, and notes that share its tags.
+</Tool>
+
+<Tool
+  name="list_tasks"
+  title="List tasks"
+  source="notes"
+  args="status, tag, folder, since, limit"
+  uses={["Your open to-dos across every note", "Tasks in one project folder", "What you finished this week"]}
+  ask="What tasks do I still have open for Blue Core?">
+  Checklist items (`- [ ]`) across notes, open ones by default, with the note, line and section of each.
+</Tool>
+
+<Tool
+  name="list_note_tags"
+  title="List note tags"
+  source="notes"
+  args=""
+  uses={["Reuse existing tags instead of inventing new ones"]}
+  ask="Which tags do I use most?">
+  Every tag in the vault with how many notes use it.
+</Tool>
+
+<Tool
+  name="list_templates"
+  title="List note templates"
+  source="notes"
+  args=""
+  uses={["Pick a template for create_note"]}
+  ask="Which note templates do I have?">
+  The templates in `Templates/`, with their headings so the agent can tell what each is for.
+</Tool>
+
+<Tool
+  name="notes_for_doc"
+  title="Notes about a docs page"
+  source="notes"
+  args="page*"
+  uses={["Add your own gotchas to what a docs page says"]}
+  ask="Do I have any notes about the Local Development page?">
+  Your notes that link to a docs page. Agents use it together with `read_doc`.
+</Tool>
+
+<Tool
+  name="list_attachments"
+  title="List note attachments"
+  source="notes"
+  args="unused_only"
+  uses={["Which notes embed an image", "Images nothing uses any more"]}
+  ask="Which images in my notes aren't used anywhere?">
+  Images and PDFs in the vault, their size, and the notes that embed each.
+</Tool>
+
+<Tool
+  name="get_note_image"
+  title="Look at an image from the notes"
+  source="notes"
+  args="image*"
+  uses={["Let the agent read a screenshot of an error or a diagram"]}
+  ask="Look at the screenshot in my deploy note and tell me what the error says.">
+  Returns one PNG, JPEG, GIF or WebP image from the vault (up to 3 MB) so the agent can see it.
+</Tool>
+
+<Tool
+  name="notes_health"
+  title="Notes health"
+  source="notes"
+  args=""
+  uses={["A tidy-up list for the vault"]}
+  ask="What in my notes needs tidying?">
+  [[Links]] to notes that don't exist, images nothing embeds, notes without tags, tags spelled more than one way, empty notes, and what's in the trash.
+</Tool>
+
+</Tools>

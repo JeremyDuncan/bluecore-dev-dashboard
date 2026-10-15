@@ -1,0 +1,75 @@
+---
+title: Recipes
+sidebar_position: 5
+hide_table_of_contents: true
+description: The chains of tools agents use for common Blue Core questions.
+---
+
+import {Recipe, Recipes} from '@site/src/components/McpTools';
+
+# Recipes
+
+Agents chain tools on their own. These are the usual chains for common questions, so you know what to ask for and what to expect.
+
+<Recipes>
+  <Recipe
+    title="Fix a failing test"
+    ask="The integration tests are red. Why, and how do I fix it?"
+    steps={[
+      ['integration_tests', 'Which suite and stage fail, and since when'],
+      ['diagnose_test_failure', 'Error output, changes since the last pass, flakiness'],
+      ['get_file', 'Read the test and the code it points at'],
+      ['search_issues', 'Check whether someone already reported it'],
+    ]}
+  />
+  <Recipe
+    title="Call a new API endpoint"
+    ask="Add a call to create a work from the client."
+    steps={[
+      ['api_endpoints', 'Find the endpoint under the Works tag'],
+      ['api_endpoint', 'Parameters, body, auth and a curl example'],
+      ['api_schema', 'The exact fields of the request body'],
+      ['search_code', 'How existing client code calls the API'],
+    ]}
+  />
+  <Recipe
+    title="Works in the repo, fails in the stack"
+    ask="My bluecore_api change works locally but not in the stack."
+    steps={[
+      ['version_drift', 'Is the stack running an older image or models lock?'],
+      ['recent_changes', 'What merged since the last release'],
+      ['ci_status', 'Did the image publish fail?'],
+      ['search_docs', 'The stack docs for rebuilding or overriding an image'],
+    ]}
+  />
+  <Recipe
+    title="Pick up an issue"
+    ask="I'm starting on bluecore-workflows#98. Get me up to speed."
+    steps={[
+      ['get_issue', 'The description, discussion and board status'],
+      ['search_code', 'Where the affected code lives'],
+      ['search_docs', 'Setup and architecture notes for that service'],
+      ['create_note', 'Save a plan with a task checklist (when you ask)'],
+    ]}
+  />
+  <Recipe
+    title="Prepare for standup"
+    ask="What happened since yesterday, and what's blocked?"
+    steps={[
+      ['recent_changes', 'What merged'],
+      ['project_board', 'What moved, and what is blocked or in review'],
+      ['list_pull_requests', 'What is waiting for review'],
+      ['list_tasks', 'Your own open to-dos'],
+    ]}
+  />
+  <Recipe
+    title="Keep what you learned"
+    ask="Save how we fixed this as a note, from my bug template."
+    steps={[
+      ['list_templates', 'Find the bug report template'],
+      ['list_note_tags', 'Reuse your existing tags'],
+      ['create_note', 'Write the note from the template'],
+      ['related_notes', 'Link it to notes on the same topic'],
+    ]}
+  />
+</Recipes>

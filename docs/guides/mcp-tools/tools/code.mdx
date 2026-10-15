@@ -1,0 +1,59 @@
+---
+title: "Source code tools"
+sidebar_label: "Source code"
+sidebar_position: 3
+hide_table_of_contents: true
+description: "Read the Blue Core repositories without cloning them."
+---
+
+import {GroupNav, Tool, Tools} from '@site/src/components/McpTools';
+
+# Source code tools
+
+<GroupNav current="code" />
+
+Read the Blue Core repositories without cloning them.
+
+<Tools>
+
+<Tool
+  name="search_code"
+  title="Search source code"
+  source="github"
+  args="query*, repo, limit"
+  uses={["Where is a function, route or setting defined?", "Every place that uses an environment variable", "Qualifiers like language:python or path:tests"]}
+  ask="Where does bluecore_api read its Keycloak settings?">
+  Code search over the org's default branches. Returns files with matching lines; read one with `get_file`. GitHub allows about ten code searches a minute.
+</Tool>
+
+<Tool
+  name="list_files"
+  title="List files in a repo"
+  source="github"
+  args="repo*, folder, match, ref, limit"
+  uses={["Find the right path for get_file", "See how a repo is laid out", "List files on a branch or tag with ref"]}
+  ask="Where are the Airflow DAGs in bluecore-workflows?">
+  Files in one repository, optionally under a folder or matching text, on the default branch or any ref.
+</Tool>
+
+<Tool
+  name="get_file"
+  title="Read a source file"
+  source="github"
+  args="repo*, path*, ref, line_start, line_end"
+  uses={["Read code an error points at", "Compare a file on two branches or tags", "Read a compose file or config"]}
+  ask="Show me compose-dev.yaml in bluecore-stack.">
+  One file (or a folder listing) from a repository, on the default branch or any ref. Pass a line range for part of a long file.
+</Tool>
+
+<Tool
+  name="fork_changes"
+  title="What a fork changed"
+  source="github"
+  args="repo*, path, commits"
+  uses={["What Blue Core changed in marva_editor or graph-toolbox", "How far a fork is behind upstream", "One file's diff against upstream"]}
+  ask="What has our marva_editor fork changed compared with upstream?">
+  For repos that fork another project: commits ahead and behind, files added, changed and removed with line counts, and commit messages.
+</Tool>
+
+</Tools>

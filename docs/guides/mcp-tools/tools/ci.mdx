@@ -1,0 +1,59 @@
+---
+title: "CI, test and deploy tools"
+sidebar_label: "CI, tests and deploys"
+sidebar_position: 4
+hide_table_of_contents: true
+description: "Build and test health, failure diagnosis, and what's actually deployed."
+---
+
+import {GroupNav, Tool, Tools} from '@site/src/components/McpTools';
+
+# CI, test and deploy tools
+
+<GroupNav current="ci" />
+
+Build and test health, failure diagnosis, and what's actually deployed.
+
+<Tools>
+
+<Tool
+  name="ci_status"
+  title="CI status (GitHub Actions)"
+  source="github"
+  args="repo, branch"
+  uses={["Is main green in every repo?", "Which step of a workflow failed", "The state of your feature branch"]}
+  ask="Is anything red in CI right now?">
+  The latest GitHub Actions run of each workflow per repo, on the default branch or a given branch: result, when, how long, and which steps failed.
+</Tool>
+
+<Tool
+  name="integration_tests"
+  title="Test metrics"
+  source="github"
+  args="suite, recent_runs"
+  uses={["Pass rate and duration trends for a suite", "Which stage fails: image build, lint, type check, tests or setup", "The most-failing tests, and whether they still fail"]}
+  ask="How healthy is the integration test suite this month?">
+  Health of the integration suite or any repo's own tests (bluecore_api, bluecore-models, bluecore-workflows, Sinopia, Marva and more): latest result, pass rate, durations, failing stages and most-failing tests.
+</Tool>
+
+<Tool
+  name="diagnose_test_failure"
+  title="Diagnose a failing test run"
+  source="github"
+  args="suite, run, test"
+  uses={["Why did last night's integration run fail?", "Is this test flaky or really broken?", "Which commits since the last pass could have caused it"]}
+  ask="Why did test_work_create_and_readback_with_auth fail in the integration suite?">
+  Evidence for a failed run: the failing tests' error output, the failed step for lint, type check or build failures, commits and files changed since the last pass, whether a test is flaky, and hints from common error patterns. The agent reads the code and explains the cause.
+</Tool>
+
+<Tool
+  name="version_drift"
+  title="Version drift"
+  source="github"
+  args=""
+  uses={["What's deployed on dev and stage", "Does the stack run each service's latest release?", "Which services lock an old bluecore-models"]}
+  ask="It works in bluecore_api but fails in the stack. Is the stack behind?">
+  Compares what dev and stage run (their health endpoints) and the images the stack's compose files use with each service's latest release: unreleased commits, image build dates and failed image publishes.
+</Tool>
+
+</Tools>

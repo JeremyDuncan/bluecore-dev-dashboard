@@ -1,0 +1,53 @@
+---
+title: MCP tools
+sidebar_label: Overview
+hide_table_of_contents: true
+description: Every tool and prompt the Blue Core MCP server gives AI agents, what each is for, and how to chain them.
+---
+
+import {Card, Cards, Part} from '@site/src/components/Welcome';
+import {GroupCards, McpHero} from '@site/src/components/McpTools';
+
+# MCP tools
+
+The docs site runs an [MCP](https://modelcontextprotocol.io) server, so an AI agent (Claude Code, Codex, Cursor, VS Code Copilot, …) can look things up while it works: it searches these docs, reads live GitHub data for the `blue-core-lod` org, reads the Blue Core API spec, and reads and writes your notes. These pages cover every tool, what it's for, and how agents chain them.
+
+<McpHero tools={41} writes={8} prompts={7} />
+
+<Part icon="mcp" title="Start here">
+  Connect once, then try a prompt.
+</Part>
+
+<Cards>
+  <Card icon="mcp" title="Connect your agent" to="/guides/mcp-tools/connect" meta="Claude Code, Codex, other agents">
+    Add the server to your agent in one command, and check that it works.
+  </Card>
+  <Card icon="help" title="Example prompts" to="/guides/mcp-tools/example-prompts" meta="18 prompts in 6 categories">
+    Real prompts for Blue Core work, each with a copy button.
+  </Card>
+  <Card icon="status-overview" title="Prompts" to="/guides/mcp-tools/prompts" meta="7 slash commands">
+    Standups, weekly updates, failure diagnosis and more, in one command.
+  </Card>
+</Cards>
+
+<Part icon="code" title="Tool reference">
+  The 41 tools in seven groups. Each card says what the tool does, when to use it, and its arguments.
+</Part>
+
+<GroupCards />
+
+<Part icon="guides" title="Going further">
+  Common tool chains, what the tools can't do, and AI in your notes.
+</Part>
+
+<Cards>
+  <Card icon="status-drift" title="Recipes" to="/guides/mcp-tools/recipes" meta="6 tool chains">
+    The tools an agent chains for common questions, step by step.
+  </Card>
+  <Card icon="help" title="Limits and safety" to="/guides/mcp-tools/limits" meta="Read-only, local, scoped">
+    What agents can change and see, and how the server is protected.
+  </Card>
+  <Card icon="notes" title="AI and your notes" to="/guides/notes#notes-and-ai" meta="Notes guide">
+    How agents read and write notes, and how they record which AI wrote what.
+  </Card>
+</Cards>

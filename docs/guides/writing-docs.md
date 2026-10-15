@@ -1,5 +1,6 @@
 ---
 title: How these docs work
+sidebar_class_name: sidebar-icon sidebar-icon--design
 ---
 
 ## Adding or changing docs

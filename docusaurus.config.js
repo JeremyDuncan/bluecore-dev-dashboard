@@ -196,7 +196,7 @@ const config = {
               return statusSidebar(await defaultSidebarItemsGenerator(args), new Set(args.docs.map((d) => d.id)));
             }
             if (args.item.dirName === 'guides') {
-              return [...sectionHead('Guides', 'How this site works: where its content comes from, the live GitHub data, and adding or changing docs.'), ...(await defaultSidebarItemsGenerator(args))];
+              return [...sectionHead('Guides', 'How this site works: where its content comes from, the live GitHub data, your notes, the tools AI agents get, and adding or changing docs.'), ...(await defaultSidebarItemsGenerator(args))];
             }
             // The docs sidebar leaves out the sections with their own sidebar (sidebars.js)
             const items = flatten(await defaultSidebarItemsGenerator(args))

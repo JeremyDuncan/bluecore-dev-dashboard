@@ -1,0 +1,66 @@
+---
+title: Connect your agent
+sidebar_position: 1
+description: Add the Blue Core MCP server to Claude Code, Codex, Cursor or another AI agent.
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Connect your agent
+
+`make up` and `make prod` both start the server on port 3001. Connect once, and the tools are there in every session.
+
+<Tabs groupId="mcp-agent">
+  <TabItem value="claude" label="Claude Code" default>
+
+In this repo, `.mcp.json` already lists the server: run `claude` here and approve the `docs` server. From any other folder:
+
+```bash
+claude mcp add --transport http docs http://localhost:3001/mcp
+```
+
+  </TabItem>
+  <TabItem value="codex" label="Codex">
+
+Add the server to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.docs]
+url = "http://localhost:3001/mcp"
+```
+
+Codex asks before each write tool unless you pre-approve it (the chat helper does this in `chat/providers/codex.mjs`).
+
+  </TabItem>
+  <TabItem value="other" label="Other agents">
+
+Add a **Streamable HTTP** MCP server with the URL `http://localhost:3001/mcp`. Cursor, VS Code Copilot and Claude Desktop all support this.
+
+  </TabItem>
+  <TabItem value="stdio" label="Without Docker">
+
+Run the server over stdio instead:
+
+```bash
+npm install --prefix mcp
+node /path/to/bluecore-dev-dashboard/mcp/server.mjs
+```
+
+Point your agent at that command. Without `--http` it serves only MCP, with no live API for the site.
+
+  </TabItem>
+</Tabs>
+
+:::tip[Use your agent in the chat box]
+**Ask the docs**, the chat box in the bottom-right corner of every page, uses these same tools through Claude Code or Codex.
+:::
+
+## Check that it works
+
+Ask your agent something only the server knows, for example *"Search the Blue Core docs for the Keycloak realm export"*. It should call `search_docs` and answer with links to this site. If it can't reach the server, check that `make up` is running and that `http://localhost:3001/mcp` answers.
+
+## Next
+
+- [Example prompts](./example-prompts) to copy and try
+- [Tool reference](./tools/) for what each tool does

@@ -1,0 +1,49 @@
+---
+title: "Blue Core API tools"
+sidebar_label: "Blue Core API"
+sidebar_position: 5
+hide_table_of_contents: true
+description: "The Blue Core API, from its live OpenAPI spec."
+---
+
+import {GroupNav, Tool, Tools} from '@site/src/components/McpTools';
+
+# Blue Core API tools
+
+<GroupNav current="api" />
+
+The Blue Core API, from its live OpenAPI spec.
+
+<Tools>
+
+<Tool
+  name="api_endpoints"
+  title="List API endpoints"
+  source="api"
+  args="api, tag, query"
+  uses={["Find the endpoint for a task", "Everything under one tag, e.g. Works", "Which endpoints need auth"]}
+  ask="Which API endpoints need auth under Works and Instances?">
+  Every endpoint: method, path, summary and whether it needs auth. Filter by tag or words.
+</Tool>
+
+<Tool
+  name="api_endpoint"
+  title="Describe an API endpoint"
+  source="api"
+  args="api, endpoint*, method"
+  uses={["Write a client call with the right parameters and body", "Get a ready-to-run curl example", "Check the response shapes"]}
+  ask="How do I create a work? Give me a curl example.">
+  One endpoint in detail: path and query parameters, request body schema, responses, auth and an example `curl`. Pass the path or words like "create work".
+</Tool>
+
+<Tool
+  name="api_schema"
+  title="Describe an API schema"
+  source="api"
+  args="api, name"
+  uses={["Fields and types of a data model", "Which fields are required", "List every schema"]}
+  ask="What fields does InstanceSchema have, and which are required?">
+  A data model from the spec: its fields, types and which are required. Leave out the name to list them all.
+</Tool>
+
+</Tools>
