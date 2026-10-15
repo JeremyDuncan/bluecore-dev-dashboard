@@ -126,6 +126,43 @@
   width: auto;
 }
 
+/* "Developer Dashboard" as a sub-brand under the wordmark: spaced small caps the width of the logo,
+   so it takes no room from the menu */
+.navbar__brand {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 4px;
+}
+
+.navbar__brand .navbar__logo {
+  height: 31px;
+  margin-right: 0;
+}
+
+.navbar__brand .navbar__logo img {
+  width: auto; /* the config's width="163" is for the 35px-tall logo */
+}
+
+.navbar__title {
+  display: block;
+  width: 144px; /* the logo's width at 31px tall */
+  margin: 0;
+  overflow: visible;
+  color: var(--bc-link);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  line-height: 1;
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+[data-theme='dark'] .navbar__title {
+  color: var(--bc-accent-blue);
+}
+
 /* Menu links: Roboto Regular 18, Core Blue, underline on hover / current page */
 .navbar__items--right {
   gap: 20px;

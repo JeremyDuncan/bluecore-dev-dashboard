@@ -128,7 +128,7 @@ const activeRegex = (pattern) => `^${BASE_URL}${pattern}`;
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: 'Blue Core Docs',
+  title: 'Blue Core Developer Dashboard',
   tagline: 'Everything a developer needs, in one place',
   favicon: 'img/favicon.svg',
 
@@ -232,6 +232,15 @@ const config = {
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
+      // The preview card when a link is shared (Slack, Teams, …): og:image / twitter:image, made absolute
+      // with url + baseUrl. Slack doesn't show SVGs here, so it's a 1200×630 PNG.
+      image: 'img/blue-core-social-card.png',
+      metadata: [
+        {property: 'og:image:width', content: '1200'},
+        {property: 'og:image:height', content: '630'},
+        {property: 'og:image:alt', content: 'Blue Core Developer Dashboard: docs, repos and live project status in one place'},
+        {property: 'og:site_name', content: 'Blue Core Developer Dashboard'},
+      ],
       colorMode: {
         respectPrefersColorScheme: true,
       },
@@ -243,6 +252,8 @@ const config = {
       },
       // Header and footer follow the Blue Core design in Figma (styles in src/css/custom.css).
       navbar: {
+        // Shown beside the logo as a two-line lockup (custom.css: .navbar__title)
+        title: 'Developer Dashboard',
         logo: {
           alt: 'Blue Core',
           src: 'img/blue-core-logo.svg',
