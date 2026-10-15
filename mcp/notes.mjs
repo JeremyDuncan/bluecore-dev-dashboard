@@ -153,7 +153,8 @@ function splitFrontMatter(text) {
 
 // Obsidian tags: letters, digits, _ - / (nested tags), not only digits. Stored without the "#".
 const normTag = (t) => String(t ?? '').trim().replace(/^#/, '');
-const validTag = (t) => /^[\p{L}\p{N}_\-/]+$/u.test(t) && !/^\d+$/.test(t);
+// Needs a letter, _ or - ("#339/#340" is issue numbers, not a tag) and no / at either end
+const validTag = (t) => /^[\p{L}\p{N}_\-/]+$/u.test(t) && /[\p{L}_-]/u.test(t) && !/^\/|\/$/.test(t);
 
 // Tags: a list, or one string of tags separated by commas or spaces (a tag has no spaces)
 function asList(v) {

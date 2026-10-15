@@ -137,6 +137,110 @@ function TagChip({tag, count, active, to}) {
   );
 }
 
+// --- Finding a tag among many: filter, sort, show the top ones -----------------------------------
+
+const TAG_SORTS = [
+  ['count', 'Most used'],
+  ['name', 'A–Z'],
+  ['recent', 'Recently used'],
+];
+const TAG_SORT_KEY = 'notes-tag-sort';
+
+// tags: [{tag, count}]; activeTag: the selected one (always shown); hrefFor(tag) → link;
+// onPick(tag): Enter in the filter box picks the first match. limit: how many show before "Show all".
+function TagBrowser({tags, notes, activeTag, hrefFor, onPick, limit = 24}) {
+  const [q, setQ] = useState('');
+  const [expanded, setExpanded] = useState(false);
+  const [sort, setSortState] = useState(() => {
+    try {
+      return localStorage.getItem(TAG_SORT_KEY) || 'count';
+    } catch {
+      return 'count';
+    }
+  });
+  const setSort = (next) => {
+    setSortState(next);
+    try {
+      localStorage.setItem(TAG_SORT_KEY, next);
+    } catch {
+      // storage blocked: the choice just isn't remembered
+    }
+  };
+  // When each tag was last used (its newest note), for "Recently used"
+  const lastUsed = useMemo(() => {
+    const m = new Map();
+    for (const n of notes) for (const t of n.tags) if ((m.get(t.toLowerCase()) ?? '') < n.updated) m.set(t.toLowerCase(), n.updated);
+    return m;
+  }, [notes]);
+  const want = q.trim().replace(/^#/, '').toLowerCase();
+  const active = activeTag?.toLowerCase();
+  const shown = useMemo(() => {
+    const matches = tags.filter((t) => !want || t.tag.toLowerCase().includes(want));
+    const byName = (a, b) => a.tag.localeCompare(b.tag, undefined, {numeric: true, sensitivity: 'base'});
+    const order = {
+      count: (a, b) => b.count - a.count || byName(a, b),
+      name: byName,
+      recent: (a, b) => (lastUsed.get(b.tag.toLowerCase()) ?? '').localeCompare(lastUsed.get(a.tag.toLowerCase()) ?? '') || byName(a, b),
+    }[sort] ?? byName;
+    // Typing: tags that start with the text come first
+    return [...matches].sort((a, b) => (want ? Number(b.tag.toLowerCase().startsWith(want)) - Number(a.tag.toLowerCase().startsWith(want)) : 0) || order(a, b));
+  }, [tags, want, sort, lastUsed]);
+  const capped = !want && !expanded && shown.length > limit;
+  let visible = capped ? shown.slice(0, limit) : shown;
+  if (capped && active && !visible.some((t) => t.tag.toLowerCase() === active)) visible = [...visible, ...shown.filter((t) => t.tag.toLowerCase() === active)];
+
+  if (!tags.length) return <p className={styles.empty}>No tags yet.</p>;
+  return (
+    <div className={styles.tagBrowser}>
+      <div className={styles.tagTools}>
+        <label className={styles.tagFilter}>
+          <SearchIcon size={14} />
+          <input
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && shown[0]) {
+                e.preventDefault();
+                onPick(shown[0].tag);
+              } else if (e.key === 'Escape' && q) {
+                e.stopPropagation();
+                setQ('');
+              }
+            }}
+            placeholder={`Filter ${tags.length} tags`}
+            aria-label="Filter tags"
+          />
+        </label>
+        <select className={styles.tagSort} value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort tags">
+          {TAG_SORTS.map(([id, label]) => (
+            <option key={id} value={id}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </div>
+      {shown.length ? (
+        <div className={styles.tagCloud}>
+          {visible.map((t) => (
+            <TagChip key={t.tag} tag={t.tag} count={t.count} active={t.tag.toLowerCase() === active} to={hrefFor(t.tag.toLowerCase() === active ? null : t.tag)} />
+          ))}
+        </div>
+      ) : (
+        <p className={styles.tagNone}>No tags match “{q.trim()}”.</p>
+      )}
+      <div className={styles.tagFoot}>
+        <span>{want ? `${shown.length} of ${tags.length} tags` : `${tags.length} tags`}</span>
+        {!want && shown.length > limit && (
+          <button type="button" className={styles.linkButton} onClick={() => setExpanded((x) => !x)} aria-expanded={expanded}>
+            {expanded ? 'Show fewer' : `Show all ${shown.length}`}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function Unavailable({error}) {
   return (
     <div className={styles.unavailable}>
@@ -876,9 +980,7 @@ function NoteList({list, url, onJump, onCollapse}) {
         </div>
       )}
       {url.view === 'tags' && (
-        <div className={styles.tagCloud}>
-          {list.tags.length ? list.tags.map((t) => <TagChip key={t.tag} tag={t.tag} count={t.count} active={t.tag.toLowerCase() === want} to={url.href({tag: t.tag.toLowerCase() === want ? null : t.tag})} />) : <span className={styles.empty}>No tags yet.</span>}
-        </div>
+        <TagBrowser tags={list.tags} notes={list.notes} activeTag={url.tag} hrefFor={(tag) => url.href({tag})} onPick={(tag) => url.go(url.href({tag}), {replace: true})} limit={20} />
       )}
       {(url.tag || url.folder != null || url.q) && (
         <div className={styles.filters}>
@@ -1914,11 +2016,7 @@ function Overview({list, url}) {
           <h2 className={styles.sectionTitle}>
             <TagIcon size={18} /> Tags
           </h2>
-          <div className={styles.tagCloud}>
-            {list.tags.slice(0, 40).map((t) => (
-              <TagChip key={t.tag} tag={t.tag} count={t.count} to={url.href({tag: t.tag, view: 'tags'})} />
-            ))}
-          </div>
+          <TagBrowser tags={list.tags} notes={list.notes} hrefFor={(tag) => url.href({tag, view: 'tags'})} onPick={(tag) => url.go(url.href({tag, view: 'tags'}))} limit={30} />
         </section>
       )}
 

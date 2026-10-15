@@ -69,7 +69,7 @@ You never need Obsidian: the site reads and writes plain Markdown files. You can
 The Notes page has three ways to browse, at the top of the list:
 
 - **By date**: grouped into Today, Yesterday, Previous 7 days, and then by month. Sort by last change or by creation date.
-- **By tag**: every tag with how many notes use it. Click one to filter, and click it again to clear the filter. Nested tags (`project/api`) match their parent (`project`).
+- **By tag**: every tag with how many notes use it. Click one to filter, and click it again to clear the filter. Nested tags (`project/api`) match their parent (`project`). With many tags, type in **Filter tags** to narrow them (Enter picks the first match, Esc clears), sort them by *Most used*, *A–Z* or *Recently used* (remembered in your browser), and use **Show all** to see past the top ones. The Notes home page has the same tag browser. A tag needs a letter, `_` or `-`, so issue numbers like `#339` aren't tags.
 - **By folder**: a folder tree, like the docs sidebar. Click a folder to open or close it; sub-folders come first, then the notes (A–Z). The site remembers which folders you opened, and the folders holding the note you're reading always stay open.
 
 To give a note more room, hide the notes list with the panel button at the top of it. A narrow strip stays, with buttons to show the list again, jump to a note, start a new one and open the Trash. The page remembers whether the list is hidden.

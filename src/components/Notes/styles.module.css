@@ -2864,3 +2864,94 @@ label.treeRow {
 .card .metaItem img {
   margin: 0;
 }
+
+/* ---------- Tag browser: filter, sort, show all ---------- */
+
+.tagBrowser {
+  padding: 0 16px 10px;
+}
+
+.overview .tagBrowser {
+  padding: 0;
+}
+
+.tagBrowser .tagCloud {
+  padding: 0;
+}
+
+.tagTools {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.tagFilter {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 0 10px;
+  border: 1px solid var(--bc-sky-line);
+  border-radius: 100px;
+  background: var(--ifm-background-color);
+  color: var(--bc-meta);
+}
+
+.tagFilter:focus-within {
+  border-color: var(--bc-link);
+  outline: 1px solid var(--bc-link);
+}
+
+.tagFilter input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 0;
+  border: none;
+  outline: none;
+  background: none;
+  color: var(--ifm-font-color-base);
+  font: inherit;
+  font-size: 13px;
+}
+
+.tagSort {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--bc-sky-line);
+  border-radius: 100px;
+  background: var(--ifm-background-color);
+  color: var(--ifm-font-color-base);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.overview .tagTools {
+  max-width: 460px;
+}
+
+.tagNone {
+  margin: 4px 0 0;
+  color: var(--bc-meta);
+  font-size: 13px;
+}
+
+.tagFoot {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  color: var(--bc-meta);
+  font-size: 12px;
+}
+
+.tagFoot .linkButton {
+  color: var(--bc-link);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.tagFoot .linkButton:hover {
+  text-decoration: underline;
+}

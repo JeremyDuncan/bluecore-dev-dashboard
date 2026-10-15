@@ -40,7 +40,10 @@ function obsidianToMarkdown(text) {
         const label = alias?.trim() || (name ? target.trim().replace('#', ' › ') : heading);
         return `[${escapeText(label)}](note:${encodeURIComponent(name || '')})`;
       })
-      .replace(/(^|[\s(])#([\p{L}\p{N}_\-/]*[\p{L}_\-/][\p{L}\p{N}_\-/]*)/gu, (_, before, tag) => `${before}[#${tag}](tag:${encodeURIComponent(tag)})`),
+      // A tag needs a letter, _ or - and no / at either end (as on the server: "#339/#340" isn't one)
+      .replace(/(^|[\s(])#([\p{L}\p{N}_\-/]+)/gu, (whole, before, tag) =>
+        /[\p{L}_-]/u.test(tag) && !/^\/|\/$/.test(tag) ? `${before}[#${tag}](tag:${encodeURIComponent(tag)})` : whole,
+      ),
   );
 }
 
