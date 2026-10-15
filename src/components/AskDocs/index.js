@@ -8,6 +8,7 @@ import Markdown from './Markdown';
 import useWindowFrame from './useWindowFrame';
 import {CliPicker, ProviderIcon, SetupCard, useCli} from './CliPicker';
 import {clearHistory, deleteChat, groupByDay, loadHistory, newChatId, saveChat} from './history';
+import SaveAsNote from './SaveAsNote';
 import styles from './styles.module.css';
 
 const STORAGE_KEY = 'ask-docs-chat';
@@ -162,6 +163,7 @@ export default function AskDocs() {
           else if (event === 'done') {
             updateLast((m) => ({...m, text: data.answer || m.text, status: null}));
             setChat((c) => ({...c, sessionId: data.sessionId, sessionProvider: provider.id}));
+            window.dispatchEvent(new Event('notes-changed')); // the answer may have saved a note
           } else if (event === 'error') updateLast((m) => ({...m, status: null, error: data.message}));
         },
         controller.signal,
@@ -381,6 +383,9 @@ export default function AskDocs() {
                     <div className={styles.error}>
                       <Markdown text={m.error} />
                     </div>
+                  )}
+                  {m.text && !m.status && !m.error && (
+                    <SaveAsNote question={chat.messages.slice(0, i).reverse().find((x) => x.role === 'user')?.text} answer={m.text} by={m.providerName} />
                   )}
                 </div>
               ),

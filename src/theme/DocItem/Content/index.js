@@ -3,6 +3,7 @@
 import React from 'react';
 import Content from '@theme-original/DocItem/Content';
 import {useDoc} from '@docusaurus/plugin-content-docs/client';
+import DocNotes from '@site/src/components/Notes/DocNotes';
 import styles from './styles.module.css';
 
 const STALE_AFTER_DAYS = 365;
@@ -24,6 +25,8 @@ export default function ContentWrapper(props) {
         </p>
       )}
       <Content {...props} />
+      {/* Your notes that link to this page (local only: needs the notes API) */}
+      <DocNotes title={metadata.title} />
     </>
   );
 }

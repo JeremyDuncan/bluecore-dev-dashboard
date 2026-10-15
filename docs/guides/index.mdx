@@ -9,13 +9,13 @@ import {Card, Cards, Part} from '@site/src/components/Welcome';
 
 # Guides
 
-How this documentation site works: where its content comes from, how the live GitHub data is fetched, and how to add or change docs. Read these if a page is missing or out of date, or before you add a new source.
+How this documentation site works: where its content comes from, how the live GitHub data is fetched, how to add or change docs, and how your notes work. Read these if a page is missing or out of date, or before you add a new source.
 
 <Part icon="guides" title="The guides">
-  Three short guides, each about one part of the site.
+  Four short guides, each about one part of the site.
 </Part>
 
-<Cards>
+<Cards columns={2}>
   <Card icon="drive" title="How content gets onto the site" to="/guides/content-lifecycle" meta="Sync, git and the public site">
     The four kinds of content, which command refreshes each, and why internal content never reaches git or the public site.
   </Card>
@@ -24,6 +24,9 @@ How this documentation site works: where its content comes from, how the live Gi
   </Card>
   <Card icon="design" title="How these docs work" to="/guides/writing-docs" meta="Writing and sources">
     Adding or changing pages, adding a source in `docs-sources.json`, and the commands you need.
+  </Card>
+  <Card icon="notes" title="Notes" to="/guides/notes" meta="Your notes, Obsidian and AI">
+    Your own Markdown notes on the site: tags, dates, Obsidian, and AI agents that read and add notes.
   </Card>
 </Cards>
 
@@ -49,6 +52,15 @@ How this documentation site works: where its content comes from, how the live Gi
   </Card>
   <Card icon="repos" title="Add a new docs source" to="/guides/writing-docs#adding-a-new-source">
     Pull in another repo, wiki, Drive folder or Box folder.
+  </Card>
+  <Card icon="notes" title="Use my Obsidian vault" to="/guides/notes#using-an-existing-obsidian-vault">
+    Point the site at a vault you already have.
+  </Card>
+  <Card icon="notes" title="Let AI write notes" to="/guides/notes#notes-and-ai">
+    Ask the docs and MCP agents can read and add notes.
+  </Card>
+  <Card icon="help" title="Notes say the server isn't answering" to="/guides/notes#troubleshooting">
+    Start the MCP server, and other fixes.
   </Card>
 </Cards>
 

@@ -63,6 +63,24 @@ export function describeTool(name, input = {}) {
   if (/api_endpoint$/.test(name)) return `Reading the API spec for ${input.method ? `${input.method} ` : ''}${input.endpoint ?? ''}`;
   if (/api_schema$/.test(name)) return `Reading API schema ${input.name ?? ''}`;
   if (/docs_health$/.test(name)) return 'Checking docs health';
+  if (/search_notes$/.test(name)) return `Searching your notes for “${input.query ?? ''}”`;
+  if (/list_notes$/.test(name)) return `Listing your notes${input.tag ? ` tagged #${input.tag}` : ''}${input.folder ? ` in ${input.folder}` : ''}`;
+  if (/read_note$/.test(name) && input.include_images) return `Looking at your note ${input.note ?? ''} and its images`;
+  if (/read_note$/.test(name)) return `Reading your note ${input.note ?? ''}`;
+  if (/list_note_tags$/.test(name)) return 'Checking your note tags';
+  if (/create_note$/.test(name)) return `Saving a note: “${input.title ?? ''}”`;
+  if (/update_note$/.test(name)) return `Updating your note ${input.note ?? ''}`;
+  if (/related_notes$/.test(name)) return `Following links from ${input.note ?? 'a note'}`;
+  if (/list_tasks$/.test(name)) return `Checking your ${input.status === 'done' ? 'finished' : 'open'} tasks${input.tag ? ` tagged #${input.tag}` : ''}`;
+  if (/complete_task$/.test(name)) return `Ticking “${input.text ?? 'a task'}”`;
+  if (/rename_note$/.test(name)) return `Renaming ${input.note ?? 'a note'} to “${input.title ?? ''}”`;
+  if (/pin_note$/.test(name)) return `${input.pinned === false ? 'Unpinning' : 'Pinning'} ${input.note ?? 'a note'}`;
+  if (/list_templates$/.test(name)) return 'Checking your note templates';
+  if (/list_attachments$/.test(name)) return 'Listing images in your notes';
+  if (/get_note_image$/.test(name)) return `Looking at ${input.image ?? 'an image'}`;
+  if (/attach_image$/.test(name)) return `Adding an image${input.note ? ` to ${input.note}` : ''}`;
+  if (/notes_for_doc$/.test(name)) return 'Checking your notes about that page';
+  if (/notes_health$/.test(name)) return 'Checking your notes for things to tidy';
   if (/fork_changes$/.test(name)) return `Comparing ${input.repo} with its upstream project`;
   return 'Working…';
 }

@@ -4,7 +4,8 @@ import {spawn} from 'node:child_process';
 import {describeTool, readJsonLines, run, which} from './util.mjs';
 
 const BIN = process.env.CLAUDE_BIN || 'claude';
-// Every tool of the docs MCP server (all read-only: docs search/read and GitHub board/issues/releases)
+// Every tool of the docs MCP server: read-only (docs, GitHub, API reference, notes) except
+// create_note / update_note, which only add to or change the notes vault
 const TOOLS = ['mcp__docs'];
 
 export default {

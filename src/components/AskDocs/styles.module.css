@@ -767,3 +767,19 @@
   color: var(--bc-meta);
   font-size: 12px;
 }
+
+/* "Save as note" under an answer */
+.saveNote {
+  margin: 6px 0 0 !important;
+  font-size: 13px;
+  color: var(--bc-meta);
+}
+
+.saveNote .textButton {
+  margin-left: -8px;
+  font-size: 13px;
+}
+
+.saveNoteError {
+  color: var(--bc-danger-text);
+}

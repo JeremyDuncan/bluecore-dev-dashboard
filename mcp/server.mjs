@@ -3,20 +3,28 @@
 //   node mcp/server.mjs           → stdio (the agent starts it as a subprocess)
 //   node mcp/server.mjs --http    → Streamable HTTP at http://localhost:3001/mcp (what `make up` runs)
 //
-// Tools (all read-only): search_docs, read_doc, list_docs, docs_health (docs-health.mjs);
+// Tools (read-only unless noted): search_docs, read_doc, list_docs, docs_health (docs-health.mjs);
 // GitHub (github-tools.mjs): project_board, list_issues, get_issue, search_issues, list_releases,
 // list_files, get_file, search_code, fork_changes, ci_status, recent_changes, integration_tests;
-// API reference (api-tools.mjs): api_endpoints, api_endpoint, api_schema.
+// API reference (api-tools.mjs): api_endpoints, api_endpoint, api_schema;
+// notes vault (notes-tools.mjs): list_notes, search_notes, read_note (with sections and images),
+// related_notes, list_tasks, list_templates, list_attachments, get_note_image, notes_for_doc,
+// notes_health, and the only write tools: create_note, update_note, complete_task, rename_note,
+// pin_note, attach_image (they add or change notes; agents can't delete them).
 // Prompts (prompts.mjs): standup_summary, weekly_update, onboarding_plan, summarize_epic, docs_cleanup. Content comes straight from docs/, so it includes
 // everything on the site — internal Google Drive pages too. Don't expose the HTTP port publicly.
-// The HTTP server also serves live GitHub data for the Project Status pages (live-api.mjs).
+// The HTTP server also serves live GitHub data for the Project Status pages (live-api.mjs) and the
+// notes for the Notes page (notes-api.mjs).
 import http from 'node:http';
 import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
 import {StdioServerTransport} from '@modelcontextprotocol/sdk/server/stdio.js';
 import {StreamableHTTPServerTransport} from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import {z} from 'zod';
 import {extractSection, findPage, getIndex, headings, search} from './docs-index.mjs';
-import {handleLiveApi, prewarm} from './live-api.mjs';
+import {allowedOrigin, handleLiveApi, prewarm} from './live-api.mjs';
+import {handleNotesApi} from './notes-api.mjs';
+import {ensureVault, VAULT} from './notes.mjs';
+import {registerNotesTools} from './notes-tools.mjs';
 import {registerApiTools} from './api-tools.mjs';
 import {registerDocsHealthTool} from './docs-health.mjs';
 import {registerDiagnoseTool} from './diagnose.mjs';
@@ -128,6 +136,7 @@ function createServer() {
   registerDiagnoseTool(server);
   registerApiTools(server);
   registerDocsHealthTool(server);
+  registerNotesTools(server);
   registerPrompts(server);
 
   return server;
@@ -151,6 +160,7 @@ async function serveHttp() {
       return;
     }
     if (await handleLiveApi(req, res, pathname)) return; // live GitHub data for the Project Status pages
+    if (await handleNotesApi(req, res, pathname)) return; // the Notes page
     if (pathname !== '/mcp') {
       res.writeHead(404).end('MCP endpoint is /mcp');
       return;
@@ -158,6 +168,11 @@ async function serveHttp() {
     if (req.method !== 'POST') {
       // Stateless server: no server-initiated streams or sessions to resume.
       res.writeHead(405, {allow: 'POST'}).end();
+      return;
+    }
+    // Agents don't send Origin; a browser does. Only pages on this machine may call tools (some write notes).
+    if (req.headers.origin && !allowedOrigin(req.headers.origin)) {
+      res.writeHead(403).end('Origin not allowed');
       return;
     }
     try {
@@ -185,6 +200,12 @@ async function serveHttp() {
 
   const {pages} = await getIndex();
   prewarm();
+  try {
+    ensureVault();
+    console.log(`[mcp] notes vault: ${VAULT}`);
+  } catch (err) {
+    console.error(`[mcp] notes vault ${VAULT} unavailable: ${err.message}`);
+  }
   httpServer.listen(port, '0.0.0.0', () => console.log(`[mcp] ${pages.length} pages indexed — http://localhost:${port}/mcp`));
 }
 

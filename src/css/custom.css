@@ -27,6 +27,7 @@
   --bc-ok: #00a676;
   --bc-warning: #f9c21c;
   --bc-error: #e95050;
+  --bc-danger-text: #c53030; /* red text and danger buttons: --bc-error is too light for text (3.6:1) */
 
   /* Roles (swapped in dark mode below) */
   --bc-heading: var(--bc-navy);
@@ -89,6 +90,7 @@
   --bc-header-bg: var(--bc-navy);
   --bc-surface: var(--bc-charcoal);
   --bc-sky-line: #34404d;
+  --bc-danger-text: #ff8f8f;
 
   --ifm-color-primary: #61c6ff;
   --ifm-color-primary-dark: #3eb9ff;
@@ -183,11 +185,11 @@
   }
 }
 
-/* Compact navbar: below 1300px the links don't fit beside the logo and search, so they move into the
+/* Compact navbar: below 1380px the links don't fit beside the logo and search, so they move into the
    hamburger menu (Docusaurus only does this below 996px). The same width is NAVBAR_BREAKPOINT in
    src/theme/Navbar/MobileSidebar/index.js. The selectors outrank .navbar-icon and .navbar-help,
    which would otherwise keep the links showing next to the hamburger. */
-@media (max-width: 1299px) {
+@media (max-width: 1379px) {
   .navbar__toggle {
     display: inherit;
   }
@@ -325,6 +327,50 @@
 .button--primary:hover {
   background-color: var(--bc-navy);
   border-color: var(--bc-navy);
+}
+
+/* Infima picks the text color from --ifm-color-primary (light blue in dark mode, so black text),
+   but the background here is our own Core Blue: set both. In dark mode the button uses the
+   "on dark" colors, Accent Blue with Navy text, like the "Ask the docs" button. */
+.button--primary,
+.button--primary:hover {
+  color: #ffffff;
+}
+
+[data-theme='dark'] .button--primary {
+  background-color: var(--bc-accent-blue);
+  border-color: var(--bc-accent-blue);
+  color: var(--bc-navy);
+}
+
+[data-theme='dark'] .button--primary:hover {
+  background-color: #ffffff;
+  border-color: #ffffff;
+  color: var(--bc-navy);
+}
+
+/* Secondary: an outline in dark mode instead of Infima's light grey pill */
+[data-theme='dark'] .button--secondary {
+  background-color: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #ffffff;
+}
+
+[data-theme='dark'] .button--secondary:hover {
+  background-color: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+
+.button--danger,
+.button--danger:hover {
+  background-color: var(--bc-danger-text);
+  border-color: var(--bc-danger-text);
+  color: #ffffff;
+}
+
+[data-theme='dark'] .button--danger {
+  background-color: #c53030;
+  border-color: #c53030;
 }
 
 /* Sidebar link to the Bluecore Stack docs (developers' starting point), see docusaurus.config.js */
@@ -553,6 +599,10 @@
 /* Icons not used by a sidebar section: Bluecore Stack (navbar and the featured sidebar link) and GitHub */
 .sidebar-icon--stack {
   --sidebar-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m12 2 10 5-10 5L2 7z'/%3E%3Cpath d='m2 17 10 5 10-5'/%3E%3Cpath d='m2 12 10 5 10-5'/%3E%3C/svg%3E");
+}
+
+.sidebar-icon--notes {
+  --sidebar-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10z'/%3E%3Cpath d='M15 21v-4a2 2 0 0 1 2-2h3'/%3E%3Cpath d='M8 8h8M8 12h5'/%3E%3C/svg%3E");
 }
 
 .sidebar-icon--github {

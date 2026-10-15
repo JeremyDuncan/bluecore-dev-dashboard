@@ -11,7 +11,7 @@ import NavbarMobileSidebarHeader from '@theme/Navbar/MobileSidebar/Header';
 import NavbarMobileSidebarPrimaryMenu from '@theme/Navbar/MobileSidebar/PrimaryMenu';
 import NavbarMobileSidebarSecondaryMenu from '@theme/Navbar/MobileSidebar/SecondaryMenu';
 
-const NAVBAR_BREAKPOINT = 1299;
+const NAVBAR_BREAKPOINT = 1379;
 
 export default function NavbarMobileSidebar() {
   const mobileSidebar = useNavbarMobileSidebar();

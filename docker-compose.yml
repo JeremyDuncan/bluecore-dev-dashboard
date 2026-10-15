@@ -3,6 +3,7 @@
 #   docker compose run --rm sync               → pull Google Docs / READMEs / code docs
 #   docker compose --profile prod up --build   → production build served by nginx at http://localhost:8080
 #   Both also start the MCP server for AI agents at http://localhost:3001/mcp (dev: live docs/, prod: build snapshot)
+#   Notes (the Notes page and the notes MCP tools) live in ./notes, or the folder NOTES_DIR names in .env
 
 x-app: &app
   build:
@@ -26,6 +27,8 @@ x-app: &app
     - ${SOURCES_DIR:-../..}:/sources:ro
     # Box Drive folder, for "boxFolders" in docs-sources.json (set BOX_DIR in .env)
     - ${BOX_DIR:-./imports/box}:/box:ro
+    # Notes vault, read and written by the MCP server (set NOTES_DIR in .env to use an existing Obsidian vault)
+    - ${NOTES_DIR:-./notes}:/notes
 
 services:
   docs:
@@ -41,6 +44,9 @@ services:
     environment:
       BASE_URL: /
       DOCS_SITE_URL: ${DOCS_SITE_URL:-http://localhost:3000} # links in search results point here
+      NOTES_DIR: /notes
+      NOTES_SOURCE: ${NOTES_DIR:-./notes} # the vault's name in Obsidian is this folder's name
+      NOTES_VAULT_NAME: ${NOTES_VAULT_NAME:-}
     ports:
       - "127.0.0.1:3001:3001" # this machine only: the docs include internal Google Drive pages
 
@@ -73,6 +79,11 @@ services:
         required: false
     environment:
       MCP_ALLOWED_HOSTS: ${MCP_ALLOWED_HOSTS:-}
+      NOTES_DIR: /notes
+      NOTES_SOURCE: ${NOTES_DIR:-./notes}
+      NOTES_VAULT_NAME: ${NOTES_VAULT_NAME:-}
+    volumes:
+      - ${NOTES_DIR:-./notes}:/notes # the notes vault (read and written)
     ports:
       - "127.0.0.1:3001:3001" # same port as the dev server, so agent configs work for both
     restart: unless-stopped

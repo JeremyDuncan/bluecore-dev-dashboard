@@ -39,6 +39,10 @@ const ifSection = (dir, item) => (hasSection(dir) ? [item] : []);
 const STACK_DIR = 'blue-core-repos/bluecore-stack';
 const STACK_URL = `/${STACK_DIR}/`;
 
+// Live GitHub data and the Notes page come from the MCP container (mcp/live-api.mjs, notes-api.mjs).
+// Empty (the public deploy) = Project Status shows its snapshot and there are no notes.
+const LIVE_API_URL = process.env.LIVE_API_URL ?? 'http://localhost:3001/api';
+
 // Sidebar icon for each top-level section, by its folder under docs/ (drawn in src/css/custom.css,
 // .sidebar-icon--<name>). Sections not listed get a folder icon.
 const SIDEBAR_ICONS = {
@@ -159,7 +163,7 @@ const config = {
   customFields: {
     contactEmail: 'contact@bluecore.info', // shown in the footer (from the Blue Core design)
     // Live GitHub data for the Project Status pages, served by the MCP container. Empty = snapshot only.
-    liveApiUrl: process.env.LIVE_API_URL ?? 'http://localhost:3001/api',
+    liveApiUrl: LIVE_API_URL,
     // "Ask the docs" chat helper (chat/server.mjs, `make chat`), which uses your Claude Code CLI. Empty = no chat box.
     chatApiUrl: process.env.CHAT_API_URL ?? 'http://localhost:3002',
   },
@@ -252,13 +256,13 @@ const config = {
           // Not active on the Bluecore Stack pages, which have their own link
           ...ifSection('blue-core-repos', {to: '/blue-core-repos', label: 'Repos', position: 'right', className: 'navbar-icon sidebar-icon--repos', activeBaseRegex: activeRegex('blue-core-repos(?!/bluecore-stack)')}),
           ...ifSection('blue-core-wiki', {to: '/blue-core-wiki', label: 'Wiki', position: 'right', className: 'navbar-icon sidebar-icon--wiki'}),
-          // Project Status is a dashboard, not docs: set apart from the doc links by a divider
-          ...(hasSection('project-status')
-            ? [
-                {type: 'html', value: '<span class="navbar-divider" aria-hidden="true"></span>', position: 'right'},
-                {to: '/project-status', label: 'Project Status', position: 'right', className: 'navbar-icon sidebar-icon--status'},
-              ]
+          // Project Status and Notes aren't docs: set apart from the doc links by a divider
+          ...(hasSection('project-status') || LIVE_API_URL
+            ? [{type: 'html', value: '<span class="navbar-divider" aria-hidden="true"></span>', position: 'right'}]
             : []),
+          ...ifSection('project-status', {to: '/project-status', label: 'Project Status', position: 'right', className: 'navbar-icon sidebar-icon--status'}),
+          // Your notes vault (src/pages/notes.js): local only, so not on the public site
+          ...(LIVE_API_URL ? [{to: '/notes', label: 'Notes', position: 'right', className: 'navbar-icon sidebar-icon--notes'}] : []),
           {href: 'https://github.com/blue-core-lod', label: 'GitHub', position: 'right', className: 'navbar-icon sidebar-icon--github'},
           // Guides: a small "?" with a tooltip rather than a full link (the label shows in the phone menu)
           ...ifSection('guides', {

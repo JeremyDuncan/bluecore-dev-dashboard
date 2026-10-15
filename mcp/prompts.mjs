@@ -1,4 +1,4 @@
-// Ready-made MCP prompts: one-click reports built on the docs and GitHub tools. In Claude Code they
+// Ready-made MCP prompts: one-click reports built on the docs, GitHub and notes tools. In Claude Code they
 // appear as slash commands (/mcp__docs__standup_summary …); other MCP clients list them too.
 import {z} from 'zod';
 
@@ -132,5 +132,28 @@ Write: **What it is** (2-3 sentences), **Progress** (done / in progress / not st
       user(`Use docs_health${section ? ` with section "${section}"` : ''} to find documentation problems. For the most important stale pages, read_doc them and check whether they still match the code or current docs (search_docs, get_file).
 
 Produce a prioritized cleanup list in Markdown: **Fix now** (broken links, wrong instructions), **Review** (stale pages likely out of date, with why), **Write** (missing docs). For each item say exactly where to fix it (the source repo, wiki page, Google Doc or Box file).`),
+  );
+
+  server.registerPrompt(
+    'notes_review',
+    {
+      title: 'Review my notes',
+      description: 'What changed in your notes, open tasks, notes written by AI to check, and what needs tidying.',
+      argsSchema: {since: z.string().optional().describe('YYYY-MM-DD (default: 7 days ago)'), tag: z.string().optional().describe('Only notes with this tag')},
+    },
+    ({since, tag}) =>
+      user(`Review my notes${tag ? ` tagged #${tag}` : ''} since ${since || isoDaysAgo(7)}.
+
+1. list_notes with since "${since || isoDaysAgo(7)}"${tag ? ` and tag "${tag}"` : ''}. Read the ones that look substantial (read_note; use section for long ones).
+2. list_tasks${tag ? ` with tag "${tag}"` : ''} for open tasks, oldest notes first if there are many.
+3. Note which of those notes were written by AI (their author isn't "you") so I can check them.
+4. notes_health for anything to tidy.
+5. Answer in Markdown:
+   - **What changed**: a short summary per theme, linking each note with its url
+   - **Open tasks**: grouped by note, the oldest or most important first
+   - **Written by AI**: notes to check
+   - **To tidy**: broken [[links]], unused images, tag spellings to merge
+
+Don't change any notes; suggest changes and I'll ask for them.`),
   );
 }

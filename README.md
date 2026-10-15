@@ -157,13 +157,29 @@ The panel shows each CLI with its icon and a ready/not-ready dot, a model menu, 
 
 `make up` and `make prod` start the chat helper (`chat/server.mjs`, http://localhost:3002) in the background and stop it when you press Ctrl+C or run `make down`. Its log is in `.chat.log`. If Node.js isn't installed, they skip it and the site runs without the chat. `make chat` runs only the helper.
 
-**What the CLIs can do:** only search and read the docs (the MCP server's `search_docs`, `read_doc`, `list_docs`).
+**What the CLIs can do:** only use the docs MCP server's tools: search and read the docs, the live GitHub data and your notes, and save notes when you ask (`create_note`, `update_note`; see [Notes](#notes)). Nothing else.
 - **Claude Code** runs with its built-in tools off (no shell, no file access), without your settings, hooks or CLAUDE.md files.
 - **Codex** always has a shell, so it's fenced in (macOS only): it runs inside a macOS sandbox that blocks your home folder except `~/.codex` (its login) and an empty working folder; Codex's own shell can't start inside it. Its read-only sandbox is on, approvals are off, and ChatGPT apps/connectors (e.g. GitHub actions), plugins, image generation, sub-agents, web search and browser/computer use are turned off. Your `~/.codex/config.toml` isn't loaded.
 
 The question is passed on stdin, never as a command-line argument, and the helper only accepts requests from pages on this machine. Links like `/any-page?ask=How+do+I+…&cli=codex` open the chat and ask that question.
 
 Settings (environment): `CHAT_PROVIDER` (`claude`), `CHAT_CLAUDE_MODEL` (`sonnet`), `CHAT_CODEX_MODEL` (your Codex default), `CLAUDE_BIN`, `CODEX_BIN`, `CHAT_PORT` (3002), `MCP_URL` (`http://localhost:3001/mcp`). Adding another CLI means adding a file in `chat/providers/`. The icons are in `static/img/providers/` (the Codex one is a placeholder; see the README there). The chat box is hidden on the public GitHub Pages build (`CHAT_API_URL: ''`).
+
+### Notes
+**Notes** (navbar) is your own notebook: Markdown notes you read, write, tag and search on the site, that AI agents can read and add to, and that are also an [Obsidian](https://obsidian.md) vault. Nothing to set up: `make up` creates a git-ignored `notes/` folder with a Welcome note.
+
+- **Browse** by date, tag or folder, search, and follow `[[links]]` and backlinks. Obsidian syntax (`[[Note]]`, `![[image.png]]`, `#tags`, `> [!note]` callouts) is rendered.
+- **Write** on the site (**New note** / **Edit**, with tags and a preview). Saving refuses to overwrite a note that changed elsewhere in the meantime.
+- **Copy** a note's Markdown to the clipboard, or **export** a note (`.md`), a folder or a selection of notes (`.zip` with their folders and embedded images).
+- **Organize** in a folder tree: **+** adds notes and folders, folders can be renamed (or deleted when empty), and notes move by drag and drop or the editor's Folder field.
+- **Write** with a split live preview, templates (`Templates/`), pasted or dropped images, and drafts kept in the browser until you save. Renaming a note updates the `[[links]]` to it.
+- **Find and keep track**: ⌘P quick switcher, pinned notes, an outline beside long notes, and tasks you tick right in the note.
+- **Docs pages** list your notes that link to them, with a *Note about this page* link (local only).
+- **Delete** a note or a selection, after a confirmation dialog. Deleted notes move to the vault's `.trash` folder (as in Obsidian); the **Trash** page restores them or deletes them for good.
+- **AI:** Ask the docs can search and read notes, save notes when asked, and has **Save as note** under each answer. MCP agents get `list_notes`, `search_notes`, `read_note`, `list_note_tags`, `create_note` and `update_note`.
+- **Obsidian:** open `notes/` as a vault, or set `NOTES_DIR` in `.env` to a vault you already have. Changes on either side show up on the other.
+
+Notes are local only: the public build has no Notes link (`LIVE_API_URL: ''`), and in `make prod` nginx only serves them to `localhost`. The vault is handled by the MCP server (`mcp/notes.mjs`, `notes-api.mjs`, `notes-tools.mjs`); the page is `src/pages/notes.js`. See the [Notes guide](docs/guides/notes.md).
 
 ### Google Docs setup
 - **If your organization blocks Google API access (no token possible):** in Google Drive, right-click the folder → **Download**. Google zips the Docs as `.docx`. Put the `.zip` in `imports/<name>/` (matching a `driveDownloads` entry in `docs-sources.json`) and run `make sync`. Pandoc converts every doc to Markdown, including images, and keeps the folder structure. Re-download to update. Everything in `imports/` is git-ignored, and the section is left out of the site when the folder is empty.
@@ -200,7 +216,7 @@ ngrok http 8080 --basic-auth="bluecore:a-long-password"     # terminal 2 (passwo
 - `https://<your-site>/llms-full.txt` contains the entire doc set in one file. Give it to your agent to "chat with the docs."
 
 ### MCP server (agents search the docs themselves)
-`make up` also starts an [MCP](https://modelcontextprotocol.io) server at **`http://localhost:3001/mcp`**. Any MCP-capable agent (Claude Code, Claude Desktop, Cursor, VS Code Copilot, …) can then look things up in the docs while it works. It has three read-only tools:
+`make up` also starts an [MCP](https://modelcontextprotocol.io) server at **`http://localhost:3001/mcp`**. Any MCP-capable agent (Claude Code, Claude Desktop, Cursor, VS Code Copilot, …) can then look things up in the docs while it works. Its tools are read-only, except `create_note` and `update_note`, which add to your notes:
 
 | Tool | What it does |
 |---|---|
@@ -223,8 +239,11 @@ ngrok http 8080 --basic-auth="bluecore:a-long-password"     # terminal 2 (passwo
 | `version_drift` | Whether the stack runs each service's latest release (image build date, unreleased commits, failed publishes), and whether services lock the latest bluecore-models. |
 | `api_endpoints` / `api_endpoint` / `api_schema` | The Blue Core API from its live OpenAPI spec (`apiReference` in `docs-sources.json`): endpoint list, one endpoint in detail (parameters, body, responses, auth, example `curl`), and data models. |
 | `docs_health` | Cleanup list: stale pages, broken links between pages (missing pages or headings), near-empty pages, repos without docs. |
+| `list_notes` / `search_notes` / `read_note` / `list_note_tags` | Your [notes](#notes): list them by tag, folder or date, search them, read one (or one `section` of it, with its backlinks, and with `include_images` the images it embeds), list the tags. |
+| `related_notes` / `list_tasks` / `list_templates` / `list_attachments` / `get_note_image` / `notes_for_doc` / `notes_health` | A note's links, backlinks and notes sharing its tags; open checklist items across notes; templates; images and which notes use them; one image to look at; notes about a docs page; and a tidy-up list. |
+| `create_note` / `update_note` / `complete_task` / `rename_note` / `pin_note` / `attach_image` | Add a note (optionally from a template), append to one, replace its text, change its tags or folder, tick a task, rename (updating links), pin, or add an image. The only tools that write anything. Agents can't delete notes; only you can, on the Notes page. |
 
-**Prompts** (one-click reports; in Claude Code they're slash commands like `/mcp__docs__standup_summary`): `standup_summary`, `weekly_update`, `onboarding_plan`, `summarize_epic`, `docs_cleanup`.
+**Prompts** (one-click reports; in Claude Code they're slash commands like `/mcp__docs__standup_summary`): `standup_summary`, `weekly_update`, `onboarding_plan`, `summarize_epic`, `docs_cleanup`, `notes_review`.
 
 Code, CI and change tools only read the repos the issues page shows (public, not archived, plus listed forks), so private repos stay out even though the token could read them.
 

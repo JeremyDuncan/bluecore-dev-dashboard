@@ -30,7 +30,7 @@ function config() {
 }
 
 // Pages on this machine (any localhost port) and the configured site may read the data.
-function allowedOrigin(origin) {
+export function allowedOrigin(origin) {
   if (!origin) return null;
   try {
     const {hostname} = new URL(origin);

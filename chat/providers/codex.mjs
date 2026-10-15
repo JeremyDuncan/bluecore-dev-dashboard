@@ -6,7 +6,8 @@
 //   2. Codex's read-only sandbox, approvals off ("never"), web search off.
 //   3. ChatGPT apps/connectors, plugins, image generation, sub-agents, browser and computer use
 //      are turned off, so it can't act on your connected accounts (e.g. GitHub) either.
-//   4. Your ~/.codex/config.toml and rules aren't loaded; the only MCP server is the docs server.
+//   4. Your ~/.codex/config.toml and rules aren't loaded; the only MCP server is the docs server,
+//      whose tools are read-only except the notes write tools (approved below).
 import {spawn} from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -100,6 +101,11 @@ export default {
       'sandbox_mode="read-only"',
       'web_search="disabled"',
       `mcp_servers.docs.url=${JSON.stringify(mcpUrl)}`,
+      // The notes write tools aren't read-only, so with approvals off Codex would refuse them: approve
+      // just these (they only add or change notes; the prompt allows them only when asked)
+      ...['create_note', 'update_note', 'complete_task', 'rename_note', 'pin_note', 'attach_image'].map(
+        (tool) => `mcp_servers.docs.tools.${tool}.approval_mode="approve"`,
+      ),
       ...DISABLED_FEATURES.map((f) => `features.${f}=false`),
     ].flatMap((c) => ['-c', c]);
     const common = ['--json', '--skip-git-repo-check', '--ignore-user-config', '--ignore-rules', ...config, ...(model ? ['-m', model] : [])];
