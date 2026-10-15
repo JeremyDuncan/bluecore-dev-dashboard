@@ -70,6 +70,19 @@
   transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
 }
 
+/* A card that's a button (ChatCard) looks like the link cards */
+.cardButton {
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cardButton:focus-visible {
+  outline: 2px solid var(--bc-link);
+  outline-offset: 2px;
+}
+
 .card:hover {
   border-color: var(--bc-link);
   color: var(--ifm-font-color-base);

@@ -2,6 +2,8 @@
 // (the sidebar-icon--<name> classes in src/css/custom.css), so a section looks the same everywhere.
 import React from 'react';
 import Link from '@docusaurus/Link';
+import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
+import {useAllDocsData} from '@docusaurus/plugin-content-docs/client';
 import styles from './styles.module.css';
 
 export function Icon({name, size = 22}) {
@@ -51,5 +53,47 @@ export function Featured({icon, title, to, children}) {
       </Link>
       <div className={styles.featuredBody}>{children}</div>
     </div>
+  );
+}
+
+// Only when the site runs locally: `needs="live"` (Notes and live data, from the MCP container) or
+// `needs="chat"` (Ask the docs). The public build sets both URLs empty, so these never show there.
+export function LocalOnly({needs = 'live', children}) {
+  const {siteConfig} = useDocusaurusContext();
+  const url = needs === 'chat' ? siteConfig.customFields?.chatApiUrl : siteConfig.customFields?.liveApiUrl;
+  return url ? children : null;
+}
+
+const allDocs = (data) => Object.values(data).flatMap((plugin) => plugin.versions.flatMap((v) => v.docs));
+
+// Only when a docs section exists (a folder under docs/, e.g. "google-drive", or one page such as
+// "project-status/blue-core-mvp-board"). Local-only sections (Drive, Box, Figma notes, the private
+// board) are missing on the public site and on machines without the source files.
+export function IfDocs({section, children}) {
+  const docs = allDocs(useAllDocsData());
+  return docs.some((d) => d.id === section || d.id.startsWith(`${section}/`)) ? children : null;
+}
+
+// A card linking to a section that has no landing page of its own: it opens the section's top page
+// (its index, or the page nearest the top of the folder). Nothing when the section doesn't exist.
+export function SectionCard({section, ...card}) {
+  const docs = allDocs(useAllDocsData()).filter((d) => d.id === section || d.id.startsWith(`${section}/`));
+  if (!docs.length) return null;
+  const depth = (d) => d.id.split('/').length - (/(^|\/)index$/.test(d.id) ? 1 : 0);
+  const top = [...docs].sort((a, b) => depth(a) - depth(b) || a.id.localeCompare(b.id))[0];
+  return <Card {...card} to={top.path} />;
+}
+
+// A card that opens the "Ask the docs" chat box (src/components/AskDocs) instead of a page
+export function ChatCard({icon, title, meta, children}) {
+  return (
+    <button type="button" className={`${styles.card} ${styles.cardButton}`} onClick={() => window.dispatchEvent(new Event('ask-docs:open'))}>
+      <span className={styles.cardHead}>
+        <Icon name={icon} />
+        <strong>{title}</strong>
+      </span>
+      <div className={styles.cardText}>{children}</div>
+      {meta && <span className={styles.cardMeta}>{meta}</span>}
+    </button>
   );
 }

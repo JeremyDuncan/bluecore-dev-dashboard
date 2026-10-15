@@ -100,6 +100,12 @@ export default function AskDocs() {
   useEffect(() => {
     if (open) inputRef.current?.focus();
   }, [open]);
+  // Other components open the chat with window.dispatchEvent(new Event('ask-docs:open'))
+  useEffect(() => {
+    const show = () => setOpen(true);
+    window.addEventListener('ask-docs:open', show);
+    return () => window.removeEventListener('ask-docs:open', show);
+  }, []);
   // Links like /some-page?ask=How+do+I+… open the chat and ask that question
   // (add &cli=codex or &cli=claude to pick the assistant)
   const askedFromUrl = useRef(false);

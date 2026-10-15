@@ -5,11 +5,11 @@ slug: /
 hide_table_of_contents: true
 ---
 
-import {Card, Cards, Featured, Part} from '@site/src/components/Welcome';
+import {Card, Cards, ChatCard, Featured, IfDocs, LocalOnly, Part, SectionCard} from '@site/src/components/Welcome';
 
 # Welcome
 
-The Blue Core developer documentation, and a live view of the project on GitHub, in one place.
+The Blue Core developer documentation, a live view of the project on GitHub, and AI tools that know both, in one place.
 
 <Featured icon="stack" title="Start here: Bluecore Stack" to="/blue-core-repos/bluecore-stack/">
 
@@ -23,7 +23,7 @@ The core developer documentation: set up your environment, run the whole Blue Co
 </Featured>
 
 <Part icon="page" title="Documentation">
-  Docs pulled from the Blue Core repositories and wikis, and refreshed on every sync.
+  Docs pulled from the Blue Core repositories and wikis, and refreshed on every sync. Searchable from the top bar.
 </Part>
 
 <Cards>
@@ -36,15 +36,29 @@ The core developer documentation: set up your environment, run the whole Blue Co
   <Card icon="wiki" title="Blue Core Wiki" to="/blue-core-wiki" meta="From the GitHub wikis">
     Onboarding, local setup and dev notes.
   </Card>
+  <SectionCard section="google-drive" icon="drive" title="Google Drive" meta="Internal · only on your machine">
+    Planning documents, decisions and demos from the shared drive.
+  </SectionCard>
+  <SectionCard section="box" icon="box" title="Box" meta="Internal · only on your machine">
+    MVP planning documents from Box.
+  </SectionCard>
+  <SectionCard section="design" icon="design" title="Design" meta="Internal · from Figma">
+    Colors, type, layout rules and components from the Blue Core Figma file.
+  </SectionCard>
 </Cards>
 
-These pages are copies, overwritten on every sync. To change one, use its **Edit this page** link, which opens the source on GitHub.
+These pages are copies, overwritten on every sync. To change one, use its **Edit this page** link, which opens the source.
 
 <Part icon="status" title="Project Status">
   A live dashboard of what's happening across the repositories, straight from GitHub. It's separate from the docs: pick the question you have.
 </Part>
 
 <Cards>
+  <IfDocs section="project-status/blue-core-mvp-board">
+    <Card icon="status-board" title="Project Board" to="/project-status/blue-core-mvp-board" meta="Only on your machine">
+      What's in progress, in review and ready next on the MVP board?
+    </Card>
+  </IfDocs>
   <Card icon="status-issues" title="Issues" to="/project-status/issues">
     What issues are open, and who's on them?
   </Card>
@@ -67,6 +81,50 @@ These pages are copies, overwritten on every sync. To change one, use its **Edit
 
 When you run the site locally, these pages update live (with a **Refresh** button). On the public site they're updated every hour.
 
+<Part icon="mcp" title="Work with AI">
+  The site runs an MCP server that gives AI agents these docs, live GitHub data, the Blue Core API spec and your notes.
+</Part>
+
+<Cards>
+  <LocalOnly needs="chat">
+    <ChatCard icon="help" title="Ask the docs" meta="Claude Code or Codex · bottom-right on every page">
+      Ask in plain English. Answers cite the docs and GitHub items they used.
+    </ChatCard>
+  </LocalOnly>
+  <Card icon="mcp" title="Connect your AI agent" to="/guides/mcp-tools/connect" meta="Claude Code, Codex, Cursor, Copilot">
+    Give your coding agent the docs and live project data while it works.
+  </Card>
+  <Card icon="code" title="MCP tools" to="/guides/mcp-tools" meta="41 tools in 7 groups">
+    What each tool does: docs search, the board, PRs, code, tests, version drift, the API.
+  </Card>
+  <Card icon="status-overview" title="Example prompts" to="/guides/mcp-tools/example-prompts" meta="Copy and paste">
+    Real prompts for standups, failing tests, API calls and release notes.
+  </Card>
+</Cards>
+
+<LocalOnly>
+
+<Part icon="notes" title="Your notes">
+  A Markdown notebook on this site that's also an Obsidian vault. It stays on your machine.
+</Part>
+
+<Cards>
+  <Card icon="notes" title="Open your notes" to="/notes" meta="⌘P to jump to a note">
+    Write, tag, link and search notes, with templates, tasks and pasted screenshots.
+  </Card>
+  <Card icon="design" title="Use with Obsidian" to="/guides/notes#using-an-existing-obsidian-vault" meta="Same files, both ways">
+    Open the notes in Obsidian, or point the site at a vault you already have.
+  </Card>
+  <Card icon="page" title="Notes on docs pages" to="/guides/notes#notes-about-docs-pages" meta="At the bottom of every page">
+    Link a note to a docs page and it shows up on that page.
+  </Card>
+  <Card icon="mcp" title="AI and your notes" to="/guides/notes#notes-and-ai" meta="Records which AI wrote what">
+    Agents can search, read and, when you ask, write notes.
+  </Card>
+</Cards>
+
+</LocalOnly>
+
 <Part icon="help" title="How this site works">
-  Where the content comes from, how the live data is fetched, and how to add or change docs: see the [Guides](/guides), also under the **?** in the top bar.
+  Where the content comes from, how the live data is fetched, your notes, the MCP tools, and how to add or change docs: see the [Guides](/guides), also under the **?** in the top bar.
 </Part>
