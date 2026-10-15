@@ -231,6 +231,7 @@ function load(rel) {
     updated: updated.toISOString(),
     author: typeof data.author === 'string' ? data.author : null,
     pinned: data.pinned === true,
+    template: isTemplatePath(rel),
     links: [...new Set(wikiLinks(body))],
     excerpt: excerptOf(body),
     words: (body.match(/\S+/g) ?? []).length,
@@ -545,6 +546,10 @@ export function saveAttachment(data, type, name) {
 // and {{date:YYYY-MM-DD}} are filled in by the editor when a template is used.
 
 export const TEMPLATE_DIR = process.env.NOTES_TEMPLATES || 'Templates';
+
+function isTemplatePath(rel) {
+  return rel.startsWith(`${TEMPLATE_DIR}/`);
+}
 
 export function listTemplates() {
   return listNotes()

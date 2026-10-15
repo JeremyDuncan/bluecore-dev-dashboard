@@ -161,11 +161,18 @@ function NoteRow({note, active, to, field, snippet, selecting, checked, onToggle
           {field === 'created' ? <CalendarIcon size={12} /> : <ClockIcon size={12} />}
           <time dateTime={note[field]}>{shortWhen(note[field])}</time>
         </span>
-        {note.folder && (
-          <span className={styles.metaItem}>
-            <FolderIcon size={12} />
-            {note.folder}
+        {note.template ? (
+          <span className={styles.templateBadge}>
+            <TemplateIcon size={12} />
+            Template
           </span>
+        ) : (
+          note.folder && (
+            <span className={styles.metaItem}>
+              <FolderIcon size={12} />
+              {note.folder}
+            </span>
+          )
         )}
         {note.tags.length > 0 && (
           <span className={`${styles.metaItem} ${styles.rowTag}`}>
@@ -175,7 +182,7 @@ function NoteRow({note, active, to, field, snippet, selecting, checked, onToggle
           </span>
         )}
       </span>
-      {(snippet || note.excerpt) && <span className={styles.rowExcerpt}>{snippet || note.excerpt}</span>}
+      {(snippet || note.excerpt) && <span className={`${styles.rowExcerpt} ${note.template ? styles.rowExcerptTemplate : ''}`}>{snippet || note.excerpt}</span>}
     </>
   );
   // Selecting (for Export): the whole row toggles its checkbox instead of opening the note
@@ -1226,7 +1233,8 @@ function fillTemplate(text, title) {
   const format = (f) =>
     f.replace(/YYYY|MM|DD|HH|mm|ss/g, (t) => ({YYYY: now.getFullYear(), MM: pad(now.getMonth() + 1), DD: pad(now.getDate()), HH: pad(now.getHours()), mm: pad(now.getMinutes()), ss: pad(now.getSeconds())})[t]);
   return text.replace(/\{\{\s*(title|date|time)(?::([^}]+))?\s*\}\}/g, (_, key, fmt) =>
-    key === 'title' ? title || 'Untitled' : format(fmt?.trim() || (key === 'date' ? 'YYYY-MM-DD' : 'HH:mm')),
+    // No title yet: {{title}} stays, and saving the note fills it in
+    key === 'title' ? title || '{{title}}' : format(fmt?.trim() || (key === 'date' ? 'YYYY-MM-DD' : 'HH:mm')),
   );
 }
 
@@ -1291,6 +1299,10 @@ function NoteEditor({list, url, resolve, flash}) {
   const {layout, wide, setLayout} = useEditorLayout();
   const {templates, folder: templateFolder, reload: reloadTemplates} = useTemplates();
   // A new note becomes a template by saving it in the templates folder; from an existing note, start a blank one
+  // A template applied before the note had a title left {{title}}; a new note gets its title there
+  // (a new template keeps the placeholder)
+  const fillTitle = (f) =>
+    f.folder.trim() === templateFolder || f.folder.trim().startsWith(`${templateFolder}/`) || !f.title.trim() ? f.body : f.body.replace(/\{\{\s*title\s*\}\}/g, f.title.trim());
   const newTemplate = () =>
     existing ? url.go(url.href({new: true, in: templateFolder, note: null, edit: null, title: null})) : setForm((f) => ({...f, folder: templateFolder}));
   const preview = useDeferredValue(form?.body ?? '');
@@ -1312,6 +1324,19 @@ function NoteEditor({list, url, resolve, flash}) {
     }
     if (!start) return;
     setForm(start);
+    // ?template=<path>: "Use" on a template in the overview
+    const template = !existing && url.params.get('template');
+    if (template) {
+      call(`/note?path=${encodeURIComponent(template)}`)
+        .then((t) =>
+          setForm((f) => ({
+            ...f,
+            body: fillTemplate(t.body.replace(/^\n+/, ''), f.title.trim()),
+            tags: [...f.tags, ...t.propertyTags.filter((x) => !f.tags.some((y) => y.toLowerCase() === x.toLowerCase()))],
+          })),
+        )
+        .catch(setProblem);
+    }
     const saved = readDraft(existing);
     if (saved && !sameForm(saved, start)) setDraft(saved);
     else if (saved) clearDraft(existing);
@@ -1344,7 +1369,7 @@ function NoteEditor({list, url, resolve, flash}) {
     try {
       let note = existing
         ? await call(`/note?path=${encodeURIComponent(existing)}`, {method: 'PUT', body: {body: form.body, tags: form.tags, folder: form.folder.trim(), baseMtime: force ? null : form.baseMtime}})
-        : await call('/note', {method: 'POST', body: {title: form.title.trim(), folder: form.folder.trim(), tags: form.tags, body: form.body}});
+        : await call('/note', {method: 'POST', body: {title: form.title.trim(), folder: form.folder.trim(), tags: form.tags, body: fillTitle(form)}});
       // A new title renames the file and updates the [[links]] that point to it
       if (existing && form.title.trim() && form.title.trim() !== original.title) {
         const renamed = await call('/rename', {method: 'POST', body: {path: note.path, title: form.title.trim()}});
@@ -1353,7 +1378,7 @@ function NoteEditor({list, url, resolve, flash}) {
       }
       clearDraft(existing);
       await list.reload();
-      url.go(url.href({note: note.path, edit: null, new: null, title: null, in: null, link: null, linkTitle: null}), {replace: !existing});
+      url.go(url.href({note: note.path, edit: null, new: null, title: null, in: null, link: null, linkTitle: null, template: null}), {replace: !existing});
     } catch (err) {
       setProblem(err);
     } finally {
@@ -1409,7 +1434,7 @@ function NoteEditor({list, url, resolve, flash}) {
   if (existing && loaded.error) return <p className={styles.error}>{loaded.error.message}</p>;
   if (!form) return <p className={styles.empty}>Loading…</p>;
   const folders = [...new Set([...list.folders, ...list.notes.map((n) => n.folder).filter(Boolean)])].sort();
-  const cancelTo = existing ? url.href({edit: null}) : url.href({new: null, title: null, in: null, link: null, linkTitle: null});
+  const cancelTo = existing ? url.href({edit: null}) : url.href({new: null, title: null, in: null, link: null, linkTitle: null, template: null});
   const layouts = [
     ['write', 'Write', EditIcon],
     ...(wide ? [['split', 'Split', LayoutIcon]] : []),
@@ -1645,31 +1670,158 @@ function NoteEditor({list, url, resolve, flash}) {
 
 // --- Nothing selected: an overview ---------------------------------------------------------------
 
+// A note as a card: title, where and when, the start of its text and its tags
+function NoteCard({note, to}) {
+  return (
+    <Link to={to} className={styles.card}>
+      <span className={styles.cardTitle}>
+        {note.pinned && <PinIcon size={14} />}
+        {note.title}
+      </span>
+      <span className={styles.rowMeta}>
+        <span className={styles.metaItem}>
+          <ClockIcon size={12} />
+          <time dateTime={note.updated}>{shortWhen(note.updated)}</time>
+        </span>
+        {note.folder && (
+          <span className={styles.metaItem}>
+            <FolderIcon size={12} />
+            {note.folder}
+          </span>
+        )}
+      </span>
+      {note.excerpt && <span className={styles.cardExcerpt}>{note.excerpt}</span>}
+      {note.tags.length > 0 && (
+        <span className={styles.cardTags}>
+          {note.tags.slice(0, 3).map((t) => (
+            <span key={t} className={styles.cardTag}>
+              #{t}
+            </span>
+          ))}
+          {note.tags.length > 3 && <span className={styles.cardTag}>+{note.tags.length - 3}</span>}
+        </span>
+      )}
+    </Link>
+  );
+}
+
+function Stat({icon, value, label, to}) {
+  const body = (
+    <>
+      <span className={styles.statIcon}>{icon}</span>
+      <span className={styles.statValue}>{value}</span>
+      <span className={styles.statLabel}>{label}</span>
+    </>
+  );
+  return to ? (
+    <Link to={to} className={`${styles.stat} ${styles.statLink}`}>
+      {body}
+    </Link>
+  ) : (
+    <div className={styles.stat}>{body}</div>
+  );
+}
+
+const WAYS = [
+  [EditIcon, 'Here', <><em>New note</em>, or open a note and choose <em>Edit</em>. Start from a template, paste images, link notes with <code>[[</code>.</>],
+  [SparkleIcon, 'Ask the docs', <>Ask it to save something, or use <em>Save as note</em> under an answer.</>],
+  [PlugIcon, 'Any AI agent', <>Connected to the MCP server (<code>localhost:3001/mcp</code>), with tools like <code>create_note</code>.</>],
+  [BookIcon, 'From a docs page', <><em>Note about this page</em> at the bottom of any page. Linked notes are listed there.</>],
+];
+
 function Overview({list, url}) {
-  const week = list.notes.filter((n) => Date.now() - new Date(n.updated).getTime() < 7 * DAY).length;
-  const ai = list.notes.filter((n) => n.author && n.author !== 'you').length;
+  const {templates, folder: templateFolder} = useTemplates();
+  const notes = list.notes.filter((n) => !n.template);
+  const week = notes.filter((n) => Date.now() - new Date(n.updated).getTime() < 7 * DAY).length;
+  const ai = notes.filter((n) => n.author && n.author !== 'you').length;
+  const pinned = notes.filter((n) => n.pinned);
+  const recent = notes.filter((n) => !n.pinned).slice(0, pinned.length ? 4 : 6);
+  const mac = typeof navigator !== 'undefined' && /Mac/.test(navigator.platform);
+  const noteTo = (n) => url.href({note: n.path, edit: null, new: null, title: null});
   return (
     <div className={styles.overview}>
-      <h1>Your notes</h1>
-      <p className={styles.lead}>
-        {list.notes.length} notes · {list.tags.length} tags · {week} changed this week
-        {ai > 0 && <> · {ai} written by AI</>}
-      </p>
-      <div className={styles.overviewActions}>
-        <Link to={url.href({new: true})} className={`button button--primary ${styles.withIcon}`}>
-          <PlusIcon size={16} /> New note
-        </Link>
-        <Link to="/guides/notes" className={`button button--secondary ${styles.withIcon}`}>
-          <HelpIcon size={16} /> How notes work
-        </Link>
+      <header className={styles.hero}>
+        <div>
+          <h1>Your notes</h1>
+          <p className={styles.lead}>
+            Markdown files in your vault{list.vault ? <> “{list.vault}”</> : null}, also open in Obsidian. Press <kbd className={styles.kbd}>{mac ? '⌘' : 'Ctrl'}</kbd>{' '}
+            <kbd className={styles.kbd}>P</kbd> to jump to one.
+          </p>
+        </div>
+        <div className={styles.overviewActions}>
+          <Link to={url.href({new: true})} className={`button button--primary ${styles.withIcon}`}>
+            <PlusIcon size={16} /> New note
+          </Link>
+          <Link to="/guides/notes" className={`button button--secondary ${styles.withIcon}`}>
+            <HelpIcon size={16} /> How notes work
+          </Link>
+        </div>
+      </header>
+
+      <div className={styles.stats}>
+        <Stat icon={<NoteIcon size={18} />} value={notes.length} label={notes.length === 1 ? 'note' : 'notes'} />
+        <Stat icon={<ClockIcon size={18} />} value={week} label="changed this week" />
+        <Stat icon={<TagIcon size={18} />} value={list.tags.length} label={list.tags.length === 1 ? 'tag' : 'tags'} to={url.href({view: 'tags'})} />
+        <Stat icon={<SparkleIcon size={18} />} value={ai} label="written by AI" />
       </div>
-      <p className={styles.hint}>
-        Press <kbd className={styles.kbd}>{typeof navigator !== 'undefined' && /Mac/.test(navigator.platform) ? '⌘' : 'Ctrl'}</kbd> <kbd className={styles.kbd}>P</kbd> anywhere on this
-        page to jump to a note.
-      </p>
+
+      {pinned.length > 0 && (
+        <section>
+          <h2 className={styles.sectionTitle}>
+            <PinIcon size={18} /> Pinned
+          </h2>
+          <div className={styles.cards}>
+            {pinned.map((n) => (
+              <NoteCard key={n.path} note={n} to={noteTo(n)} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {recent.length > 0 && (
+        <section>
+          <h2 className={styles.sectionTitle}>
+            <ClockIcon size={18} /> Recently changed
+          </h2>
+          <div className={styles.cards}>
+            {recent.map((n) => (
+              <NoteCard key={n.path} note={n} to={noteTo(n)} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section>
+        <h2 className={styles.sectionTitle}>
+          <TemplateIcon size={18} /> Templates
+          <Link to={url.href({new: true, in: templateFolder})} className={styles.sectionLink}>
+            <PlusIcon size={14} /> New template
+          </Link>
+        </h2>
+        {templates?.length ? (
+          <ul className={styles.templateList}>
+            {templates.map((t) => (
+              <li key={t.path} className={styles.templateItem}>
+                <Link to={url.href({note: t.path, edit: null, new: null})} className={styles.templateName} title="Open the template to see or edit it">
+                  <TemplateIcon size={15} />
+                  {t.title}
+                </Link>
+                <Link to={url.href({new: true, template: t.path, note: null, edit: null, title: null})} className={`button button--sm button--secondary ${styles.withIcon}`}>
+                  <PlusIcon size={13} /> Use
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className={styles.hint}>
+            {templates == null ? 'Loading…' : <>No templates yet. Make one with <em>⋯ → Save as template</em> on any note, or <em>Add starter templates</em> in the editor.</>}
+          </p>
+        )}
+      </section>
+
       {list.tags.length > 0 && (
-        <>
-          <h2 className={styles.withIcon}>
+        <section>
+          <h2 className={styles.sectionTitle}>
             <TagIcon size={18} /> Tags
           </h2>
           <div className={styles.tagCloud}>
@@ -1677,43 +1829,36 @@ function Overview({list, url}) {
               <TagChip key={t.tag} tag={t.tag} count={t.count} to={url.href({tag: t.tag, view: 'tags'})} />
             ))}
           </div>
-        </>
+        </section>
       )}
-      <h2 className={styles.withIcon}>
-        <PlusIcon size={18} /> Ways to add notes
-      </h2>
-      <ul className={styles.ways}>
-        <li>
-          <EditIcon size={16} />
-          <span>
-            <strong>Here:</strong> <em>New note</em>, or open a note and choose <em>Edit</em>. Start from a template, paste images, and link notes with <code>[[</code>.
-          </span>
-        </li>
-        <li>
-          <SparkleIcon size={16} />
-          <span>
-            <strong>Ask the docs:</strong> ask it to save something, e.g. “save a note with the steps to export the Keycloak realm”, or use <em>Save as note</em> under an answer.
-          </span>
-        </li>
-        <li>
-          <PlugIcon size={16} />
-          <span>
-            <strong>Any AI agent</strong> connected to the MCP server (<code>http://localhost:3001/mcp</code>): the <code>create_note</code> and <code>update_note</code> tools.
-          </span>
-        </li>
-        <li>
-          <BookIcon size={16} />
-          <span>
-            <strong>From a docs page:</strong> <em>Note about this page</em> at the bottom of any page. Notes that link to a page are listed there.
-          </span>
-        </li>
-        <li>
-          <ObsidianIcon size={16} />
-          <span>
-            <strong>Obsidian:</strong> open the folder as a vault{list.vault ? <> (“{list.vault}”)</> : null}. Changes show up here within seconds.
-          </span>
-        </li>
-      </ul>
+
+      <section>
+        <h2 className={styles.sectionTitle}>
+          <PlusIcon size={18} /> Ways to add notes
+        </h2>
+        <div className={styles.ways}>
+          {WAYS.map(([Icon, title, text]) => (
+            <div key={title} className={styles.way}>
+              <span className={styles.wayIcon}>
+                <Icon size={18} />
+              </span>
+              <div>
+                <strong>{title}</strong>
+                <p>{text}</p>
+              </div>
+            </div>
+          ))}
+          <div className={styles.way}>
+            <span className={styles.wayIcon}>
+              <ObsidianIcon size={18} />
+            </span>
+            <div>
+              <strong>Obsidian</strong>
+              <p>Open the folder as a vault{list.vault ? <> (“{list.vault}”)</> : null}. Changes show up here within seconds.</p>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

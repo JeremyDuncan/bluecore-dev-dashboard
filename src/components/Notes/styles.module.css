@@ -314,7 +314,11 @@ a.tag:hover {
 .note,
 .editor,
 .overview {
-  max-width: 820px;
+  max-width: 1040px;
+}
+
+.overview section {
+  margin-top: 36px;
 }
 
 .noteHead {
@@ -605,14 +609,29 @@ a.tag:hover {
 /* ---------- Overview, messages ---------- */
 
 .overview h1 {
-  margin-bottom: 4px;
-  font-size: clamp(32px, 2vw + 20px, 48px);
+  margin-bottom: 6px;
+  font-size: clamp(32px, 2vw + 20px, 44px);
   font-weight: 300;
 }
 
-.overview h2 {
-  margin-top: 32px;
-  font-size: 20px;
+/* Title and actions: a soft panel across the top */
+.hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 24px;
+  padding: 28px 28px 24px;
+  border: 1px solid var(--bc-sky-line);
+  border-radius: 16px;
+  background:
+    radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--bc-link) 14%, transparent), transparent 60%),
+    color-mix(in srgb, var(--bc-link) 4%, var(--bc-surface));
+}
+
+.hero .lead {
+  max-width: 62ch;
+  margin: 0;
 }
 
 .lead {
@@ -625,15 +644,237 @@ a.tag:hover {
   gap: 10px;
 }
 
-.ways {
+/* Four numbers under the title */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.stat {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 12px;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1px solid var(--bc-sky-line);
+  border-radius: 12px;
+  background: var(--bc-surface);
+  color: inherit;
+}
+
+.statLink {
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.statLink:hover {
+  border-color: var(--bc-link);
+  color: inherit;
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+
+.statIcon {
+  display: grid;
+  grid-row: span 2;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bc-link) 12%, transparent);
+  color: var(--bc-link);
+}
+
+.statValue {
+  color: var(--bc-heading);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.statLabel {
+  color: var(--bc-meta);
+  font-size: 13px;
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+
+.sectionTitle > svg {
+  color: var(--bc-link);
+}
+
+.sectionLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Pinned and recent notes */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--bc-sky-line);
+  border-radius: 12px;
+  background: var(--bc-surface);
+  color: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+
+.card:hover {
+  border-color: var(--bc-link);
+  box-shadow: 0 6px 18px -10px color-mix(in srgb, var(--bc-link) 60%, transparent);
+  color: inherit;
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+
+.cardTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  color: var(--bc-link);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardTitle svg {
+  flex-shrink: 0;
+}
+
+.cardExcerpt {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--bc-meta);
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.cardTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: auto;
+  padding-top: 4px;
+}
+
+.cardTag {
+  padding: 0 7px;
+  border-radius: 100px;
+  background: color-mix(in srgb, var(--bc-link) 10%, transparent);
+  color: var(--bc-link);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* A template in the notes list */
+.templateBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 7px;
+  border-radius: 100px;
+  background: color-mix(in srgb, var(--bc-link) 12%, transparent);
+  color: var(--bc-link);
+  font-weight: 600;
+}
+
+.rowExcerptTemplate {
+  opacity: 0.7;
+}
+
+/* Templates: a name to open it, Use to start a note from it */
+.templateList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 8px;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.ways li {
+.templateItem {
   display: flex;
-  gap: 10px;
-  margin-bottom: 6px;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin: 0 !important;
+  padding: 8px 8px 8px 12px;
+  border: 1px solid var(--bc-sky-line);
+  border-radius: 10px;
+  background: var(--bc-surface);
+}
+
+.templateName {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.templateName svg {
+  flex-shrink: 0;
+}
+
+/* Ways to add notes */
+.ways {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.way {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bc-link) 5%, transparent);
+}
+
+.way p {
+  margin: 2px 0 0;
+  color: var(--bc-meta);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.wayIcon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: var(--bc-surface);
+  color: var(--bc-link);
 }
 
 .unavailable {
@@ -952,15 +1193,6 @@ h2.withIcon {
 }
 
 h2.withIcon svg,
-.ways li > svg {
-  flex-shrink: 0;
-  color: var(--bc-link);
-}
-
-.ways li > svg {
-  margin-top: 4px;
-}
-
 .metaItem {
   display: inline-flex;
   align-items: center;
