@@ -138,7 +138,7 @@ export default function AskDocs() {
     // A conversation belongs to one CLI: switching CLI starts a new one (switching model doesn't)
     const sessionId = chat.sessionProvider === provider.id ? chat.sessionId : null;
     const switched = chat.messages.length > 0 && chat.sessionProvider && chat.sessionProvider !== provider.id;
-    const meta = {provider: provider.id, providerName: provider.name, icon: provider.icon, model: provider.models.find((m) => m.id === cli.model)?.label ?? cli.model};
+    const meta = {provider: provider.id, providerName: provider.name, icon: provider.icon, model: provider.models.find((m) => m.id === cli.model)?.label ?? cli.model, modelId: cli.model};
     setChat((c) => ({
       ...c,
       id: c.id ?? newChatId(),
@@ -160,6 +160,7 @@ export default function AskDocs() {
           if (event === 'turn') updateLast((m) => ({...m, text: ''}));
           else if (event === 'delta') updateLast((m) => ({...m, text: m.text + data.text}));
           else if (event === 'status') updateLast((m) => ({...m, status: data.text}));
+          else if (event === 'model') updateLast((m) => ({...m, modelId: data.model})); // the exact model behind an alias
           else if (event === 'done') {
             updateLast((m) => ({...m, text: data.answer || m.text, status: null}));
             setChat((c) => ({...c, sessionId: data.sessionId, sessionProvider: provider.id}));
@@ -385,7 +386,7 @@ export default function AskDocs() {
                     </div>
                   )}
                   {m.text && !m.status && !m.error && (
-                    <SaveAsNote question={chat.messages.slice(0, i).reverse().find((x) => x.role === 'user')?.text} answer={m.text} by={m.providerName} />
+                    <SaveAsNote question={chat.messages.slice(0, i).reverse().find((x) => x.role === 'user')?.text} answer={m.text} by={m.providerName} model={m.modelId} />
                   )}
                 </div>
               ),

@@ -193,6 +193,8 @@ Writing (only when you ask):
 | `save_template` | Creates or updates a template in `Templates/`, from an existing note (`from_note`) or from Markdown (`body`). `replace` overwrites a template of the same name. |
 | `attach_image` | Saves an image in `attachments/` and, optionally, embeds it at the end of a note with a caption. |
 
+**Which AI wrote it.** A note an AI writes records the agent as `author` (*Claude Code*, *Codex*) and the exact model as `model` (for example `claude-sonnet-4-5-20250929`). When an AI later changes a note's text, `edited_by` and `edited_model` say so, until you save it yourself. The note's page shows the agent's logo, its name and the model (*Claude Sonnet 4.5*), and so do the note cards on the Notes home page. Through **Ask the docs** this is automatic: the chat helper tells the MCP server which CLI and model are answering, and turns an alias like `sonnet` into the exact model. Other agents are recognized by their User-Agent where possible and can pass `model` to the write tools.
+
 None of them deletes anything: only you can delete notes, on the Notes page.
 
 Images are sent to the agent's AI provider when it looks at them, like note text is. Images over 3 MB aren't sent, and SVGs and PDFs are listed but not shown. The **notes_review** prompt (a slash command in Claude Code, `/mcp__docs__notes_review`) summarizes what changed in your notes this week, your open tasks, notes written by AI to check, and what to tidy.

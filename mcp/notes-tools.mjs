@@ -7,6 +7,7 @@
 // The write tools add or change notes; none deletes. Deleting is left to the person on the Notes page
 // (which moves notes to the vault's .trash), never to an agent.
 import {z} from 'zod';
+import {writerOf} from './agent-runs.mjs';
 import {
   allTags,
   createNote,
@@ -38,6 +39,15 @@ import {
 
 const MAX_IMAGES = 6;
 
+// Agents connected straight to /mcp (not through the chat helper, which says who it is) can name
+// themselves; the note then shows which AI and model wrote it
+const MODEL_FIELD = z
+  .string()
+  .max(80)
+  .optional()
+  .describe('Your exact model id, e.g. "claude-sonnet-4-5-20250929" or "gpt-5.1-codex", if you know it; recorded as who wrote it');
+const byline = (n) => (n.author ? `author: ${n.author}${n.model ? ` (model: ${n.model})` : ''}${n.editedBy ? ` · last edited by ${n.editedBy}${n.editedModel ? ` (${n.editedModel})` : ''}` : ''}` : null);
+
 const text = (t) => ({content: [{type: 'text', text: t}]});
 const failed = (err) => {
   if (err instanceof NoteError) return {...text(err.message), isError: true};
@@ -57,7 +67,7 @@ const line = (n) =>
     .join('\n');
 
 const describe = (note, verb) =>
-  `${verb} "${note.title}"\npath: ${note.path}\nurl: ${siteUrl(note.path)}${note.tags.length ? `\ntags: ${note.tags.map((t) => `#${t}`).join(' ')}` : ''}`;
+  `${verb} "${note.title}"\npath: ${note.path}\nurl: ${siteUrl(note.path)}${note.tags.length ? `\ntags: ${note.tags.map((t) => `#${t}`).join(' ')}` : ''}${note.author && note.author !== 'you' ? `\n${byline(note)}` : ''}`;
 
 export function registerNotesTools(server) {
   server.registerTool(
@@ -142,7 +152,7 @@ export function registerNotesTools(server) {
           `url: ${siteUrl(n.path)}`,
           n.tags.length ? `tags: ${n.tags.map((t) => `#${t}`).join(' ')}` : null,
           `created: ${n.created} · updated: ${n.updated}`,
-          n.author ? `author: ${n.author}` : null,
+          byline(n),
           n.backlinks.length ? `linked from: ${n.backlinks.map((b) => b.path).join(', ')}` : null,
         ].filter(Boolean);
         if (!include_images) return text(`${header.join('\n')}\n\n${body}`);
@@ -204,11 +214,12 @@ export function registerNotesTools(server) {
         template: z.string().optional().describe('Start from this template (see list_templates), e.g. "Meeting notes"; {{title}} and {{date}} are filled in'),
         tags: z.array(z.string()).optional().describe('Tags without #, e.g. ["meeting", "bluecore_api"]'),
         folder: z.string().optional().describe('Folder inside the vault, e.g. "Meetings" (created if needed). Default: the top level'),
-        author: z.string().optional().describe('Who is writing, e.g. "Claude Code"; default "AI agent"'),
+        author: z.string().optional().describe('Which AI agent you are, e.g. "Claude Code" or "Codex" (filled in automatically when the server knows)'),
+        model: MODEL_FIELD,
       },
       annotations: {readOnlyHint: false, destructiveHint: false, idempotentHint: false},
     },
-    async ({title, body = '', tags = [], folder, author, template}) => {
+    async ({title, body = '', tags = [], folder, author, model, template}, extra) => {
       try {
         let text_ = body;
         let allTags_ = tags;
@@ -217,7 +228,8 @@ export function registerNotesTools(server) {
           text_ = body.trim() ? `${t.body.replace(/\s*$/, '')}\n\n${body}` : t.body;
           allTags_ = [...t.tags, ...tags];
         }
-        return text(describe(createNote({title, body: text_, tags: allTags_, folder, author: author || 'AI agent'}), template ? `Created from "${template}"` : 'Created'));
+        const writer = writerOf(extra, {author, model});
+        return text(describe(createNote({title, body: text_, tags: allTags_, folder, ...writer}), template ? `Created from "${template}"` : 'Created'));
       } catch (err) {
         return failed(err);
       }
@@ -238,15 +250,16 @@ export function registerNotesTools(server) {
         add_tags: z.array(z.string()).optional(),
         remove_tags: z.array(z.string()).optional(),
         move_to: z.string().optional().describe('Folder to move the note to ("" = the top level); the file name stays, so [[links]] keep working'),
+        model: MODEL_FIELD,
       },
       annotations: {readOnlyHint: false, destructiveHint: true, idempotentHint: false},
     },
-    async ({note: ref, append, body, add_tags, remove_tags, move_to}) => {
+    async ({note: ref, append, body, add_tags, remove_tags, move_to, model}, extra) => {
       if (append == null && body == null && !add_tags && !remove_tags && move_to == null) {
         return {...text('Nothing to change: pass append, body, add_tags, remove_tags or move_to.'), isError: true};
       }
       try {
-        let note = append == null && body == null && !add_tags && !remove_tags ? readNote(ref) : updateNote(ref, {append, body, addTags: add_tags, removeTags: remove_tags});
+        let note = append == null && body == null && !add_tags && !remove_tags ? readNote(ref) : updateNote(ref, {append, body, addTags: add_tags, removeTags: remove_tags, editor: writerOf(extra, {model})});
         if (move_to != null) note = moveNote(note.path, move_to);
         return text(describe(note, move_to != null ? 'Updated and moved' : 'Updated'));
       } catch (err) {
@@ -418,13 +431,14 @@ export function registerNotesTools(server) {
         body: z.string().optional().describe('The template, in Markdown (no front matter; tags go in `tags`). With from_note, replaces the note\'s text'),
         tags: z.array(z.string()).optional().describe('Tags every note made from it starts with, without #'),
         replace: z.boolean().optional().describe('Overwrite the existing template with this name (read it first with read_note)'),
+        model: MODEL_FIELD,
       },
       annotations: {readOnlyHint: false, destructiveHint: true, idempotentHint: false},
     },
-    async ({name, from_note, body, tags, replace}) => {
+    async ({name, from_note, body, tags, replace, model}, extra) => {
       try {
         if (!from_note && body === undefined) return {...text('Give from_note (a note to copy) or body (the template text).'), isError: true};
-        return text(describe(saveTemplate({name, fromNote: from_note, body, tags, replace}), 'Saved template'));
+        return text(describe(saveTemplate({name, fromNote: from_note, body, tags, replace, writer: writerOf(extra, {model})}), 'Saved template'));
       } catch (err) {
         return failed(err);
       }

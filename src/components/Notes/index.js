@@ -48,6 +48,8 @@ import {
   UserIcon,
   XIcon,
 } from './icons';
+import {ProviderIcon} from '../AskDocs/CliPicker';
+import {writer} from './authors';
 import styles from './styles.module.css';
 
 // --- Dates ---------------------------------------------------------------------------------------
@@ -73,6 +75,15 @@ function shortWhen(iso) {
   return d.toLocaleDateString(undefined, {month: 'short', day: 'numeric', ...(d.getFullYear() !== now.getFullYear() && {year: 'numeric'})});
 }
 
+// "just now", "5 min ago", "3 h ago", "yesterday", then the date
+function relWhen(iso) {
+  const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes} min ago`;
+  if (minutes < 24 * 60) return `${Math.round(minutes / 60)} h ago`;
+  if (startOfDay(new Date(iso)) === startOfDay(new Date()) - DAY) return 'yesterday';
+  return shortWhen(iso);
+}
 const longWhen = (iso) => new Date(iso).toLocaleString(undefined, {dateStyle: 'medium', timeStyle: 'short'});
 
 // --- URL state -----------------------------------------------------------------------------------
@@ -1025,6 +1036,12 @@ function NoteView({list, url, resolve, flash}) {
   if (error) return <p className={styles.error}>{error.status === 404 ? 'This note no longer exists (it was renamed or deleted).' : error.message}</p>;
 
   const source = pendingBody ?? note.body;
+  const by = writer(note.author, note.model);
+  const edited = note.editedBy ? writer(note.editedBy, note.editedModel) : null;
+  const tasks = source.split('\n').reduce((t, line) => {
+    const m = line.match(TASK_LINE);
+    return m ? {total: t.total + 1, done: t.done + (m[2] === ' ' ? 0 : 1)} : t;
+  }, {total: 0, done: 0});
   // A first "# Title" line that repeats the title isn't shown twice
   let skipped = 0;
   const body = source.replace(/^\s*#\s+(.+)\n/, (line, h) => {
@@ -1084,11 +1101,30 @@ function NoteView({list, url, resolve, flash}) {
     <div className={styles.noteLayout}>
       <article className={styles.note}>
         <header className={styles.noteHead}>
-          <div className={styles.noteActions}>
-            <Link to={url.href({edit: true})} className={`button button--primary button--sm ${styles.withIcon}`}>
-              <EditIcon size={14} /> Edit
-            </Link>
-            <NoteTools note={note} vault={list.vault} onDelete={() => setDeleting([note])} onShowInFolders={() => url.go(url.href({view: 'folders'}))} onTogglePin={togglePin} onDuplicate={duplicate} onSaveTemplate={saveTemplate} />
+          <div className={styles.noteTopbar}>
+            <nav className={styles.crumbs} aria-label="Where this note is">
+              <Link to={url.href({note: null, edit: null}, {keep: false})}>Notes</Link>
+              {(note.folder ? note.folder.split('/') : []).map((part, i, parts) => (
+                <React.Fragment key={i}>
+                  <ChevronIcon size={12} />
+                  <Link to={url.href({note: null, edit: null, view: 'folders', folder: parts.slice(0, i + 1).join('/')}, {keep: false})}>{part}</Link>
+                </React.Fragment>
+              ))}
+              {note.template && (
+                <span className={styles.templateBadge}>
+                  <TemplateIcon size={12} />
+                  Template
+                </span>
+              )}
+            </nav>
+            <div className={styles.noteActions}>
+              <div className={styles.actionGroup}>
+                <NoteTools note={note} vault={list.vault} onDelete={() => setDeleting([note])} onShowInFolders={() => url.go(url.href({view: 'folders'}))} onTogglePin={togglePin} onDuplicate={duplicate} onSaveTemplate={saveTemplate} />
+              </div>
+              <Link to={url.href({edit: true})} className={`button button--primary button--sm ${styles.withIcon}`}>
+                <EditIcon size={14} /> Edit
+              </Link>
+            </div>
           </div>
           <h1 className={styles.noteTitle}>
             {note.pinned && (
@@ -1098,32 +1134,60 @@ function NoteView({list, url, resolve, flash}) {
             )}
             {note.title}
           </h1>
-          <p className={styles.noteMeta}>
-            {note.folder && (
-              <Link to={url.href({view: 'folders'})} className={styles.metaItem} title="Show in the folder tree">
-                <FolderIcon size={14} />
-                {note.folder}
-              </Link>
-            )}
-            <span className={styles.metaItem} title="Created">
-              <CalendarIcon size={14} />
-              <time dateTime={note.created}>{longWhen(note.created)}</time>
+          <div className={styles.byline}>
+            <span className={`${styles.avatar} ${by.ai ? styles.avatarAi : ''} ${by.provider ? styles.avatarLogo : ''}`} aria-hidden="true">
+              {by.provider ? <ProviderIcon icon={by.provider} size={20} /> : by.ai ? <SparkleIcon size={16} /> : <UserIcon size={16} />}
             </span>
-            <span className={styles.metaItem} title="Last changed">
-              <ClockIcon size={14} />
-              <time dateTime={note.updated}>{longWhen(note.updated)}</time>
+            <span className={styles.bylineText}>
+              <span className={styles.bylineAuthor}>
+                {by.name}
+                {by.ai && (
+                  <span className={styles.modelChip} title={by.modelId ? `Written by ${by.name} with ${by.modelId}` : 'The model wasn’t recorded for this note'}>
+                    {by.model ?? 'model not recorded'}
+                  </span>
+                )}
+              </span>
+              <span className={styles.bylineMeta}>
+                <time dateTime={note.created} title={`Created ${longWhen(note.created)}`}>
+                  {new Date(note.created).toLocaleDateString(undefined, {year: 'numeric', month: 'long', day: 'numeric'})}
+                </time>
+                {note.updated.slice(0, 16) !== note.created.slice(0, 16) && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <time dateTime={note.updated} title={`Last changed ${longWhen(note.updated)}`}>
+                      Updated {relWhen(note.updated)}
+                    </time>
+                  </>
+                )}
+                <span aria-hidden="true">·</span>
+                <span title={`${note.words} words`}>{Math.max(1, Math.round(note.words / 220))} min read</span>
+                {edited && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span className={styles.editedBy} title={edited.modelId ? `Last changed by ${edited.name} with ${edited.modelId}` : undefined}>
+                      {edited.provider && <ProviderIcon icon={edited.provider} size={13} />}
+                      Edited by {edited.name}
+                      {edited.model ? ` · ${edited.model}` : ''}
+                    </span>
+                  </>
+                )}
+              </span>
             </span>
-            {note.author && (
-              <span className={styles.metaItem} title="Author">
-                <UserIcon size={14} />
-                {note.author}
+            {tasks.total > 0 && (
+              <span className={styles.taskMeter} title={`${tasks.done} of ${tasks.total} tasks done`}>
+                <svg viewBox="0 0 36 36" width="34" height="34" aria-hidden="true">
+                  <circle cx="18" cy="18" r="15" className={styles.ringTrack} />
+                  {tasks.done > 0 && <circle cx="18" cy="18" r="15" className={styles.ringFill} strokeDasharray={`${(tasks.done / tasks.total) * 94.25} 94.25`} />}
+                </svg>
+                <span>
+                  <strong>
+                    {tasks.done}/{tasks.total}
+                  </strong>{' '}
+                  tasks done
+                </span>
               </span>
             )}
-            <span className={styles.metaItem}>
-              <TextIcon size={14} />
-              {note.words} words
-            </span>
-          </p>
+          </div>
           {note.tags.length > 0 && (
             <div className={styles.noteTags}>
               {note.tags.map((t) => (
@@ -1144,6 +1208,15 @@ function NoteView({list, url, resolve, flash}) {
             onToggleTask={note.badFrontMatter || note.tooLarge ? undefined : toggleTask}
           />
         </div>
+        <footer className={styles.noteEnd}>
+          <span className={styles.notePath} title="The file in your vault">
+            <NoteIcon size={13} />
+            {note.path}
+          </span>
+          <Link to={url.href({edit: true})} className={styles.withIcon}>
+            <EditIcon size={13} /> Edit this note
+          </Link>
+        </footer>
         <ConfirmDelete
           notes={deleting}
           onCancel={() => setDeleting(null)}
@@ -1155,16 +1228,21 @@ function NoteView({list, url, resolve, flash}) {
         />
         {note.backlinks.length > 0 && (
           <footer className={styles.backlinks}>
-            <h2 className={styles.withIcon}>
-              <LinkIcon size={16} /> Linked from
+            <h2 className={styles.sectionTitle}>
+              <LinkIcon size={16} /> Linked from {note.backlinks.length} {note.backlinks.length === 1 ? 'note' : 'notes'}
             </h2>
-            <ul>
-              {note.backlinks.map((b) => (
-                <li key={b.path}>
-                  <Link to={url.href({note: b.path})}>{b.title}</Link>
-                </li>
-              ))}
-            </ul>
+            <div className={styles.cards}>
+              {note.backlinks.map((b) => {
+                const entry = list.notes.find((n) => n.path === b.path);
+                return entry ? (
+                  <NoteCard key={b.path} note={entry} to={url.href({note: b.path})} />
+                ) : (
+                  <Link key={b.path} to={url.href({note: b.path})} className={styles.card}>
+                    <span className={styles.cardTitle}>{b.title}</span>
+                  </Link>
+                );
+              })}
+            </div>
           </footer>
         )}
       </article>
@@ -1459,13 +1537,14 @@ function NoteEditor({list, url, resolve, flash}) {
       }}
     >
       <div className={styles.editorHead}>
-        <h1 className={styles.editorTitle}>{existing ? `Editing “${original?.title ?? form.title}”` : 'New note'}</h1>
+        <div className={styles.editorStatus}>
+          <span className={styles.eyebrow}>{existing ? 'Editing' : 'New note'}</span>
+          <span className={`${styles.saveState} ${dirty ? styles.saveStateDirty : ''}`} aria-live="polite">
+            <span className={styles.saveDot} aria-hidden="true" />
+            {saving ? 'Saving…' : dirty ? (draftSavedAt ? `Unsaved · draft kept ${shortWhen(draftSavedAt)}` : 'Unsaved changes') : existing ? 'No changes' : 'Not saved yet'}
+          </span>
+        </div>
         <div className={styles.noteActions}>
-          {draftSavedAt && dirty && (
-            <span className={styles.draftState} title="Kept in this browser until you save">
-              <CheckIcon size={13} /> Draft kept {shortWhen(draftSavedAt)}
-            </span>
-          )}
           <Link to={cancelTo} className={styles.iconButton} onClick={() => clearDraft(existing)}>
             <XIcon />
             Cancel
@@ -1533,49 +1612,48 @@ function NoteEditor({list, url, resolve, flash}) {
         </div>
       )}
 
-      <div className={styles.fieldRow}>
-        <label className={styles.field}>
-          <span className={styles.withIcon}>
-            <NoteIcon size={13} /> Title
+      {/* The title is the page's heading: type straight into it */}
+      <h1 className={styles.srOnly}>{existing ? `Editing ${original?.title ?? ''}` : 'New note'}</h1>
+      <input
+        className={styles.titleInput}
+        value={form.title}
+        onChange={(e) => setForm({...form, title: e.target.value})}
+        placeholder="Untitled"
+        aria-label="Title (becomes the file name, as in Obsidian)"
+        autoFocus={!existing}
+        aria-describedby={existing && form.title.trim() !== original?.title ? 'rename-hint' : undefined}
+      />
+      {existing && form.title.trim() !== original?.title && (
+        <p id="rename-hint" className={styles.renameHint}>
+          Saving renames the file and updates [[links]] to it in other notes.
+        </p>
+      )}
+
+      {/* Properties, as in Obsidian: a label and a quiet value that becomes a field on hover/focus */}
+      <div className={styles.props}>
+        <label className={styles.prop}>
+          <span className={styles.propLabel}>
+            <FolderIcon size={14} /> Folder
           </span>
-          <input
-            value={form.title}
-            onChange={(e) => setForm({...form, title: e.target.value})}
-            placeholder="Becomes the file name, as in Obsidian"
-            autoFocus={!existing}
-            aria-describedby={existing && form.title.trim() !== original?.title ? 'rename-hint' : undefined}
-          />
-          {existing && form.title.trim() !== original?.title && (
-            <span id="rename-hint" className={styles.hint}>
-              Saving renames the file and updates [[links]] to it in other notes.
-            </span>
-          )}
-        </label>
-        <label className={styles.field}>
-          <span className={styles.withIcon}>
-            <FolderIcon size={13} /> Folder
-          </span>
-          <input value={form.folder} onChange={(e) => setForm({...form, folder: e.target.value})} placeholder="Top level" list="note-folders" />
+          <input className={styles.propInput} value={form.folder} onChange={(e) => setForm({...form, folder: e.target.value})} placeholder="Top level" list="note-folders" />
           <datalist id="note-folders">
             {folders.map((f) => (
               <option key={f} value={f} />
             ))}
           </datalist>
         </label>
-      </div>
-      <div className={styles.fieldRow}>
-        <div className={styles.field}>
-          <span className={styles.withIcon}>
-            <TagIcon size={13} /> Tags
+        <div className={styles.prop}>
+          <span className={styles.propLabel}>
+            <TagIcon size={14} /> Tags
           </span>
           <TagInput tags={form.tags} onChange={(tags) => setForm({...form, tags})} known={list.tags} />
         </div>
-        <label className={styles.field}>
-          <span className={styles.withIcon}>
-            <TemplateIcon size={13} /> Template
+        <label className={styles.prop}>
+          <span className={styles.propLabel}>
+            <TemplateIcon size={14} /> Template
           </span>
           {templates?.length ? (
-            <select className={styles.select} value="" onChange={(e) => applyTemplate(e.target.value)}>
+            <select className={`${styles.propInput} ${styles.propSelect}`} value="" onChange={(e) => applyTemplate(e.target.value)}>
               <option value="">{form.body.trim() ? 'Add a template below…' : 'Start from a template…'}</option>
               {templates.map((t) => (
                 <option key={t.path} value={t.path}>
@@ -1661,8 +1739,13 @@ function NoteEditor({list, url, resolve, flash}) {
           {layout !== 'write' && previewPane}
         </div>
       </div>
-      <p className={styles.hint}>
-        Saved as a Markdown file in your vault{list.vault ? ` (“${list.vault}”)` : ''}. While you type, a draft is kept in this browser until you save.
+      <p className={`${styles.hint} ${styles.editorFooter}`}>
+        <span>
+          {(form.body.match(/\S+/g) ?? []).length} words · {form.body.length.toLocaleString()} characters
+        </span>
+        <span>
+          Saved as a Markdown file in your vault{list.vault ? ` (“${list.vault}”)` : ''}. While you type, a draft is kept in this browser until you save.
+        </span>
       </p>
     </form>
   );
@@ -1672,6 +1755,7 @@ function NoteEditor({list, url, resolve, flash}) {
 
 // A note as a card: title, where and when, the start of its text and its tags
 function NoteCard({note, to}) {
+  const ai = writer(note.author, note.model);
   return (
     <Link to={to} className={styles.card}>
       <span className={styles.cardTitle}>
@@ -1687,6 +1771,12 @@ function NoteCard({note, to}) {
           <span className={styles.metaItem}>
             <FolderIcon size={12} />
             {note.folder}
+          </span>
+        )}
+        {ai.ai && (
+          <span className={styles.metaItem} title={ai.modelId ? `Written by ${ai.name} with ${ai.modelId}` : `Written by ${ai.name}`}>
+            {ai.provider ? <ProviderIcon icon={ai.provider} size={12} /> : <SparkleIcon size={12} />}
+            {ai.model ?? ai.name}
           </span>
         )}
       </span>

@@ -94,13 +94,17 @@ export default {
     };
   },
 
-  async ask({question, sessionId, model, systemPrompt, mcpUrl, cwd, emit}) {
+  async ask({question, sessionId, model, systemPrompt, mcpUrl, writer, cwd, emit}) {
     const bin = await which(BIN); // real path: the PATH symlink may sit in the hidden home folder
     const config = [
       'approval_policy="never"',
       'sandbox_mode="read-only"',
       'web_search="disabled"',
       `mcp_servers.docs.url=${JSON.stringify(mcpUrl)}`,
+      // Tells the MCP server which AI writes any notes (see mcp/agent-runs.mjs); a TOML inline table
+      `mcp_servers.docs.http_headers={${Object.entries({'x-notes-agent': writer.agent, 'x-notes-model': writer.model ?? '', 'x-notes-run': writer.run})
+        .map(([k, v]) => `${JSON.stringify(k)}=${JSON.stringify(v)}`)
+        .join(',')}}`,
       // The notes write tools aren't read-only, so with approvals off Codex would refuse them: approve
       // just these (they only add or change notes; the prompt allows them only when asked)
       ...['create_note', 'update_note', 'duplicate_note', 'complete_task', 'rename_note', 'pin_note', 'attach_image', 'save_template'].map(
@@ -113,6 +117,7 @@ export default {
     const child = spawn('/usr/bin/sandbox-exec', ['-f', sandboxProfile(cwd), bin, ...args], {cwd, env: process.env, stdio: ['pipe', 'pipe', 'pipe']});
     // Codex has no separate system prompt option here, so the instructions lead the first message
     child.stdin.end(sessionId ? question : `${systemPrompt}\n\n---\n\nQuestion: ${question}`);
+    if (model) emit('model', {model}); // Codex takes exact model ids (gpt-5.1-codex, …)
 
     let thread = sessionId;
     let answer = '';

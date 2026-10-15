@@ -322,24 +322,58 @@ a.tag:hover {
 }
 
 .noteHead {
-  margin-bottom: 24px;
-  padding-bottom: 16px;
+  margin-bottom: 28px;
+  padding-bottom: 20px;
   border-bottom: 1px solid var(--bc-sky-line);
+}
+
+/* Breadcrumb on the left, actions on the right */
+.noteTopbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  margin-bottom: 18px;
+}
+
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--bc-meta);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.crumbs a {
+  color: var(--bc-meta);
+}
+
+.crumbs a:hover {
+  color: var(--bc-link);
+  text-decoration: none;
+}
+
+.crumbs > svg {
+  opacity: 0.6;
 }
 
 .noteActions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
-  float: right;
-  margin: 8px 0 8px 16px;
 }
 
 .noteTitle {
-  margin: 0 0 8px;
-  font-size: clamp(28px, 2vw + 16px, 40px);
+  margin: 0 0 14px;
+  font-size: clamp(30px, 2vw + 18px, 42px);
   font-weight: 300;
-  line-height: 1.2;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
   color: var(--bc-heading);
   overflow-wrap: anywhere;
 }
@@ -347,22 +381,22 @@ a.tag:hover {
 .noteMeta {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 16px;
-  margin: 0 0 10px;
+  gap: 6px 8px;
+  margin: 0 0 12px;
   color: var(--bc-meta);
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .noteTags {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  clear: both;
 }
 
 .noteBody {
   overflow-wrap: anywhere;
 }
+
 
 .noteBody img {
   max-width: 100%;
@@ -425,28 +459,48 @@ a.tag:hover {
 }
 
 .backlinks {
-  margin-top: 40px;
-  padding-top: 16px;
+  margin-top: 48px;
+  padding-top: 20px;
   border-top: 1px solid var(--bc-sky-line);
 }
 
-.backlinks h2 {
+.backlinks .sectionTitle {
   font-size: 16px;
-}
-
-.backlinks ul {
-  margin: 0;
 }
 
 /* ---------- Editor ---------- */
 
+/* Stays at the top while you scroll a long note, so Save is always in reach */
 .editorHead {
+  position: sticky;
+  top: var(--ifm-navbar-height);
+  z-index: 5;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 16px;
+  margin: -12px 0 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--bc-sky-line);
+  background: color-mix(in srgb, var(--ifm-background-color) 88%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+.eyebrow {
+  display: block;
+  color: var(--bc-meta);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.editorFooter {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 16px;
 }
 
 .editorHead .noteActions {
@@ -456,7 +510,7 @@ a.tag:hover {
 
 .editorTitle {
   margin: 0;
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 300;
   color: var(--bc-heading);
   overflow-wrap: anywhere;
@@ -1678,10 +1732,7 @@ label.treeRow {
   list-style: none;
 }
 
-.noteBody :global(.task-list-item) input {
-  margin: 0 0.5em 0 0;
-  vertical-align: middle;
-}
+
 
 /* "⋯" on a note: Open in Obsidian, copy a [[link]], show in folders */
 .moreButton {
@@ -2118,4 +2169,698 @@ label.treeRow {
   .collapseButton {
     display: none;
   }
+}
+
+/* ---------- Reading a note ---------- */
+
+/* Copy · Export · Delete · ⋯ as one segmented control */
+.actionGroup {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--bc-sky-line);
+  border-radius: 100px;
+  background: var(--bc-surface);
+}
+
+.actionGroup > .iconButton {
+  border: none;
+  border-radius: 0;
+  background: none;
+  padding: 5px 12px;
+}
+
+.actionGroup > .iconButton + .iconButton {
+  border-left: 1px solid var(--bc-sky-line);
+}
+
+.actionGroup > .iconButton:first-child {
+  border-radius: 100px 0 0 100px;
+  padding-left: 14px;
+}
+
+.actionGroup > .iconButton:hover {
+  background: color-mix(in srgb, var(--bc-link) 8%, transparent);
+}
+
+.actionGroup > .iconButton.danger:hover {
+  background: color-mix(in srgb, var(--bc-error) 10%, transparent);
+}
+
+.actionGroup > :global(.dropdown),
+.actionGroup > div {
+  display: flex;
+}
+
+.actionGroup .moreButton {
+  height: 100%;
+  border: none;
+  border-left: 1px solid var(--bc-sky-line);
+  border-radius: 0 100px 100px 0;
+  background: none;
+  padding: 5px 12px 5px 10px;
+}
+
+/* Who wrote it, when, how long it takes to read, and the tasks */
+.byline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 14px;
+  margin: 0 0 16px;
+}
+
+.avatar {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--bc-link) 14%, transparent);
+  color: var(--bc-link);
+}
+
+.avatarAi {
+  background: linear-gradient(135deg, color-mix(in srgb, #8b5cf6 30%, transparent), color-mix(in srgb, var(--bc-link) 30%, transparent));
+  color: var(--ifm-font-color-base);
+}
+
+.bylineText {
+  display: flex;
+  flex: 1 1 220px;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.bylineAuthor {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.bylineMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 6px;
+  color: var(--bc-meta);
+  font-size: 13.5px;
+}
+
+.taskMeter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  padding: 3px 14px 3px 4px;
+  border: 1px solid var(--bc-sky-line);
+  border-radius: 100px;
+  color: var(--bc-meta);
+  font-size: 13px;
+}
+
+.taskMeter strong {
+  color: var(--ifm-font-color-base);
+}
+
+@media (max-width: 700px) {
+  .taskMeter {
+    margin-left: 0;
+  }
+}
+
+.taskMeter svg {
+  transform: rotate(-90deg);
+}
+
+.ringTrack,
+.ringFill {
+  fill: none;
+  stroke-width: 4;
+}
+
+.ringTrack {
+  stroke: color-mix(in srgb, var(--bc-meta) 25%, transparent);
+}
+
+.ringFill {
+  stroke: var(--bc-ok);
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.3s ease;
+}
+
+/* The end of the note: its file, and a way back into the editor */
+.noteEnd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  max-width: 700px;
+  margin-top: 48px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bc-link) 5%, transparent);
+  font-size: 13px;
+}
+
+.notePath {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--bc-meta);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.noteEnd a {
+  font-weight: 600;
+}
+
+/* --- The text --- */
+
+.note .noteBody {
+  max-width: 700px;
+  font-size: 16.5px;
+  line-height: 1.75;
+}
+
+.noteBody h1,
+.noteBody h2,
+.noteBody h3,
+.noteBody h4 {
+  color: var(--bc-heading);
+  letter-spacing: -0.005em;
+  scroll-margin-top: calc(var(--ifm-navbar-height) + 16px);
+}
+
+.noteBody h1,
+.noteBody h2 {
+  margin: 2.1em 0 0.55em;
+  font-size: 1.5em;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.noteBody h3 {
+  margin: 1.7em 0 0.4em;
+  font-size: 1.2em;
+  font-weight: 700;
+}
+
+.noteBody h4 {
+  margin: 1.4em 0 0.3em;
+  font-size: 1.02em;
+  font-weight: 700;
+}
+
+.noteBody > :first-child {
+  margin-top: 0;
+}
+
+.noteBody p,
+.noteBody ul,
+.noteBody ol {
+  margin-bottom: 1.05em;
+}
+
+.noteBody li + li {
+  margin-top: 0.3em;
+}
+
+.noteBody li::marker {
+  color: var(--bc-link);
+}
+
+.noteBody ol > li::marker {
+  font-weight: 700;
+}
+
+.noteBody strong {
+  color: var(--bc-heading);
+}
+
+/* Links: a soft underline that firms up on hover */
+.noteBody a:not(.tag) {
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--bc-link) 35%, transparent);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.15s;
+}
+
+.noteBody a:not(.tag):hover {
+  color: var(--bc-link);
+  text-decoration-color: currentColor;
+}
+
+.noteBody .wikiLink {
+  text-decoration-style: solid;
+}
+
+.noteBody .wikiLinkMissing {
+  text-decoration-style: dashed;
+}
+
+.noteBody :not(pre) > code {
+  padding: 0.1em 0.4em;
+  border: 1px solid var(--bc-sky-line);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--bc-link) 6%, transparent);
+  font-size: 0.86em;
+}
+
+.noteBody pre {
+  border: 1px solid var(--bc-sky-line);
+  border-radius: 12px;
+  font-size: 0.86em;
+  line-height: 1.6;
+}
+
+.noteBody blockquote:not(:global(.callout)) {
+  margin: 1.4em 0;
+  padding: 0.2em 0 0.2em 1.1em;
+  border-left: 3px solid color-mix(in srgb, var(--bc-link) 45%, transparent);
+  color: var(--bc-meta);
+  font-style: italic;
+}
+
+.noteBody img {
+  display: block;
+  margin: 1.4em auto;
+  border: 1px solid var(--bc-sky-line);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px -18px rgba(0, 0, 0, 0.45);
+}
+
+/* --- --- --- as three quiet dots */
+.noteBody hr {
+  height: auto;
+  margin: 2.4em 0;
+  border: none;
+  background: none;
+  text-align: center;
+}
+
+.noteBody hr::before {
+  content: '• • •';
+  color: var(--bc-meta);
+  letter-spacing: 0.6em;
+}
+
+/* Tables: rounded, a tinted header, rows that light up */
+.noteBody table {
+  display: table;
+  width: 100%;
+  margin: 1.4em 0;
+  overflow: hidden;
+  border: 1px solid var(--bc-sky-line);
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 12px;
+  font-size: 0.92em;
+}
+
+.noteBody th,
+.noteBody td {
+  padding: 9px 14px;
+  border: none;
+  border-bottom: 1px solid var(--bc-sky-line);
+  text-align: left;
+}
+
+.noteBody th {
+  background: color-mix(in srgb, var(--bc-link) 9%, transparent);
+  color: var(--bc-heading);
+  font-size: 0.86em;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.noteBody tr:last-child td {
+  border-bottom: none;
+}
+
+.noteBody tbody tr:nth-child(2n) {
+  background: none;
+}
+
+.noteBody tbody tr:hover {
+  background: color-mix(in srgb, var(--bc-link) 5%, transparent);
+}
+
+/* --- Callouts: a tinted card with the type's icon and color --- */
+.noteBody :global(.callout) {
+  --callout: var(--bc-link);
+  margin: 1.4em 0;
+  padding: 14px 18px;
+  border: 1px solid color-mix(in srgb, var(--callout) 30%, transparent);
+  border-left-width: 1px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--callout) 8%, transparent);
+}
+
+[data-theme='dark'] .noteBody :global(.callout) {
+  background: color-mix(in srgb, var(--callout) 10%, transparent);
+}
+
+.noteBody :global(.callout-title) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  color: var(--callout);
+  font-weight: 700;
+}
+
+.noteBody :global(.callout-title)::before {
+  content: '';
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  background: currentColor;
+  -webkit-mask: var(--callout-icon) center / contain no-repeat;
+  mask: var(--callout-icon) center / contain no-repeat;
+}
+
+.noteBody :global(.callout) {
+  --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 16v-4M12 8h.01'/%3E%3C/svg%3E");
+}
+
+.noteBody :global(.callout-tip),
+.noteBody :global(.callout-hint),
+.noteBody :global(.callout-important) {
+  --callout: #0ea5a4;
+  --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z'/%3E%3C/svg%3E");
+}
+
+.noteBody :global(.callout-success),
+.noteBody :global(.callout-check),
+.noteBody :global(.callout-done) {
+  --callout: var(--bc-ok);
+  --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+}
+
+.noteBody :global(.callout-warning),
+.noteBody :global(.callout-caution),
+.noteBody :global(.callout-attention) {
+  --callout: #d97706;
+  --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01'/%3E%3C/svg%3E");
+}
+
+.noteBody :global(.callout-danger),
+.noteBody :global(.callout-error),
+.noteBody :global(.callout-bug),
+.noteBody :global(.callout-failure) {
+  --callout: var(--bc-danger-text);
+  --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='m15 9-6 6M9 9l6 6'/%3E%3C/svg%3E");
+}
+
+.noteBody :global(.callout-question),
+.noteBody :global(.callout-faq),
+.noteBody :global(.callout-help) {
+  --callout: #8b5cf6;
+  --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01'/%3E%3C/svg%3E");
+}
+
+.noteBody :global(.callout-quote),
+.noteBody :global(.callout-cite) {
+  --callout: var(--bc-meta);
+  --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black'%3E%3Cpath d='M7 7h4v4c0 3-1.5 5-4 6l-.7-1.4C7.7 14.8 8.5 13.6 8.6 12H7zm8 0h4v4c0 3-1.5 5-4 6l-.7-1.4c1.4-.8 2.2-2 2.3-3.6H15z'/%3E%3C/svg%3E");
+}
+
+[data-theme='dark'] .noteBody :global(.callout-tip),
+[data-theme='dark'] .noteBody :global(.callout-hint),
+[data-theme='dark'] .noteBody :global(.callout-important) {
+  --callout: #2dd4bf;
+}
+
+[data-theme='dark'] .noteBody :global(.callout-warning),
+[data-theme='dark'] .noteBody :global(.callout-caution),
+[data-theme='dark'] .noteBody :global(.callout-attention) {
+  --callout: #fbbf24;
+}
+
+[data-theme='dark'] .noteBody :global(.callout-question),
+[data-theme='dark'] .noteBody :global(.callout-faq),
+[data-theme='dark'] .noteBody :global(.callout-help) {
+  --callout: #a78bfa;
+}
+
+[data-theme='dark'] .noteBody :global(.callout-success),
+[data-theme='dark'] .noteBody :global(.callout-check),
+[data-theme='dark'] .noteBody :global(.callout-done) {
+  --callout: #34d399;
+}
+
+/* --- Tasks: round-cornered checkboxes that fill green, done items crossed out --- */
+.noteBody :global(.contains-task-list) {
+  padding-left: 0;
+}
+
+.noteBody :global(.task-list-item) {
+  position: relative;
+  margin: 0.15em 0 0.15em -8px;
+  padding: 4px 8px 4px 36px;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+
+.noteBody :global(.task-list-item):hover {
+  background: color-mix(in srgb, var(--bc-link) 6%, transparent);
+}
+
+/* The checkbox sits in the left gutter, so long tasks wrap under their own text */
+.noteBody :global(.task-list-item) > :global(.contains-task-list) {
+  margin: 0.2em 0 0 -28px;
+  padding-left: 28px;
+}
+
+.noteBody :global(.task-list-item) input[type='checkbox'] {
+  display: inline-grid;
+  flex-shrink: 0;
+  place-items: center;
+  position: absolute;
+  top: calc(4px + 0.42em);
+  left: 8px;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  border: 2px solid color-mix(in srgb, var(--bc-meta) 70%, transparent);
+  border-radius: 5px;
+  background: var(--ifm-background-color);
+  transition: background 0.15s, border-color 0.15s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.noteBody :global(.task-list-item) input[type='checkbox']:hover:not(:disabled) {
+  border-color: var(--bc-ok);
+}
+
+.noteBody :global(.task-list-item) input[type='checkbox']:checked {
+  border-color: var(--bc-ok);
+  background: var(--bc-ok) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / 12px no-repeat;
+}
+
+.noteBody :global(.task-list-item) input[type='checkbox']:focus-visible {
+  outline: 2px solid var(--bc-link);
+  outline-offset: 2px;
+}
+
+.noteBody :global(.task-list-item):has(> input:checked) {
+  color: var(--bc-meta);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--bc-meta) 55%, transparent);
+}
+
+/* The outline: a bar marks where you are */
+.outline a {
+  margin-left: -15px;
+  padding-left: 13px;
+  border-left: 2px solid transparent;
+}
+
+.outline .outlineActive {
+  border-left-color: var(--bc-link);
+}
+
+/* ---------- Editing: the title and its properties ---------- */
+
+.editorStatus {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.saveState {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--bc-meta);
+  font-size: 13px;
+}
+
+.saveDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--bc-ok);
+}
+
+.saveStateDirty .saveDot {
+  background: var(--bc-warning);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--bc-warning) 25%, transparent);
+}
+
+.titleInput {
+  width: 100%;
+  margin: 6px 0 4px;
+  padding: 4px 0;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--bc-heading);
+  font: inherit;
+  font-size: clamp(28px, 2vw + 16px, 38px);
+  font-weight: 300;
+  line-height: 1.2;
+  transition: border-color 0.15s;
+}
+
+.titleInput::placeholder {
+  color: color-mix(in srgb, var(--bc-meta) 60%, transparent);
+}
+
+.titleInput:hover {
+  border-bottom-color: var(--bc-sky-line);
+}
+
+.titleInput:focus {
+  border-bottom-color: var(--bc-link);
+  outline: none;
+}
+
+.renameHint {
+  margin: 0 0 6px;
+  color: var(--bc-meta);
+  font-size: 13px;
+}
+
+/* Label column + value column, no box around them */
+.props {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: start;
+  gap: 2px 18px;
+  margin: 10px 0 22px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--bc-sky-line);
+}
+
+.prop {
+  display: contents;
+}
+
+.propLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  color: var(--bc-meta);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.propLabel svg {
+  color: var(--bc-link);
+}
+
+/* A value looks like text until you point at it or tab into it */
+.propInput,
+.props .tagInputBox {
+  width: 100%;
+  min-height: 38px;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ifm-font-color-base);
+  font: inherit;
+  font-size: 14.5px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.propInput:hover,
+.props .tagInputBox:hover {
+  background: color-mix(in srgb, var(--bc-link) 6%, transparent);
+}
+
+.propInput:focus,
+.props .tagInputBox:focus-within {
+  border-color: var(--bc-link);
+  background: var(--ifm-background-color);
+  outline: none;
+}
+
+.propInput::placeholder {
+  color: var(--bc-meta);
+}
+
+.propSelect {
+  max-width: 340px;
+  cursor: pointer;
+}
+
+.props .templateButtons {
+  padding: 4px 0;
+}
+
+/* Tag suggestions only while you're adding a tag */
+.props .tagInput:not(:focus-within) .suggestions {
+  display: none;
+}
+
+.props .suggestions {
+  margin: 6px 0 4px 10px;
+}
+
+/* Which AI wrote the note */
+.avatarLogo {
+  background: var(--bc-surface);
+  box-shadow: inset 0 0 0 1px var(--bc-sky-line);
+}
+
+.avatarLogo img {
+  margin: 0;
+}
+
+.bylineAuthor {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.modelChip {
+  padding: 1px 9px;
+  border: 1px solid color-mix(in srgb, var(--bc-link) 30%, transparent);
+  border-radius: 100px;
+  background: color-mix(in srgb, var(--bc-link) 8%, transparent);
+  color: var(--bc-link);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: help;
+}
+
+.editedBy {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.editedBy img,
+.card .metaItem img {
+  margin: 0;
 }

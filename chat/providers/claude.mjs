@@ -41,7 +41,9 @@ export default {
   },
 
   // Starts one question. Emits: turn, delta, status, done {sessionId, answer}, error. Returns the child process.
-  ask({question, sessionId, model, systemPrompt, mcpUrl, cwd, emit}) {
+  ask({question, sessionId, model, systemPrompt, mcpUrl, writer, cwd, emit}) {
+    // Tells the MCP server which AI writes any notes (see mcp/agent-runs.mjs)
+    const headers = {'x-notes-agent': writer.agent, 'x-notes-model': writer.model, 'x-notes-run': writer.run};
     const args = [
       '-p',
       '--output-format', 'stream-json',
@@ -49,7 +51,7 @@ export default {
       '--include-partial-messages',
       '--model', model,
       '--tools', '', // no built-in tools
-      '--mcp-config', JSON.stringify({mcpServers: {docs: {type: 'http', url: mcpUrl}}}),
+      '--mcp-config', JSON.stringify({mcpServers: {docs: {type: 'http', url: mcpUrl, headers}}}),
       '--strict-mcp-config',
       '--allowedTools', TOOLS.join(','),
       '--permission-mode', 'dontAsk', // anything not allowed above is refused, never prompted
@@ -61,7 +63,9 @@ export default {
     child.stdin.end(question); // stdin, never a command-line argument
 
     readJsonLines(child.stdout, (e) => {
-      if (e.type === 'stream_event' && e.event?.type === 'content_block_delta' && e.event.delta?.type === 'text_delta') {
+      // The first event names the exact model behind an alias like "sonnet"
+      if (e.type === 'system' && e.subtype === 'init' && e.model) emit('model', {model: e.model});
+      else if (e.type === 'stream_event' && e.event?.type === 'content_block_delta' && e.event.delta?.type === 'text_delta') {
         emit('delta', {text: e.event.delta.text});
       } else if (e.type === 'stream_event' && e.event?.type === 'message_start') {
         emit('turn', {});

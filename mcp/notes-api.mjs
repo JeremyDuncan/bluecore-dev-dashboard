@@ -14,6 +14,7 @@
 //   POST /api/notes/folder/delete       {path} → deletes an empty folder
 //   POST /api/notes/pin                 {path, pinned} → pins or unpins a note
 //   POST /api/notes/rename              {path, title} → renames a note and updates [[links]] to it
+//   POST /api/notes/agent-run           {run, agent, model} → the chat helper names the model behind a run
 //   POST /api/notes/duplicate           {path, title?} → a copy of the note next to it ("<title> copy")
 //   GET  /api/notes/trash               what's in the vault's .trash
 //   POST /api/notes/trash/restore       {name} → puts it back where it was
@@ -44,6 +45,7 @@ import {
 } from './notes.mjs';
 import {allTags, createFolder, createNote, deleteFolder, deleteNotes, exportFiles, listFolders, moveNote, renameFolder, findAttachment, listNotes, NoteError, readAttachment, readNote, searchNotes, updateNote, VAULT_NAME} from './notes.mjs';
 import {allowedOrigin} from './live-api.mjs';
+import {registerRun} from './agent-runs.mjs';
 
 const MAX_BODY = 1_200_000;
 const MAX_UPLOAD = 20_000_000;
@@ -121,12 +123,14 @@ export async function handleNotesApi(req, res, pathname) {
     } else if (pathname === '/api/notes/note' && req.method === 'GET') {
       send(res, 200, strip(readNote(params.get('path'))), origin);
     } else if (pathname === '/api/notes/note' && req.method === 'POST') {
-      const {title, body, tags, folder, author} = await readJson(req);
-      // "you", or a label for where it came from (the chat box saves answers as "Ask the docs")
-      send(res, 201, strip(createNote({title, body, tags, folder, author: typeof author === 'string' && author.trim() ? author : 'you'})), origin);
+      const {title, body, tags, folder, author, model} = await readJson(req);
+      // "you", or the AI that wrote it (the chat box's Save as note: "Claude Code" + its exact model)
+      const str = (v) => (typeof v === 'string' && v.trim() ? v.trim() : undefined);
+      send(res, 201, strip(createNote({title, body, tags, folder, author: str(author) ?? 'you', model: str(author) ? str(model) : undefined})), origin);
     } else if (pathname === '/api/notes/note' && req.method === 'PUT') {
       const {body, tags, baseMtime, folder} = await readJson(req);
-      let note = updateNote(params.get('path'), {body, tags, baseMtime});
+      // Saved by you: an earlier "edited by <AI>" no longer describes the text
+      let note = updateNote(params.get('path'), {body, tags, baseMtime, editor: null});
       // A changed Folder field moves the note too
       if (typeof folder === 'string' && folder.replace(/^\/+|\/+$/g, '') !== note.folder) note = moveNote(note.path, folder);
       send(res, 200, strip(note), origin);
@@ -137,6 +141,9 @@ export async function handleNotesApi(req, res, pathname) {
       const {path: notePath, title} = await readJson(req);
       const result = renameNote(notePath, String(title ?? ''));
       send(res, 200, {...result, note: strip(result.note)}, origin);
+    } else if (pathname === '/api/notes/agent-run' && req.method === 'POST') {
+      // The chat helper: the exact model behind one answer's tool calls (see agent-runs.mjs)
+      send(res, ...(registerRun(await readJson(req)) ? [200, {ok: true}] : [400, {error: 'Send {run, agent, model}'}]), origin);
     } else if (pathname === '/api/notes/duplicate' && req.method === 'POST') {
       const {path: notePath, title} = await readJson(req);
       send(res, 201, strip(duplicateNote(notePath, {title: typeof title === 'string' ? title : undefined})), origin);

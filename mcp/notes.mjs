@@ -7,7 +7,9 @@
 //   tags      list of tags (Obsidian's "tags" property); inline #tags in the text count too
 //   created   ISO date-time, set when the site or an agent creates a note
 //   updated   ISO date-time, set on every save from the site or an agent
-//   author    who created it from here ("you", "Ask the docs", an agent's name)
+//   author    who created it from here: "you", or the AI agent ("Claude Code", "Codex", …)
+//   model     the exact AI model that wrote it, e.g. "claude-sonnet-4-5-20250929" (AI-written notes)
+//   edited_by / edited_model   the AI that last changed its text (cleared when you save it here)
 // Other properties (aliases, anything Obsidian or a plugin adds) are kept as they are.
 //
 // NOTES_DIR: the vault folder (default ./notes in this repo; /notes inside Docker, where
@@ -230,6 +232,9 @@ function load(rel) {
     created: created.toISOString(),
     updated: updated.toISOString(),
     author: typeof data.author === 'string' ? data.author : null,
+    model: typeof data.model === 'string' ? data.model : null,
+    editedBy: typeof data.edited_by === 'string' ? data.edited_by : null,
+    editedModel: typeof data.edited_model === 'string' ? data.edited_model : null,
     pinned: data.pinned === true,
     template: isTemplatePath(rel),
     links: [...new Set(wikiLinks(body))],
@@ -642,13 +647,14 @@ export function createStarterTemplates() {
 // Saves a template in the Templates folder: from a note (`fromNote`; its text, tags and other
 // properties, with the note's title in its first heading turned into {{title}}) or from `body` and
 // `tags`. `replace`: overwrite the template with that name (otherwise " 2" is added).
-export function saveTemplate({name, body, tags, fromNote, replace = false} = {}) {
+// writer: {author, model} when an AI saves it (recorded like a note's author and model)
+export function saveTemplate({name, body, tags, fromNote, replace = false, writer} = {}) {
   let data = {};
   let text = body ?? '';
   if (fromNote) {
     const source = readNote(fromNote);
     data = withoutOwn(source.frontMatter);
-    delete data.author;
+    for (const k of ['author', 'model', 'edited_by', 'edited_model']) delete data[k];
     text = body ?? source.body.replace(titleHeading(source.title), '$1{{title}}');
     name = String(name ?? '').trim() || source.title;
   }
@@ -663,6 +669,11 @@ export function saveTemplate({name, body, tags, fromNote, replace = false} = {})
   const target = replacing ? {rel: existing, abs: resolve(existing, {ext: ['.md']}).abs} : newNoteFile(clean, dir);
   // Replacing keeps the template's own properties (its tags too, unless new ones are given)
   if (replacing && !fromNote) data = {...load(existing).frontMatter, ...data};
+  if (writer) {
+    for (const k of ['author', 'model', 'edited_by', 'edited_model']) delete data[k];
+    data.author = writer.author;
+    if (writer.model) data.model = writer.model;
+  }
   fs.mkdirSync(path.dirname(target.abs), {recursive: true});
   fs.writeFileSync(target.abs, serialize(data, text.replace(/^\n+/, '')));
   return readNote(target.rel);
@@ -791,7 +802,7 @@ function checkSize(body) {
 }
 
 // New note at <folder>/<title>.md (" 2", " 3", … added if the name is taken). Returns the note.
-export function createNote({title, body = '', tags = [], folder = '', author} = {}) {
+export function createNote({title, body = '', tags = [], folder = '', author, model} = {}) {
   checkSize(body);
   const {rel, abs} = newNoteFile(title, folder);
   const now = new Date().toISOString();
@@ -802,6 +813,7 @@ export function createNote({title, body = '', tags = [], folder = '', author} = 
     created: now,
     updated: now,
     ...(author ? {author: String(author).slice(0, 80)} : {}),
+    ...(model ? {model: String(model).slice(0, 80)} : {}),
   };
   fs.mkdirSync(path.dirname(abs), {recursive: true});
   fs.writeFileSync(abs, serialize(data, body), {flag: 'wx'});
@@ -925,7 +937,9 @@ export function moveNote(notePath, folder) {
 // Changes a note's text and/or tags. `baseMtime`: the mtimeMs the editor loaded; if the file has
 // changed since (in Obsidian, or by an agent) the save is refused with 409 instead of overwriting.
 // `append` adds text at the end instead of replacing it.
-export function updateNote(ref, {body, append, tags, addTags, removeTags, baseMtime, pinned} = {}) {
+// editor: {author, model} when an AI changes the text (recorded as edited_by / edited_model);
+// null when you save it on the Notes page (clears them); left out for anything else
+export function updateNote(ref, {body, append, tags, addTags, removeTags, baseMtime, pinned, editor} = {}) {
   const rel = findNote(ref);
   if (!rel) throw new NoteError(404, `No note "${ref}"`);
   const {abs} = resolve(rel, {ext: ['.md']});
@@ -955,6 +969,15 @@ export function updateNote(ref, {body, append, tags, addTags, removeTags, baseMt
   data.tags = fmTags;
   if (pinned === true) data.pinned = true;
   if (pinned === false) delete data.pinned;
+  if (editor === null || (editor && text !== current.body)) {
+    delete data.edited_by;
+    delete data.edited_model;
+    // The AI that wrote the note doesn't need repeating as its editor
+    if (editor && !(editor.author === data.author && (editor.model ?? null) === (data.model ?? null))) {
+      data.edited_by = editor.author;
+      if (editor.model) data.edited_model = editor.model;
+    }
+  }
   data.created ??= current.created; // pin the date it was first seen, so it doesn't drift
   data.updated = new Date().toISOString();
   fs.writeFileSync(abs, serialize(data, text));

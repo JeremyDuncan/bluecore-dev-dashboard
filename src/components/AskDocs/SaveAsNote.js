@@ -5,7 +5,8 @@ import Link from '@docusaurus/Link';
 import {useNotesApi} from '../Notes/api';
 import styles from './styles.module.css';
 
-export default function SaveAsNote({question = '', answer, by}) {
+// by: the AI that answered ("Claude Code", "Codex"); model: its exact model id. The note credits them.
+export default function SaveAsNote({question = '', answer, by, model}) {
   const {enabled, call} = useNotesApi();
   const [state, setState] = useState({status: 'idle'});
   if (!enabled) return null;
@@ -21,7 +22,8 @@ export default function SaveAsNote({question = '', answer, by}) {
           title,
           folder: 'Ask the docs',
           tags: ['ask-the-docs'],
-          author: `Ask the docs${by ? ` (${by})` : ''}`,
+          author: by || 'AI assistant',
+          model,
           body: `${quoted}\n\n${answer.trim()}\n`,
         },
       });
