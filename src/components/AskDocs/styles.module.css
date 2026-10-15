@@ -23,6 +23,11 @@
   background: var(--bc-navy);
 }
 
+/* Out of the way while the hamburger menu is open, which it would otherwise cover */
+:global(body:has(.navbar-sidebar--show)) .launcher {
+  visibility: hidden;
+}
+
 [data-theme='dark'] .launcher {
   background: var(--bc-accent-blue);
   color: var(--bc-navy);

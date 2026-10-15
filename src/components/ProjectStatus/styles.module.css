@@ -826,11 +826,18 @@
   font-size: 13px;
   line-height: 1.45;
   box-shadow: 0 6px 18px rgba(9, 29, 109, 0.25);
+  /* display: none rather than just invisible, so a hidden tooltip can't widen the page on a phone */
+  display: none;
   opacity: 0;
-  visibility: hidden;
   transform: translateY(-4px);
-  transition: opacity 0.12s, transform 0.12s, visibility 0.12s;
+  transition: opacity 0.12s, transform 0.12s, display 0.12s allow-discrete;
   pointer-events: none;
+}
+
+/* The last links' tooltips open leftwards, so they stay on the page */
+.statusNavItem:nth-last-child(-n + 2) .statusTip {
+  left: auto;
+  right: 0;
 }
 
 .statusTip strong {
@@ -841,9 +848,17 @@
 
 .statusNavItem:hover .statusTip,
 .statusNavItem:focus-within .statusTip {
+  display: block;
   opacity: 1;
-  visibility: visible;
   transform: none;
+}
+
+@starting-style {
+  .statusNavItem:hover .statusTip,
+  .statusNavItem:focus-within .statusTip {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
 }
 
 [data-theme='dark'] .statusTip {
@@ -864,6 +879,21 @@
 
   .statusNavLink {
     padding: 10px;
+  }
+
+  /* The tooltip opens under the whole row of icons, full width, rather than under one icon */
+  .statusNav ul {
+    position: relative;
+  }
+
+  .statusNavItem {
+    position: static;
+  }
+
+  .statusNav .statusTip {
+    left: 0;
+    right: auto;
+    max-width: 100%;
   }
 }
 

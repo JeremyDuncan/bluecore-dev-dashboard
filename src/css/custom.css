@@ -166,10 +166,38 @@
   color: #ffffff;
 }
 
+/* The logo never gives way to the links */
+.navbar__brand {
+  flex-shrink: 0;
+}
+
+/* The menu that slides in: a panel, not most of a desktop window */
+:root {
+  --ifm-navbar-sidebar-width: min(83vw, 340px);
+}
+
 @media (max-width: 996px) {
   :root {
     --ifm-navbar-padding-horizontal: 20px;
     --ifm-navbar-height: 72px;
+  }
+}
+
+/* Compact navbar: below 1300px the links don't fit beside the logo and search, so they move into the
+   hamburger menu (Docusaurus only does this below 996px). The same width is NAVBAR_BREAKPOINT in
+   src/theme/Navbar/MobileSidebar/index.js. The selectors outrank .navbar-icon and .navbar-help,
+   which would otherwise keep the links showing next to the hamburger. */
+@media (max-width: 1299px) {
+  .navbar__toggle {
+    display: inherit;
+  }
+
+  .navbar__items .navbar__item {
+    display: none;
+  }
+
+  .navbar__items--right {
+    gap: 12px;
   }
 }
 
