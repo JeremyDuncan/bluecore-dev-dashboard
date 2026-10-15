@@ -4,6 +4,7 @@
 import React from 'react';
 import Link from '@docusaurus/Link';
 import {formatDuration} from '@site/mcp/ci-metrics.mjs';
+import {useTimeFormat} from './shared';
 import styles from './styles.module.css';
 
 const pct = (v) => (v === null || v === undefined ? '–' : `${v}%`);
@@ -13,14 +14,15 @@ const day = (iso) => new Date(iso).toLocaleDateString(undefined, {month: 'short'
 export default function TestsOverview({suites}) {
   const failing = suites.filter((s) => s.latest?.conclusion === 'failure');
   const asOf = suites.map((s) => s.fetchedAt).sort()[0];
+  const formatTime = useTimeFormat();
   return (
     <div className={styles.wrapper}>
       <p className={styles.total}>
         {suites.length} test suites · <strong>{failing.length ? `${failing.length} failing on their latest run` : 'all passing on their latest run'}</strong>
         {asOf && (
-          <span suppressHydrationWarning>
+          <span>
             {' '}
-            · as of {new Date(asOf).toLocaleString()}
+            · as of {formatTime(asOf)}
           </span>
         )}
       </p>

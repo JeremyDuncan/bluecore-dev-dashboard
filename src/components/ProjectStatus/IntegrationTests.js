@@ -4,11 +4,11 @@
 // Live when the MCP container is reachable, otherwise the snapshot from the last sync.
 import React, {useMemo, useState} from 'react';
 import {ciMetrics, failureStage, formatDuration, triggerName} from '@site/mcp/ci-metrics.mjs';
-import {LiveBadge, useLiveData} from './shared';
+import {LiveBadge, useLiveData, useTimeFormat} from './shared';
 import styles from './styles.module.css';
 
 const OUTCOME = {success: 'var(--bc-ok)', failure: 'var(--bc-error)', cancelled: 'var(--bc-stone)'};
-const when = (iso) => new Date(iso).toLocaleString(undefined, {month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'});
+const WHEN = {month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'};
 const pct = (v) => (v === null || v === undefined ? '–' : `${v}%`);
 
 function Kpi({label, value, sub, tone}) {
@@ -28,6 +28,7 @@ function Pill({conclusion, status}) {
 
 // One bar per run (oldest → newest): height = duration, color = result
 function RunChart({runs}) {
+  const when = useTimeFormat(WHEN);
   const list = [...runs].reverse();
   const W = 760;
   const H = 150;
@@ -104,6 +105,7 @@ export default function IntegrationTests({snapshot, apiPath, kind = 'integration
   const {data, live, error, refresh, refreshing} = useLiveData(snapshot, apiPath);
   const m = useMemo(() => ciMetrics(data), [data]);
   const [showAll, setShowAll] = useState(false);
+  const when = useTimeFormat(WHEN);
 
   // Pass rate per trigger (which upstream repo's change started the run)
   const byTrigger = useMemo(() => {
@@ -166,7 +168,7 @@ export default function IntegrationTests({snapshot, apiPath, kind = 'integration
       <p className={styles.sectionTitle}>Last {data.runs.length} runs</p>
       <p className={styles.total}>
         {m.counts.success} passed · {m.counts.failure} failed · {m.counts.cancelled} cancelled{m.counts.inProgress ? ` · ${m.counts.inProgress} running` : ''} — since{' '}
-        <span suppressHydrationWarning>{m.window.since && when(m.window.since)}</span> ({m.window.totalRuns} runs in total)
+        <span>{m.window.since && when(m.window.since)}</span> ({m.window.totalRuns} runs in total)
       </p>
       <RunChart runs={data.runs} />
 
@@ -276,7 +278,7 @@ export default function IntegrationTests({snapshot, apiPath, kind = 'integration
                 <td>
                   <Pill conclusion={r.conclusion} status={r.status} />
                 </td>
-                <td suppressHydrationWarning>{when(r.createdAt)}</td>
+                <td>{when(r.createdAt)}</td>
                 <td>{formatDuration(r.durationSec)}</td>
                 <td>{triggerName(r)}</td>
                 <td>
