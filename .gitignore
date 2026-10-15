@@ -25,6 +25,9 @@ imports/**
 !imports/README.md
 !imports/**/.gitkeep
 
+# Your notes vault (the Notes page; NOTES_DIR can point elsewhere)
+notes/
+
 # Personal editor / agent settings
 .idea/
 .claude/settings.local.json
