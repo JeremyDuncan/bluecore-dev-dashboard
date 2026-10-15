@@ -23,6 +23,7 @@ import {
   ClockIcon,
   CopyIcon,
   DownloadIcon,
+  DuplicateIcon,
   EditIcon,
   EyeIcon,
   FolderIcon,
@@ -940,7 +941,7 @@ function obsidianUrl(vault, path) {
 
 // Copy (the note's Markdown, front matter included, to paste anywhere) and Export (.md download),
 // Delete, and a "⋯" menu with the less frequent actions
-function NoteTools({note, onDelete, vault, onShowInFolders, onTogglePin}) {
+function NoteTools({note, onDelete, vault, onShowInFolders, onTogglePin, onDuplicate, onSaveTemplate}) {
   const {exportNotes} = useNotesApi();
   const [copied, setCopied] = useState(null); // 'ok' | error message
   useEffect(() => {
@@ -973,6 +974,8 @@ function NoteTools({note, onDelete, vault, onShowInFolders, onTogglePin}) {
         className={`${styles.iconButton} ${styles.moreButton}`}
         items={[
           {label: note.pinned ? 'Unpin' : 'Pin to the top of the list', icon: <PinIcon size={14} />, onClick: onTogglePin},
+          {label: 'Duplicate', icon: <DuplicateIcon size={14} />, onClick: onDuplicate},
+          {label: 'Save as template', icon: <TemplateIcon size={14} />, onClick: onSaveTemplate},
           ...(vault
             ? [{label: 'Open in Obsidian', icon: <ObsidianIcon size={14} />, onClick: () => (window.location.href = obsidianUrl(vault, note.path))}]
             : []),
@@ -1048,6 +1051,27 @@ function NoteView({list, url, resolve, flash}) {
       flash(`Couldn't ${note.pinned ? 'unpin' : 'pin'}: ${err.message}`, 'error');
     }
   };
+  // Both make a new note and open it in the editor, to rename or trim
+  const duplicate = async () => {
+    try {
+      const copy = await call('/duplicate', {method: 'POST', body: {path: note.path}});
+      await list.reload();
+      url.go(url.href({note: copy.path, edit: true}));
+      flash(`Made a copy: "${copy.title}". Change its title here to rename it.`);
+    } catch (err) {
+      flash(`Couldn't duplicate: ${err.message}`, 'error');
+    }
+  };
+  const saveTemplate = async () => {
+    try {
+      const t = await call('/templates', {method: 'POST', body: {fromNote: note.path}});
+      await list.reload();
+      url.go(url.href({note: t.path, edit: true}));
+      flash(`Saved as the template "${t.title}" in ${t.folder}. Trim it to the parts you'll reuse; {{title}} and {{date}} are filled in when it's used.`);
+    } catch (err) {
+      flash(`Couldn't save the template: ${err.message}`, 'error');
+    }
+  };
 
   return (
     <div className={styles.noteLayout}>
@@ -1057,7 +1081,7 @@ function NoteView({list, url, resolve, flash}) {
             <Link to={url.href({edit: true})} className={`button button--primary button--sm ${styles.withIcon}`}>
               <EditIcon size={14} /> Edit
             </Link>
-            <NoteTools note={note} vault={list.vault} onDelete={() => setDeleting([note])} onShowInFolders={() => url.go(url.href({view: 'folders'}))} onTogglePin={togglePin} />
+            <NoteTools note={note} vault={list.vault} onDelete={() => setDeleting([note])} onShowInFolders={() => url.go(url.href({view: 'folders'}))} onTogglePin={togglePin} onDuplicate={duplicate} onSaveTemplate={saveTemplate} />
           </div>
           <h1 className={styles.noteTitle}>
             {note.pinned && (
@@ -1206,14 +1230,19 @@ function fillTemplate(text, title) {
   );
 }
 
+const NEW_TEMPLATE = '\u0000new'; // the "New template…" choice in the Template list
+
 function useTemplates() {
   const {call} = useNotesApi();
-  const [templates, setTemplates] = useState(null);
-  const reload = useCallback(() => call('/templates').then((d) => setTemplates(d.templates), () => setTemplates([])), [call]);
+  const [state, setState] = useState({templates: null, folder: 'Templates'});
+  const reload = useCallback(
+    () => call('/templates').then((d) => setState({templates: d.templates, folder: d.folder ?? 'Templates'}), () => setState((s) => ({...s, templates: []}))),
+    [call],
+  );
   useEffect(() => {
     reload();
   }, [reload]);
-  return {templates, reload};
+  return {...state, reload};
 }
 
 // The editor's layout: Write, Split (text and live preview side by side, on wide screens) or Preview.
@@ -1260,7 +1289,10 @@ function NoteEditor({list, url, resolve, flash}) {
   const bodyRef = useRef(null);
   const fileRef = useRef(null);
   const {layout, wide, setLayout} = useEditorLayout();
-  const {templates, reload: reloadTemplates} = useTemplates();
+  const {templates, folder: templateFolder, reload: reloadTemplates} = useTemplates();
+  // A new note becomes a template by saving it in the templates folder; from an existing note, start a blank one
+  const newTemplate = () =>
+    existing ? url.go(url.href({new: true, in: templateFolder, note: null, edit: null, title: null})) : setForm((f) => ({...f, folder: templateFolder}));
   const preview = useDeferredValue(form?.body ?? '');
 
   // Start from the note (editing) or from the link that asked for a new note, then look for a draft
@@ -1360,6 +1392,7 @@ function NoteEditor({list, url, resolve, flash}) {
 
   const applyTemplate = async (path) => {
     if (!path) return;
+    if (path === NEW_TEMPLATE) return newTemplate();
     try {
       const t = await call(`/note?path=${encodeURIComponent(path)}`);
       const text = fillTemplate(t.body.replace(/^\n+/, ''), form.title.trim());
@@ -1524,21 +1557,27 @@ function NoteEditor({list, url, resolve, flash}) {
                   {t.title}
                 </option>
               ))}
+              <option value={NEW_TEMPLATE}>＋ New template…</option>
             </select>
           ) : (
-            <button
-              type="button"
-              className={styles.iconButton}
-              onClick={() =>
-                call('/templates/starter', {method: 'POST'})
-                  .then(() => Promise.all([reloadTemplates(), list.reload()]))
-                  .catch(setProblem)
-              }
-              disabled={templates == null}
-              title="Adds Meeting notes, How-to and Decision record to a Templates folder, which you can edit like any note"
-            >
-              <PlusIcon /> Add starter templates
-            </button>
+            <span className={styles.templateButtons}>
+              <button
+                type="button"
+                className={styles.iconButton}
+                onClick={() =>
+                  call('/templates/starter', {method: 'POST'})
+                    .then(() => Promise.all([reloadTemplates(), list.reload()]))
+                    .catch(setProblem)
+                }
+                disabled={templates == null}
+                title="Adds Meeting notes, How-to and Decision record to a Templates folder, which you can edit like any note"
+              >
+                <PlusIcon /> Add starter templates
+              </button>
+              <button type="button" className={styles.iconButton} onClick={newTemplate} disabled={templates == null} title={`A blank note in the ${templateFolder} folder`}>
+                <TemplateIcon size={14} /> New template
+              </button>
+            </span>
           )}
         </label>
       </div>

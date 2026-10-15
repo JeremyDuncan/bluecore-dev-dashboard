@@ -14,11 +14,13 @@
 //   POST /api/notes/folder/delete       {path} → deletes an empty folder
 //   POST /api/notes/pin                 {path, pinned} → pins or unpins a note
 //   POST /api/notes/rename              {path, title} → renames a note and updates [[links]] to it
+//   POST /api/notes/duplicate           {path, title?} → a copy of the note next to it ("<title> copy")
 //   GET  /api/notes/trash               what's in the vault's .trash
 //   POST /api/notes/trash/restore       {name} → puts it back where it was
 //   POST /api/notes/trash/purge         {name} → deletes it for good
 //   POST /api/notes/attachment?name=    an image (raw bytes, content-type image/*) → attachments/
 //   GET  /api/notes/templates           notes in Templates/;  POST /api/notes/templates/starter adds three
+//   POST /api/notes/templates           {fromNote, name?} or {name, body, tags} → saves a template
 //   GET  /api/notes/doc-links?path=     notes that link to a docs page (shown on that page)
 //   GET  /api/notes/docs-search?q=      docs pages, for linking a note to one
 //
@@ -29,6 +31,7 @@ import {zip} from './zip.mjs';
 import {search as searchDocs} from './docs-index.mjs';
 import {
   createStarterTemplates,
+  duplicateNote,
   listTemplates,
   listTrash,
   notesLinkingTo,
@@ -36,6 +39,8 @@ import {
   renameNote,
   restoreFromTrash,
   saveAttachment,
+  saveTemplate,
+  TEMPLATE_DIR,
 } from './notes.mjs';
 import {allTags, createFolder, createNote, deleteFolder, deleteNotes, exportFiles, listFolders, moveNote, renameFolder, findAttachment, listNotes, NoteError, readAttachment, readNote, searchNotes, updateNote, VAULT_NAME} from './notes.mjs';
 import {allowedOrigin} from './live-api.mjs';
@@ -132,6 +137,9 @@ export async function handleNotesApi(req, res, pathname) {
       const {path: notePath, title} = await readJson(req);
       const result = renameNote(notePath, String(title ?? ''));
       send(res, 200, {...result, note: strip(result.note)}, origin);
+    } else if (pathname === '/api/notes/duplicate' && req.method === 'POST') {
+      const {path: notePath, title} = await readJson(req);
+      send(res, 201, strip(duplicateNote(notePath, {title: typeof title === 'string' ? title : undefined})), origin);
     } else if (pathname === '/api/notes/trash' && req.method === 'GET') {
       send(res, 200, {items: listTrash()}, origin);
     } else if (pathname === '/api/notes/trash/restore' && req.method === 'POST') {
@@ -141,7 +149,11 @@ export async function handleNotesApi(req, res, pathname) {
     } else if (pathname === '/api/notes/attachment' && req.method === 'POST') {
       send(res, 201, saveAttachment(await readImage(req), req.headers['content-type'], params.get('name')), origin);
     } else if (pathname === '/api/notes/templates' && req.method === 'GET') {
-      send(res, 200, {templates: listTemplates().map(({path, title}) => ({path, title}))}, origin);
+      send(res, 200, {templates: listTemplates().map(({path, title}) => ({path, title})), folder: TEMPLATE_DIR}, origin);
+    } else if (pathname === '/api/notes/templates' && req.method === 'POST') {
+      const {fromNote, name, body, tags} = await readJson(req);
+      const str = (v) => (typeof v === 'string' ? v : undefined);
+      send(res, 201, strip(saveTemplate({fromNote: str(fromNote), name: str(name), body: str(body), tags: Array.isArray(tags) ? tags : undefined})), origin);
     } else if (pathname === '/api/notes/templates/starter' && req.method === 'POST') {
       send(res, 201, createStarterTemplates(), origin);
     } else if (pathname === '/api/notes/doc-links' && req.method === 'GET') {

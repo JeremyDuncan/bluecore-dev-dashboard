@@ -76,6 +76,8 @@ export function describeTool(name, input = {}) {
   if (/rename_note$/.test(name)) return `Renaming ${input.note ?? 'a note'} to “${input.title ?? ''}”`;
   if (/pin_note$/.test(name)) return `${input.pinned === false ? 'Unpinning' : 'Pinning'} ${input.note ?? 'a note'}`;
   if (/list_templates$/.test(name)) return 'Checking your note templates';
+  if (/save_template$/.test(name)) return `Saving the template “${input.name ?? input.from_note ?? ''}”`;
+  if (/duplicate_note$/.test(name)) return `Copying ${input.note ?? 'a note'}`;
   if (/list_attachments$/.test(name)) return 'Listing images in your notes';
   if (/get_note_image$/.test(name)) return `Looking at ${input.image ?? 'an image'}`;
   if (/attach_image$/.test(name)) return `Adding an image${input.note ? ` to ${input.note}` : ''}`;

@@ -2,14 +2,15 @@
 //   Reading: list_notes, search_notes, read_note (a section, and the images it embeds), related_notes,
 //            list_note_tags, list_tasks, list_templates, list_attachments, get_note_image,
 //            notes_for_doc, notes_health
-//   Writing: create_note (optionally from a template), update_note, complete_task, rename_note,
-//            pin_note, attach_image
+//   Writing: create_note (optionally from a template), update_note, duplicate_note, complete_task,
+//            rename_note, pin_note, attach_image, save_template
 // The write tools add or change notes; none deletes. Deleting is left to the person on the Notes page
 // (which moves notes to the vault's .trash), never to an agent.
 import {z} from 'zod';
 import {
   allTags,
   createNote,
+  duplicateNote,
   embeddedAttachments,
   findAttachment,
   imageForAgent,
@@ -27,6 +28,7 @@ import {
   relatedNotes,
   renameNote,
   saveAttachment,
+  saveTemplate,
   searchNotes,
   setTask,
   templateFor,
@@ -389,7 +391,7 @@ export function registerNotesTools(server) {
     },
     async () => {
       const ts = listTemplates();
-      if (!ts.length) return text('No templates yet. They are notes in the Templates folder (the Notes page can add starter ones).');
+      if (!ts.length) return text('No templates yet. They are notes in the Templates folder; save_template makes one (the Notes page can also add starter ones).');
       return text(
         ts
           .map((t) => {
@@ -398,6 +400,57 @@ export function registerNotesTools(server) {
           })
           .join('\n'),
       );
+    },
+  );
+
+  server.registerTool(
+    'save_template',
+    {
+      title: 'Save a note template',
+      description:
+        "Creates or updates a template in the vault's Templates folder, for create_note's template option and the Notes page. " +
+        'Either from an existing note (from_note: its text, tags and properties; its title in the first heading becomes {{title}}) ' +
+        'or from Markdown you write (body). Placeholders: {{title}}, {{date}}, {{time}}, {{date:YYYY-MM-DD HH:mm}}. ' +
+        'Only when the user asks. Without replace, a taken name gets a number added; with replace, the template of that name is overwritten.',
+      inputSchema: {
+        name: z.string().max(120).optional().describe('Template name, e.g. "Sprint retro". Default with from_note: the note\'s title'),
+        from_note: z.string().optional().describe('Path or title of a note to turn into a template'),
+        body: z.string().optional().describe('The template, in Markdown (no front matter; tags go in `tags`). With from_note, replaces the note\'s text'),
+        tags: z.array(z.string()).optional().describe('Tags every note made from it starts with, without #'),
+        replace: z.boolean().optional().describe('Overwrite the existing template with this name (read it first with read_note)'),
+      },
+      annotations: {readOnlyHint: false, destructiveHint: true, idempotentHint: false},
+    },
+    async ({name, from_note, body, tags, replace}) => {
+      try {
+        if (!from_note && body === undefined) return {...text('Give from_note (a note to copy) or body (the template text).'), isError: true};
+        return text(describe(saveTemplate({name, fromNote: from_note, body, tags, replace}), 'Saved template'));
+      } catch (err) {
+        return failed(err);
+      }
+    },
+  );
+
+  server.registerTool(
+    'duplicate_note',
+    {
+      title: 'Duplicate a note',
+      description:
+        'Copies a note (text, tags and properties) to a new note, by default "<title> copy" in the same folder. Only when the user asks. ' +
+        'Never overwrites: a taken title gets a number added.',
+      inputSchema: {
+        note: z.string().min(1).describe('Path or title of the note to copy'),
+        title: z.string().max(120).optional().describe('Title of the copy'),
+        folder: z.string().optional().describe('Folder for the copy ("" = the top level). Default: the same folder'),
+      },
+      annotations: {readOnlyHint: false, destructiveHint: false, idempotentHint: false},
+    },
+    async ({note: ref, title, folder}) => {
+      try {
+        return text(describe(duplicateNote(ref, {title, folder}), 'Duplicated as'));
+      } catch (err) {
+        return failed(err);
+      }
     },
   );
 

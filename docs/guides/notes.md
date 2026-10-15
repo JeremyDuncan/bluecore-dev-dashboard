@@ -109,6 +109,8 @@ Every docs page also has a **Note about this page** link there, which starts a n
 - **Shortcuts**: ⌘/Ctrl+B bold, ⌘/Ctrl+I italic, ⌘/Ctrl+K web link, ⌘/Ctrl+S save. Enter in a list, task list or quote continues it, and Enter on an empty item ends it.
 - **Layout**: **Write**, **Split** (the text and a live preview side by side, on screens 1200px or wider) or **Preview**. Your choice is remembered.
 - **Templates**: pick one in **Template** to start a note from it. If the note already has text, the template goes below it. Templates are notes in the vault's `Templates` folder, as in Obsidian. `{{title}}`, `{{date}}`, `{{time}}` and formats like `{{date:YYYY-MM-DD}}` are filled in, and the template's tags are added. If you don't have any yet, **Add starter templates** creates *Meeting notes*, *How-to* and *Decision record*, which you can edit like any note.
+- **Your own templates**: on a note, **⋯ → Save as template** copies it to `Templates/` (its title in the first heading becomes `{{title}}`) and opens the copy, so you can trim it to the reusable parts. **New template…** in the Template list starts a blank one. Edit or delete templates like any other note in the `Templates` folder.
+- **Duplicate**: **⋯ → Duplicate** makes a copy of the note next to it, called "*title* copy", and opens it for editing. Its tags and properties are copied; it gets new dates and isn't pinned.
 - **Images**: paste a screenshot, drop image files onto the text, or use the toolbar's image button. Each image is saved in the vault's `attachments` folder (screenshots as `Pasted image <date and time>.png`, as Obsidian names them) and embedded as `![[name]]` where the cursor is. PNG, JPEG, GIF and WebP images up to 20 MB are accepted. The `attachments` folder is for images only: the Notes page doesn't list it as a folder, and notes and folders can't be put in it (Obsidian still shows it).
 - **Drafts**: while you type, your changes are kept in this browser ("Draft kept …" next to Save). If the tab closes or the browser crashes before you save, the next time you open that note's editor (or a new note) it offers **Restore them** or **Discard**. Saving or cancelling removes the draft.
 - **Edit**: change the title, the text, the folder and the tags. Inline `#tags` stay in the text, and the tag field edits the `tags` property.
@@ -187,6 +189,8 @@ Writing (only when you ask):
 | `complete_task` | Ticks (or unticks) a checklist item. It checks the task's text, so a note that changed since `list_tasks` can't get the wrong box ticked. |
 | `rename_note` | Renames a note and updates the `[[links]]` to it. |
 | `pin_note` | Pins or unpins a note. |
+| `duplicate_note` | Copies a note (text, tags, properties) to "*title* copy" or a title you give, in the same or another folder. |
+| `save_template` | Creates or updates a template in `Templates/`, from an existing note (`from_note`) or from Markdown (`body`). `replace` overwrites a template of the same name. |
 | `attach_image` | Saves an image in `attachments/` and, optionally, embeds it at the end of a note with a caption. |
 
 None of them deletes anything: only you can delete notes, on the Notes page.

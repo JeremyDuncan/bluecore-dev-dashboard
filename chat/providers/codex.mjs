@@ -103,7 +103,7 @@ export default {
       `mcp_servers.docs.url=${JSON.stringify(mcpUrl)}`,
       // The notes write tools aren't read-only, so with approvals off Codex would refuse them: approve
       // just these (they only add or change notes; the prompt allows them only when asked)
-      ...['create_note', 'update_note', 'complete_task', 'rename_note', 'pin_note', 'attach_image'].map(
+      ...['create_note', 'update_note', 'duplicate_note', 'complete_task', 'rename_note', 'pin_note', 'attach_image', 'save_template'].map(
         (tool) => `mcp_servers.docs.tools.${tool}.approval_mode="approve"`,
       ),
       ...DISABLED_FEATURES.map((f) => `features.${f}=false`),

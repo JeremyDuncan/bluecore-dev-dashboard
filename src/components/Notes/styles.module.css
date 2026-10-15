@@ -801,6 +801,12 @@ a.tag:hover {
   margin: 0 2px 0 0;
 }
 
+.templateButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .iconButton {
   display: inline-flex;
   align-items: center;

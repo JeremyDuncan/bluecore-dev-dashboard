@@ -172,7 +172,7 @@ Settings (environment): `CHAT_PROVIDER` (`claude`), `CHAT_CLAUDE_MODEL` (`sonnet
 - **Write** on the site (**New note** / **Edit**, with tags and a preview). Saving refuses to overwrite a note that changed elsewhere in the meantime.
 - **Copy** a note's Markdown to the clipboard, or **export** a note (`.md`), a folder or a selection of notes (`.zip` with their folders and embedded images).
 - **Organize** in a folder tree: **+** adds notes and folders, folders can be renamed (or deleted when empty), and notes move by drag and drop or the editor's Folder field.
-- **Write** with a split live preview, templates (`Templates/`), pasted or dropped images, and drafts kept in the browser until you save. Renaming a note updates the `[[links]]` to it.
+- **Write** with a split live preview, templates (`Templates/`; save any note as one), duplicating notes, pasted or dropped images, and drafts kept in the browser until you save. Renaming a note updates the `[[links]]` to it.
 - **Find and keep track**: ⌘P quick switcher, pinned notes, an outline beside long notes, and tasks you tick right in the note.
 - **Docs pages** list your notes that link to them, with a *Note about this page* link (local only).
 - **Delete** a note or a selection, after a confirmation dialog. Deleted notes move to the vault's `.trash` folder (as in Obsidian); the **Trash** page restores them or deletes them for good.
@@ -241,7 +241,7 @@ ngrok http 8080 --basic-auth="bluecore:a-long-password"     # terminal 2 (passwo
 | `docs_health` | Cleanup list: stale pages, broken links between pages (missing pages or headings), near-empty pages, repos without docs. |
 | `list_notes` / `search_notes` / `read_note` / `list_note_tags` | Your [notes](#notes): list them by tag, folder or date, search them, read one (or one `section` of it, with its backlinks, and with `include_images` the images it embeds), list the tags. |
 | `related_notes` / `list_tasks` / `list_templates` / `list_attachments` / `get_note_image` / `notes_for_doc` / `notes_health` | A note's links, backlinks and notes sharing its tags; open checklist items across notes; templates; images and which notes use them; one image to look at; notes about a docs page; and a tidy-up list. |
-| `create_note` / `update_note` / `complete_task` / `rename_note` / `pin_note` / `attach_image` | Add a note (optionally from a template), append to one, replace its text, change its tags or folder, tick a task, rename (updating links), pin, or add an image. The only tools that write anything. Agents can't delete notes; only you can, on the Notes page. |
+| `create_note` / `update_note` / `duplicate_note` / `complete_task` / `rename_note` / `pin_note` / `attach_image` / `save_template` | Add a note (optionally from a template), append to one, replace its text, change its tags or folder, copy it, tick a task, rename (updating links), pin, add an image, or save a template. The only tools that write anything. Agents can't delete notes; only you can, on the Notes page. |
 
 **Prompts** (one-click reports; in Claude Code they're slash commands like `/mcp__docs__standup_summary`): `standup_summary`, `weekly_update`, `onboarding_plan`, `summarize_epic`, `docs_cleanup`, `notes_review`.
 

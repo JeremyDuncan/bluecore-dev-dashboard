@@ -634,6 +634,35 @@ export function createStarterTemplates() {
   return {created};
 }
 
+// Saves a template in the Templates folder: from a note (`fromNote`; its text, tags and other
+// properties, with the note's title in its first heading turned into {{title}}) or from `body` and
+// `tags`. `replace`: overwrite the template with that name (otherwise " 2" is added).
+export function saveTemplate({name, body, tags, fromNote, replace = false} = {}) {
+  let data = {};
+  let text = body ?? '';
+  if (fromNote) {
+    const source = readNote(fromNote);
+    data = withoutOwn(source.frontMatter);
+    delete data.author;
+    text = body ?? source.body.replace(titleHeading(source.title), '$1{{title}}');
+    name = String(name ?? '').trim() || source.title;
+  }
+  checkSize(text);
+  if (tags !== undefined) data.tags = uniqueTags(asList(tags));
+  if (!String(name ?? '').trim()) throw new NoteError(400, 'A template needs a name');
+  const clean = safeName(name);
+  if (!clean) throw new NoteError(400, 'The name has no usable characters');
+  const dir = cleanFolder(TEMPLATE_DIR);
+  const existing = `${dir}/${clean}.md`;
+  const replacing = replace && fs.existsSync(path.join(VAULT, existing));
+  const target = replacing ? {rel: existing, abs: resolve(existing, {ext: ['.md']}).abs} : newNoteFile(clean, dir);
+  // Replacing keeps the template's own properties (its tags too, unless new ones are given)
+  if (replacing && !fromNote) data = {...load(existing).frontMatter, ...data};
+  fs.mkdirSync(path.dirname(target.abs), {recursive: true});
+  fs.writeFileSync(target.abs, serialize(data, text.replace(/^\n+/, '')));
+  return readNote(target.rel);
+}
+
 // --- Links to the docs ---------------------------------------------------------------------------
 
 // The site path a link points at ("/guides/notes"), or null for other sites, notes and anchors.
@@ -759,17 +788,7 @@ function checkSize(body) {
 // New note at <folder>/<title>.md (" 2", " 3", … added if the name is taken). Returns the note.
 export function createNote({title, body = '', tags = [], folder = '', author} = {}) {
   checkSize(body);
-  const name = safeName(title || `Note ${new Date().toISOString().slice(0, 16).replace('T', ' ').replace(':', '.')}`);
-  if (!name) throw new NoteError(400, 'The title has no usable characters');
-  const dir = String(folder ?? '')
-    .split(/[\\/]+/)
-    .map(safeName)
-    .filter(Boolean)
-    .join('/');
-  notInAttachments(dir);
-  let rel = dir ? `${dir}/${name}.md` : `${name}.md`;
-  for (let i = 2; fs.existsSync(path.join(VAULT, rel)); i++) rel = dir ? `${dir}/${name} ${i}.md` : `${name} ${i}.md`;
-  const {abs} = resolve(rel, {ext: ['.md']});
+  const {rel, abs} = newNoteFile(title, folder);
   const now = new Date().toISOString();
   // The title is the file name, as in Obsidian; keep it as a property only when it had to be changed
   const data = {
@@ -782,6 +801,48 @@ export function createNote({title, body = '', tags = [], folder = '', author} = 
   fs.mkdirSync(path.dirname(abs), {recursive: true});
   fs.writeFileSync(abs, serialize(data, body), {flag: 'wx'});
   return readNote(rel);
+}
+
+// A free path for a new note: <folder>/<title>.md, with " 2", " 3", … added if the name is taken
+function newNoteFile(title, folder) {
+  const name = safeName(title || `Note ${new Date().toISOString().slice(0, 16).replace('T', ' ').replace(':', '.')}`);
+  if (!name) throw new NoteError(400, 'The title has no usable characters');
+  const dir = cleanFolder(folder);
+  notInAttachments(dir);
+  let rel = dir ? `${dir}/${name}.md` : `${name}.md`;
+  for (let i = 2; fs.existsSync(path.join(VAULT, rel)); i++) rel = dir ? `${dir}/${name} ${i}.md` : `${name} ${i}.md`;
+  return {rel, abs: resolve(rel, {ext: ['.md']}).abs};
+}
+
+// Properties that describe one note's history, not its content: left out of copies and templates
+const OWN_PROPERTIES = ['title', 'created', 'updated', 'modified', 'date', 'pinned', 'aliases', 'alias'];
+const withoutOwn = (data) => Object.fromEntries(Object.entries(data).filter(([k]) => !OWN_PROPERTIES.includes(k)));
+
+// A copy of a note, next to it (or in `folder`), called "<title> copy" unless `title` is given.
+// Same text, tags and other properties; new created/updated dates, not pinned.
+export function duplicateNote(ref, {title, folder} = {}) {
+  const source = readNote(ref);
+  const wanted = String(title ?? '').trim() || `${source.title} copy`;
+  const {rel, abs} = newNoteFile(wanted, folder ?? source.folder);
+  // The file name, with any " 2" added; a title that had to be cleaned for the file name stays a property
+  const fileTitle = path.posix.basename(rel, '.md');
+  const newTitle = safeName(wanted) === wanted ? fileTitle : wanted;
+  const now = new Date().toISOString();
+  const data = {
+    ...(newTitle !== fileTitle ? {title: newTitle} : {}),
+    ...withoutOwn(source.frontMatter),
+    created: now,
+    updated: now,
+  };
+  // A first heading that repeats the title follows the new one
+  const body = source.body.replace(titleHeading(source.title), (_, start) => `${start}${newTitle}`);
+  fs.writeFileSync(abs, serialize(data, body), {flag: 'wx'});
+  return readNote(rel);
+}
+
+// The note's first "# <title>" heading; group 1 is the "# " part
+function titleHeading(title) {
+  return new RegExp(`^(\\s*#\\s+)${title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[ \\t]*$`, 'm');
 }
 
 // --- Folders and moving --------------------------------------------------------------------------

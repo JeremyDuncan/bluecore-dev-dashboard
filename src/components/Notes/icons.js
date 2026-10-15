@@ -16,6 +16,14 @@ export const CopyIcon = (p) => (
   </Svg>
 );
 
+// Two sheets with a plus: a copy of the note
+export const DuplicateIcon = (p) => (
+  <Svg {...p}>
+    <rect x="9" y="9" width="12" height="12" rx="2" />
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1M15 12v6M12 15h6" />
+  </Svg>
+);
+
 export const DownloadIcon = (p) => (
   <Svg {...p}>
     <path d="M12 3v12M7 10l5 5 5-5" />
