@@ -25,8 +25,10 @@ imports/**
 !imports/README.md
 !imports/**/.gitkeep
 
-# Your notes vault (the Notes page; NOTES_DIR can point elsewhere)
-notes/
+# Your notes vault (the Notes page; NOTES_DIR can point elsewhere). Anchored with "/" so it only
+# matches the vault at the repo root: on macOS git ignores case, so a bare "notes/" also hid
+# src/components/Notes/ and broke the build on GitHub.
+/notes/
 
 # Personal editor / agent settings
 .idea/
