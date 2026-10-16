@@ -1,7 +1,7 @@
 // Claude Code CLI (`claude -p`). Only the docs MCP tools are available: built-in tools are off
 // (no shell, no file access) and user/project settings, hooks and CLAUDE.md files aren't loaded.
 import {spawn} from 'node:child_process';
-import {describeTool, readJsonLines, run, which} from './util.mjs';
+import {describeTool, readJsonLines, run, toolName, which} from './util.mjs';
 
 const BIN = process.env.CLAUDE_BIN || 'claude';
 // Every tool of the docs MCP server: read-only (docs, GitHub, API reference, notes) except
@@ -40,7 +40,7 @@ export default {
     return {installed: true, loggedIn, version: version.stdout.trim().split(' ')[0] || null};
   },
 
-  // Starts one question. Emits: turn, delta, status, done {sessionId, answer}, error. Returns the child process.
+  // Starts one question. Emits: turn, delta, status, tool {name, text}, done {sessionId, answer}, error. Returns the child process.
   ask({question, sessionId, model, systemPrompt, mcpUrl, writer, cwd, emit}) {
     // Tells the MCP server which AI writes any notes (see mcp/agent-runs.mjs)
     const headers = {'x-notes-agent': writer.agent, 'x-notes-model': writer.model, 'x-notes-run': writer.run};
@@ -70,7 +70,12 @@ export default {
       } else if (e.type === 'stream_event' && e.event?.type === 'message_start') {
         emit('turn', {});
       } else if (e.type === 'assistant') {
-        for (const c of e.message?.content ?? []) if (c.type === 'tool_use') emit('status', {text: describeTool(c.name, c.input)});
+        for (const c of e.message?.content ?? []) {
+          if (c.type !== 'tool_use') continue;
+          const text = describeTool(c.name, c.input);
+          emit('status', {text});
+          emit('tool', {name: toolName(c.name), text}); // kept with the answer ("Show tool usage" in the chat)
+        }
       } else if (e.type === 'result') {
         if (e.subtype === 'success') emit('done', {sessionId: e.session_id, answer: e.result});
         else emit('error', {message: `Claude Code stopped: ${e.subtype}`});

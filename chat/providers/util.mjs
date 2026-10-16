@@ -38,6 +38,9 @@ export function readJsonLines(stream, onLine) {
 }
 
 // Short status line for a docs tool call, shown in the chat while the CLI works.
+// A tool's own name, without the CLI's MCP prefix ("mcp__docs__search_docs" → "search_docs")
+export const toolName = (name) => String(name ?? '').replace(/^mcp__[^_]+__/, '');
+
 export function describeTool(name, input = {}) {
   if (/search_docs$/.test(name)) return `Searching the docs for “${input.query ?? ''}”`;
   if (/read_doc$/.test(name)) {
@@ -90,5 +93,11 @@ export function describeTool(name, input = {}) {
   if (/create_notebook$/.test(name)) return `Writing a notebook: “${input.title ?? input.starter ?? ''}”`;
   if (/update_notebook$/.test(name)) return `Editing the notebook ${input.notebook ?? ''}`;
   if (/run_notebook$/.test(name)) return `Running the notebook ${input.notebook ?? ''}${input.target ? ` against ${input.target}` : ''} in JupyterLab`;
+  if (/list_pull_requests$/.test(name)) {
+    const f = [input.repo, input.author && `by @${input.author}`, input.reviewer && `for @${input.reviewer}`, input.stale_only && 'stale only'].filter(Boolean).join(', ');
+    return `Checking open pull requests${f ? ` (${f})` : ''}`;
+  }
+  if (/diagnose_test_failure$/.test(name)) return `Diagnosing the ${input.test ? `“${input.test}” ` : ''}failure${input.suite ? ` in ${input.suite}` : ''}${input.run ? ` (run ${input.run})` : ''}`;
+  if (/version_drift$/.test(name)) return 'Comparing deployed versions with the latest releases';
   return 'Working…';
 }

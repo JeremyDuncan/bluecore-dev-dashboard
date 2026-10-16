@@ -9,14 +9,12 @@ import useWindowFrame from './useWindowFrame';
 import {CliPicker, ProviderIcon, SetupCard, useCli} from './CliPicker';
 import {clearHistory, deleteChat, groupByDay, loadHistory, newChatId, saveChat} from './history';
 import SaveAsNote from './SaveAsNote';
+import PromptMenu from './PromptLibrary';
+import {placeholderRange} from './prompts';
 import styles from './styles.module.css';
 
 const STORAGE_KEY = 'ask-docs-chat';
-const SUGGESTIONS = [
-  'How do I set up Blue Core locally?',
-  'How do I export the Keycloak realm?',
-  "What's in review on the MVP board?",
-];
+const TOOLS_KEY = 'ask-docs-show-tools'; // "Show tool usage", remembered in this browser
 
 function load() {
   try {
@@ -74,6 +72,22 @@ export default function AskDocs() {
   const win = useWindowFrame(open);
   const cli = useCli(apiUrl, open);
   const [view, setView] = useState('chat'); // 'chat' | 'history'
+  const [showTools, setShowTools] = useState(false);
+  useEffect(() => {
+    try {
+      setShowTools(localStorage.getItem(TOOLS_KEY) === '1');
+    } catch {
+      // storage blocked: the switch starts off
+    }
+  }, []);
+  const toggleTools = (on) => {
+    setShowTools(on);
+    try {
+      localStorage.setItem(TOOLS_KEY, on ? '1' : '0');
+    } catch {
+      // storage blocked: it still applies until the page reloads
+    }
+  };
   const [history, setHistory] = useState([]);
   const [historyQuery, setHistoryQuery] = useState('');
   const [confirmClear, setConfirmClear] = useState(false);
@@ -190,6 +204,7 @@ export default function AskDocs() {
         {question: q, sessionId, provider: provider.id, model: cli.model},
         (event, data) => {
           if (event === 'turn') updateLast((m) => ({...m, text: ''}));
+          else if (event === 'tool') updateLast((m) => ({...m, tools: [...(m.tools ?? []), {name: data.name, text: data.text}]}));
           else if (event === 'delta') updateLast((m) => ({...m, text: m.text + data.text}));
           else if (event === 'status') updateLast((m) => ({...m, status: data.text}));
           else if (event === 'model') updateLast((m) => ({...m, modelId: data.model})); // the exact model behind an alias
@@ -215,6 +230,18 @@ export default function AskDocs() {
       setBusy(false);
       abortRef.current = null;
     }
+  }
+
+  // A prompt from the library: asked at once, or put in the box with its [placeholder] selected to fill in
+  function pickPrompt(prompt) {
+    setView('chat');
+    const blank = placeholderRange(prompt);
+    if (!blank) return ask(prompt);
+    setInput(prompt);
+    requestAnimationFrame(() => {
+      inputRef.current?.focus();
+      inputRef.current?.setSelectionRange(...blank);
+    });
   }
 
   function newChat() {
@@ -377,14 +404,8 @@ export default function AskDocs() {
             {cli.provider && !ready && <SetupCard cli={cli} />}
             {ready && chat.messages.length === 0 && (
               <div className={styles.intro}>
-                <p>Ask anything about Blue Core. Answers come from these docs: the repos, wiki, Drive and Box documents, and the project board.</p>
-                <div className={styles.suggestions}>
-                  {SUGGESTIONS.map((s) => (
-                    <button key={s} type="button" className={styles.suggestion} onClick={() => ask(s)}>
-                      {s}
-                    </button>
-                  ))}
-                </div>
+                <p>Ask anything about Blue Core. Answers come from these docs, live GitHub data, the API spec, your notes and notebooks.</p>
+                <p>Not sure where to start? Pick one of 100 ready-made questions from <strong>✨ Prompts</strong>, under the question box.</p>
               </div>
             )}
             {chat.messages.map((m, i) =>
@@ -417,6 +438,7 @@ export default function AskDocs() {
                       <Markdown text={m.error} />
                     </div>
                   )}
+                  {showTools && !m.status && (m.text || m.error) && <ToolUse tools={m.tools ?? []} />}
                   {m.text && !m.status && !m.error && (
                     <SaveAsNote question={chat.messages.slice(0, i).reverse().find((x) => x.role === 'user')?.text} answer={m.text} by={m.providerName} model={m.modelId} />
                   )}
@@ -449,6 +471,15 @@ export default function AskDocs() {
               {busy ? '…' : 'Ask →'}
             </button>
           </form>
+          {/* The question box's toolbar: ready-made prompts (opening upward, over the conversation) and
+              whether answers list the tools they used */}
+          <div className={styles.composerBar}>
+            {ready ? <PromptMenu onPick={pickPrompt} disabled={busy} /> : <span />}
+            <label className={styles.toolsToggle} title="Under each answer, the MCP tools the assistant used">
+              <input type="checkbox" checked={showTools} onChange={(e) => toggleTools(e.target.checked)} />
+              Show tool usage
+            </label>
+          </div>
           <p className={styles.footnote}>
             Answered by {cli.provider?.name ?? 'your AI CLI'} from these docs, using your own account. Check the linked pages.
           </p>
@@ -462,5 +493,33 @@ export default function AskDocs() {
         </section>
       )}
     </>
+  );
+}
+
+// "Show tool usage": the MCP tools an answer used, as one line ("3 tools: search_docs ×2 · read_doc")
+// that opens to each call in plain words
+function ToolUse({tools}) {
+  if (!tools.length) return <p className={styles.toolUse}>No tools used: answered from the conversation.</p>;
+  const counts = [...tools.reduce((m, t) => m.set(t.name, (m.get(t.name) ?? 0) + 1), new Map())];
+  return (
+    <details className={styles.toolUse}>
+      <summary>
+        <span aria-hidden="true">🔧</span> {tools.length} tool call{tools.length === 1 ? '' : 's'}:{' '}
+        {counts.map(([name, n], i) => (
+          <React.Fragment key={name}>
+            {i > 0 && ' · '}
+            <code>{name}</code>
+            {n > 1 ? ` ×${n}` : ''}
+          </React.Fragment>
+        ))}
+      </summary>
+      <ol>
+        {tools.map((t, i) => (
+          <li key={i}>
+            <code>{t.name}</code> {t.text}
+          </li>
+        ))}
+      </ol>
+    </details>
   );
 }

@@ -12,7 +12,7 @@ import {spawn} from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import {describeTool, readJsonLines, run, which} from './util.mjs';
+import {describeTool, readJsonLines, run, toolName, which} from './util.mjs';
 
 const BIN = process.env.CODEX_BIN || 'codex';
 const CODEX_HOME = process.env.CODEX_HOME || path.join(os.homedir(), '.codex');
@@ -125,7 +125,9 @@ export default {
     readJsonLines(child.stdout, (e) => {
       if (e.type === 'thread.started') thread = e.thread_id;
       else if (e.type === 'item.started' && e.item?.type === 'mcp_tool_call') {
-        emit('status', {text: describeTool(e.item.tool ?? '', e.item.arguments ?? {})});
+        const text = describeTool(e.item.tool ?? '', e.item.arguments ?? {});
+        emit('status', {text});
+        emit('tool', {name: toolName(e.item.tool), text}); // kept with the answer ("Show tool usage" in the chat)
       } else if (e.type === 'item.completed' && e.item?.type === 'agent_message') {
         answer = e.item.text ?? '';
         emit('turn', {});

@@ -131,6 +131,7 @@
 
 .fullscreen .messages,
 .fullscreen .form,
+.fullscreen .composerBar,
 .fullscreen .footnote {
   width: 100%;
   max-width: 860px;
@@ -241,27 +242,306 @@
   color: var(--bc-meta);
 }
 
-.suggestions {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
+/* ---------- Prompts menu (PromptLibrary.js): at the top of the chat, over the conversation ---------- */
+
+.promptBar {
+  position: relative;
 }
 
-.suggestion {
-  padding: 6px 14px;
+.promptButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
   border: 1px solid var(--bc-sky-line);
   border-radius: 100px;
   background: var(--bc-surface);
   color: var(--bc-link);
   font: inherit;
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.promptButton:hover:not(:disabled),
+.promptButtonOn {
+  border-color: var(--bc-link);
+}
+
+.promptButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.promptCaret {
+  width: 6px;
+  height: 6px;
+  margin-left: 2px;
+  border: solid currentColor;
+  border-width: 0 1.5px 1.5px 0;
+  transform: translateY(-2px) rotate(45deg);
+}
+
+.promptButtonOn .promptCaret {
+  transform: translateY(1px) rotate(-135deg);
+}
+
+.promptMenu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  width: min(420px, 80vw); /* until the menu measures the panel */
+  max-height: min(440px, 62vh);
+  padding: 8px;
+  border: 1px solid var(--bc-sky-line);
+  border-radius: 12px;
+  background: var(--bc-surface);
+  box-shadow: 0 12px 32px rgba(9, 29, 109, 0.22);
+}
+
+[data-theme='dark'] .promptMenu {
+  background: var(--bc-charcoal);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+.promptSearch {
+  flex-shrink: 0;
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 7px 10px;
+  border: 1px solid var(--bc-sky-line);
+  border-radius: 8px;
+  background: var(--bc-surface);
+  color: var(--ifm-font-color-base);
+  font: inherit;
+  font-size: 13.5px;
+}
+
+[data-theme='dark'] .promptSearch {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.menuScroll {
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+/* Sections, and the open section's prompts beside them (wide panels) */
+.menuColumns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  min-height: 0;
+}
+
+.promptMenuWide .menuColumns {
+  grid-template-columns: 260px minmax(0, 1fr);
+}
+
+
+
+.menuSections li {
+  margin: 0;
+}
+
+.menuSection {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 7px 8px;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  color: var(--ifm-font-color-base);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
   text-align: left;
   cursor: pointer;
 }
 
-.suggestion:hover {
-  border-color: var(--bc-link);
+.menuSection:hover,
+.menuSectionOn {
+  background: var(--bc-sky-light);
+  color: var(--bc-link);
+}
+
+[data-theme='dark'] .menuSection:hover,
+[data-theme='dark'] .menuSectionOn {
+  background: rgba(97, 198, 255, 0.1);
+}
+
+.menuArrow {
+  color: var(--bc-meta);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.menuFlyout {
+  padding-left: 6px;
+  border-left: 1px solid var(--bc-sky-line);
+}
+
+.menuPrompts {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.menuPrompts li {
+  margin: 0;
+}
+
+.menuBack {
+  padding: 4px 8px;
+  border: none;
+  background: none;
+  color: var(--bc-link);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.menuHeading {
+  margin: 2px 8px 4px;
+  color: var(--bc-meta);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.menuNone {
+  margin: 8px;
+  color: var(--bc-meta);
+  font-size: 13.5px;
+}
+
+/* In search results: which section a prompt is from */
+.promptFrom {
+  display: block;
+  color: var(--bc-meta);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.promptIcon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  background-color: var(--bc-link);
+  -webkit-mask: var(--sidebar-icon) no-repeat center / contain;
+  mask: var(--sidebar-icon) no-repeat center / contain;
+}
+
+.promptTitle {
+  flex: 1;
+}
+
+.promptCount {
+  min-width: 22px;
+  padding: 1px 7px;
+  border-radius: 100px;
+  background: var(--bc-sky-light);
+  color: var(--bc-meta);
+  font-size: 11.5px;
+  font-weight: 600;
+  text-align: center;
+}
+
+[data-theme='dark'] .promptCount {
+  background: rgba(97, 198, 255, 0.12);
+}
+
+.prompt {
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  color: var(--bc-link);
+  font: inherit;
+  font-size: 13.5px;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+}
+
+.prompt:hover,
+.prompt:focus-visible {
+  background: var(--bc-sky-light);
+}
+
+[data-theme='dark'] .prompt:hover,
+[data-theme='dark'] .prompt:focus-visible {
+  background: rgba(97, 198, 255, 0.1);
+}
+
+/* A [placeholder] to fill in */
+.promptBlank {
+  padding: 0 3px;
+  border-radius: 4px;
+  background: rgba(249, 194, 28, 0.25);
+  color: inherit;
+}
+
+/* ---------- Show tool usage ---------- */
+
+.composerBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 12px 8px;
+}
+
+.toolsToggle {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  color: var(--bc-meta);
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.toolsToggle input {
+  margin: 0;
+}
+
+/* Under an answer: the tools it used, one line that opens to each call */
+.toolUse {
+  margin: 8px 0 4px;
+  color: var(--bc-meta);
+  font-size: 12.5px;
+}
+
+.toolUse summary {
+  cursor: pointer;
+}
+
+.toolUse code {
+  padding: 0 4px;
+  font-size: 11.5px;
+}
+
+.toolUse ol {
+  margin: 6px 0 0;
+  padding-left: 22px;
+}
+
+.toolUse li {
+  margin: 2px 0;
 }
 
 .user {
