@@ -739,12 +739,6 @@
   border-bottom: 1px solid var(--bc-sky-line);
 }
 
-.statusNavIntro {
-  margin: -8px 0 12px;
-  font-size: 14px;
-  color: var(--bc-meta);
-}
-
 .statusNav ul {
   display: flex;
   flex-wrap: wrap;

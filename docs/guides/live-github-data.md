@@ -2,9 +2,8 @@
 title: Live GitHub data
 sidebar_position: 3
 sidebar_class_name: sidebar-icon sidebar-icon--status
+description: "The Project Status pages show GitHub data that updates while you look at it. This page explains where that data comes from, how fresh it is, how to add a board or workflow, and what to check when a page says “Snapshot”."
 ---
-
-The **Project Status** pages (project board, Repo Issues, Integration Tests, What's New) show GitHub data that updates while you look at it. This page explains where that data comes from, how fresh it is, how to add a board or workflow, and what to check when a page says "Snapshot".
 
 ## How it works
 

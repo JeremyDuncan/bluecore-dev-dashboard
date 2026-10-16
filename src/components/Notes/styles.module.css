@@ -1042,16 +1042,27 @@ a.tag:hover {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-left: auto;
 }
 
 .selectAll {
   display: flex;
+  flex: 1 1 auto;
   align-items: center;
   gap: 8px;
   min-width: 0;
   white-space: nowrap;
   cursor: pointer;
+}
+
+/* Never runs under the buttons: shortened by an ellipsis when the panel is narrow */
+.selectCount {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.selectBar > button {
+  flex-shrink: 0;
 }
 
 .selectAll .check {

@@ -3,13 +3,24 @@ title: Welcome
 sidebar_position: 1
 slug: /
 hide_table_of_contents: true
+hide_title: true
 ---
 
 import {Card, Cards, ChatCard, Featured, IfDocs, LocalOnly, Part, SectionCard} from '@site/src/components/Welcome';
+import PageHero from '@site/src/components/PageHero';
+import {BookIcon, HelpIcon, PlugIcon, SparkleIcon} from '@site/src/components/Notes/icons';
 
-# Welcome
-
-The Blue Core developer documentation, a live view of the project on GitHub, and AI tools that know both, in one place.
+<PageHero
+  eyebrow="Blue Core developer dashboard"
+  title="Welcome"
+  lead="The Blue Core developer documentation, a live view of the project on GitHub, and AI tools that know both, in one place."
+  actions={[
+    {label: 'Start with the Bluecore Stack', to: '/blue-core-repos/bluecore-stack/', icon: <BookIcon size={16} />, primary: true},
+    {label: 'Ask the docs', event: 'ask-docs:open', icon: <SparkleIcon size={16} />, needs: 'chat'},
+    {label: 'Connect your AI agent', to: '/guides/mcp-tools/connect', icon: <PlugIcon size={16} />},
+    {label: 'How this site works', to: '/guides', icon: <HelpIcon size={16} />},
+  ]}
+/>
 
 <Featured icon="stack" title="Start here: Bluecore Stack" to="/blue-core-repos/bluecore-stack/">
 
@@ -94,8 +105,8 @@ When you run the site locally, these pages update live (with a **Refresh** butto
   <Card icon="mcp" title="Connect your AI agent" to="/guides/mcp-tools/connect" meta="Claude Code, Codex, Cursor, Copilot">
     Give your coding agent the docs and live project data while it works.
   </Card>
-  <Card icon="code" title="MCP tools" to="/guides/mcp-tools" meta="41 tools in 7 groups">
-    What each tool does: docs search, the board, PRs, code, tests, version drift, the API.
+  <Card icon="code" title="MCP tools" to="/guides/mcp-tools" meta="47 tools in 8 groups">
+    What each tool does: docs search, the board, PRs, code, tests, version drift, the API, notebooks.
   </Card>
   <Card icon="status-overview" title="Example prompts" to="/guides/mcp-tools/example-prompts" meta="Copy and paste">
     Real prompts for standups, failing tests, API calls and release notes.
@@ -104,8 +115,8 @@ When you run the site locally, these pages update live (with a **Refresh** butto
 
 <LocalOnly>
 
-<Part icon="notes" title="Your notes">
-  A Markdown notebook on this site that's also an Obsidian vault. It stays on your machine.
+<Part icon="notes" title="Your notes and notebooks">
+  Markdown notes that are also an Obsidian vault, and Jupyter notebooks for debugging the stack. Both stay on your machine.
 </Part>
 
 <Cards>
@@ -115,9 +126,11 @@ When you run the site locally, these pages update live (with a **Refresh** butto
   <Card icon="design" title="Use with Obsidian" to="/guides/notes#using-an-existing-obsidian-vault" meta="Same files, both ways">
     Open the notes in Obsidian, or point the site at a vault you already have.
   </Card>
-  <Card icon="page" title="Notes on docs pages" to="/guides/notes#notes-about-docs-pages" meta="At the bottom of every page">
-    Link a note to a docs page and it shows up on that page.
-  </Card>
+  <LocalOnly needs="notebooks">
+    <Card icon="notebook" title="Notebooks" to="/notebooks" meta="Runs in JupyterLab · starters included">
+      Debug the stack with Python: health checks, the API, Postgres, Airflow, test triage.
+    </Card>
+  </LocalOnly>
   <Card icon="mcp" title="AI and your notes" to="/guides/notes#notes-and-ai" meta="Records which AI wrote what">
     Agents can search, read and, when you ask, write notes.
   </Card>

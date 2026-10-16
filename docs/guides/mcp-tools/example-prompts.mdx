@@ -2,14 +2,12 @@
 title: Example prompts
 sidebar_position: 2
 hide_table_of_contents: true
-description: Real prompts for Blue Core work, ready to copy into Claude Code, Codex or Ask the docs.
+description: "Real prompts for real Blue Core work. Copy one into Claude Code, Codex or Ask the docs as it is, or change the repo, issue or date."
 ---
 
 import {Example, ExamplePrompts} from '@site/src/components/McpTools';
 
-# Example prompts
-
-Real prompts for real Blue Core work. Copy one into Claude Code, Codex or **Ask the docs** as it is, or change the repo, issue or date. The agent picks the tools; **Uses** shows the ones it will most likely call.
+The agent picks the tools; **Uses** shows the ones it will most likely call.
 
 <ExamplePrompts>
 
@@ -119,6 +117,30 @@ Real prompts for real Blue Core work. Copy one into Claude Code, Codex or **Ask 
   category="Notes"
   tools="list_notes, notes_health"
   prompt="Review my notes: what changed this week, which notes an AI wrote that I should check, and what needs tidying, like broken links or notes without tags."
+/>
+
+<Example
+  category="Notebooks"
+  tools="create_notebook, run_notebook"
+  prompt="Create a notebook from the stack health starter, run it, and tell me which services in my local stack are down or behind their latest release."
+/>
+
+<Example
+  category="Notebooks"
+  tools="create_notebook, run_notebook, read_notebook"
+  prompt="Export to Catalog is failing from Sinopia (bluecore_api#354). Write a notebook that reproduces it against my local API with read-only requests, run it, and explain what the outputs show."
+/>
+
+<Example
+  category="Notebooks"
+  tools="update_notebook, run_notebook"
+  prompt="In my Airflow DAG runs notebook, add a cell that shows the last 10 runs of marc_to_bibframe with their durations, then run just that cell."
+/>
+
+<Example
+  category="Notebooks"
+  tools="local_stack, create_notebook, run_notebook"
+  prompt="Check which branch my local stack is on, then run the stack health starter against local, dev and stage and tell me where the versions differ."
 />
 
 </ExamplePrompts>

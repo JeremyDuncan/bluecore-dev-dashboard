@@ -49,6 +49,7 @@ import {
   XIcon,
 } from './icons';
 import {ProviderIcon} from '../AskDocs/CliPicker';
+import PageHero from '../PageHero';
 import {writer} from './authors';
 import styles from './styles.module.css';
 
@@ -57,7 +58,7 @@ import styles from './styles.module.css';
 const DAY = 24 * 60 * 60 * 1000;
 const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 
-function dateGroup(iso, now = new Date()) {
+export function dateGroup(iso, now = new Date()) {
   const t = new Date(iso).getTime();
   const today = startOfDay(now);
   if (t >= today) return 'Today';
@@ -68,7 +69,7 @@ function dateGroup(iso, now = new Date()) {
   return d.toLocaleDateString(undefined, {month: 'long', year: 'numeric'});
 }
 
-function shortWhen(iso) {
+export function shortWhen(iso) {
   const d = new Date(iso);
   const now = new Date();
   if (startOfDay(d) === startOfDay(now)) return d.toLocaleTimeString(undefined, {hour: 'numeric', minute: '2-digit'});
@@ -76,7 +77,7 @@ function shortWhen(iso) {
 }
 
 // "just now", "5 min ago", "3 h ago", "yesterday", then the date
-function relWhen(iso) {
+export function relWhen(iso) {
   const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
   if (minutes < 1) return 'just now';
   if (minutes < 60) return `${minutes} min ago`;
@@ -126,6 +127,8 @@ function useNotesUrl() {
 }
 
 // --- Small pieces --------------------------------------------------------------------------------
+// TagBrowser, TagInput, GroupCheck, Menu, FolderNameInput, buildTree, useOpenFolders and the date
+// helpers are exported for the Notebooks page, whose list looks and works like this one.
 
 function TagChip({tag, count, active, to}) {
   return (
@@ -148,7 +151,7 @@ const TAG_SORT_KEY = 'notes-tag-sort';
 
 // tags: [{tag, count}]; activeTag: the selected one (always shown); hrefFor(tag) → link;
 // onPick(tag): Enter in the filter box picks the first match. limit: how many show before "Show all".
-function TagBrowser({tags, notes, activeTag, hrefFor, onPick, limit = 24}) {
+export function TagBrowser({tags, notes, activeTag, hrefFor, onPick, limit = 24}) {
   const [q, setQ] = useState('');
   const [expanded, setExpanded] = useState(false);
   const [sort, setSortState] = useState(() => {
@@ -321,7 +324,7 @@ function NoteRow({note, active, to, field, snippet, selecting, checked, onToggle
 }
 
 // A checkbox for a whole group: checked when all its notes are, "partly" when some are
-function GroupCheck({paths, selected, onToggle, label}) {
+export function GroupCheck({paths, selected, onToggle, label}) {
   const count = paths.filter((p) => selected.has(p)).length;
   return (
     <input
@@ -382,8 +385,9 @@ function useExporter(list) {
       }),
     [],
   );
-  // Only notes that still exist (one may have been deleted in Obsidian meanwhile)
+  // Only notes and folders that still exist (one may have been deleted in Obsidian meanwhile)
   const chosen = list.notes.filter((n) => selected.has(n.path));
+  const chosenFolders = selectedFolders(list.folders, selected);
   const run = async (paths, name) => {
     setState({busy: true});
     try {
@@ -409,17 +413,46 @@ function useExporter(list) {
     setSelected(new Set());
     setState(null);
   };
-  return {selecting, start: () => setSelecting(true), stop, selected, toggle, chosen, run, exportChosen, state};
+  return {selecting, start: () => setSelecting(true), stop, selected, toggle, chosen, chosenFolders, run, exportChosen, state};
 }
 
 // --- Folder tree (the "By folder" view) ----------------------------------------------------------
 // Like the docs sidebar: folders open and close. "+" adds a note or folder (at the top, or inside a
-// folder), a folder can be renamed (or deleted when empty), and notes can be dragged onto a folder
-// or onto "Top level" to move them.
+// folder), a folder can be renamed (or deleted when empty), and notes and folders (with everything in
+// them) can be dragged onto a folder or onto "Top level" to move them.
 
-// Folders and notes as a tree: {name, path, folders: [...], notes: [...], all: [every note path inside]}.
+// Folders and notes as a tree: {name, path, folders: [...], notes: [...], all: [every note path inside],
+// dirs: [this folder and every folder inside, as selection keys (folderKey)]}.
 // `folders`: every folder in the vault, so empty ones show too (left out while a filter is on).
-function buildTree(notes, folders = []) {
+// The selection bar's count: short, as the bar shares a narrow panel with two buttons ("3 selected",
+// "2 folders", "3 + 1 folder"), with the full wording ("3 notes and 1 folder selected") as its tooltip
+export function SelectionCount({items, folders, kind}) {
+  const part = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+  const full = [items && part(items, kind), folders && part(folders, 'folder')].filter(Boolean).join(' and ') + ' selected';
+  const short = !folders ? (
+    <>
+      <strong>{items}</strong> selected
+    </>
+  ) : !items ? (
+    <strong>{part(folders, 'folder')}</strong>
+  ) : (
+    <>
+      <strong>{items}</strong> + {part(folders, 'folder')}
+    </>
+  );
+  return (
+    <span className={styles.selectCount} title={full}>
+      {short}
+      <span className={styles.srOnly}> ({full})</span>
+    </span>
+  );
+}
+
+// A folder in a selection: its path with a trailing "/", which no note or notebook path has
+export const folderKey = (path) => `${path}/`;
+export const selectedFolders = (folders = [], selected) => folders.filter((f) => selected.has(folderKey(f)));
+
+export function buildTree(notes, folders = []) {
   const root = {name: '', path: '', folders: new Map(), notes: []};
   const nodeFor = (folder) => {
     let node = root;
@@ -435,15 +468,17 @@ function buildTree(notes, folders = []) {
   const finish = (node) => {
     const subfolders = [...node.folders.values()].sort((a, b) => a.name.localeCompare(b.name, undefined, {sensitivity: 'base'})).map(finish);
     const notesHere = [...node.notes].sort((a, b) => a.title.localeCompare(b.title, undefined, {sensitivity: 'base'}));
-    return {...node, folders: subfolders, notes: notesHere, all: [...subfolders.flatMap((f) => f.all), ...notesHere.map((n) => n.path)]};
+    const all = [...subfolders.flatMap((f) => f.all), ...notesHere.map((n) => n.path)];
+    const dirs = [...(node.path ? [folderKey(node.path)] : []), ...subfolders.flatMap((f) => f.dirs)];
+    return {...node, folders: subfolders, notes: notesHere, all, dirs};
   };
   return finish(root);
 }
 
 const OPEN_KEY = 'notes-open-folders';
-function loadOpen() {
+function loadOpen(key = OPEN_KEY) {
   try {
-    return JSON.parse(localStorage.getItem(OPEN_KEY)) ?? {};
+    return JSON.parse(localStorage.getItem(key)) ?? {};
   } catch {
     return {};
   }
@@ -451,24 +486,42 @@ function loadOpen() {
 
 // Which folders are open: what you opened or closed (kept in this browser), else open while a filter
 // is on. The folders holding the open note are always open, so it's never hidden.
-function useOpenFolders(activeNote, filtered) {
-  const [state, setState] = useState(loadOpen);
+// key: where the open folders are remembered (the Notebooks page keeps its own)
+export function useOpenFolders(activeNote, filtered, key = OPEN_KEY) {
+  const [state, setState] = useState(() => loadOpen(key));
   const isOpen = (path) => (activeNote?.startsWith(`${path}/`) ? true : path in state ? state[path] : filtered);
   const set = (path, open) =>
     setState((s) => {
       const next = {...s, [path]: open};
       try {
-        localStorage.setItem(OPEN_KEY, JSON.stringify(next));
+        localStorage.setItem(key, JSON.stringify(next));
       } catch {
         // storage blocked: folders just don't stay open between visits
       }
       return next;
     });
-  return {isOpen, set, toggle: (path) => set(path, !isOpen(path))};
+  // A folder was renamed or moved: carry its open state, and its sub-folders', to the new path
+  const move = (from, to) =>
+    setState((s) => {
+      const next = {...s};
+      for (const [path, value] of Object.entries(s)) {
+        if (path !== from && !path.startsWith(`${from}/`)) continue;
+        delete next[path];
+        next[to + path.slice(from.length)] = value;
+      }
+      next[to] = true;
+      try {
+        localStorage.setItem(key, JSON.stringify(next));
+      } catch {
+        // storage blocked: folders just don't stay open between visits
+      }
+      return next;
+    });
+  return {isOpen, set, move, toggle: (path) => set(path, !isOpen(path))};
 }
 
 // A small menu under an icon button (the "+" menus). Closes on a click outside or Esc.
-function Menu({label, icon, items, className}) {
+export function Menu({label, icon, items, className}) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   useEffect(() => {
@@ -510,7 +563,7 @@ function Menu({label, icon, items, className}) {
 }
 
 // Typing a folder's name (new folder, or rename): Enter saves, Esc cancels
-function FolderNameInput({initial = '', depth, onSubmit, onCancel}) {
+export function FolderNameInput({initial = '', depth, onSubmit, onCancel}) {
   const [value, setValue] = useState(initial);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -557,6 +610,28 @@ function FolderNameInput({initial = '', depth, onSubmit, onCancel}) {
 }
 
 const NOTE_TYPE = 'application/x-bluecore-note';
+const FOLDER_TYPE = 'application/x-bluecore-note-folder';
+
+// Drag props for a folder row, shared with the Notebooks page: drags the folder with all it holds
+export function folderDragProps(node, drag, type) {
+  return {
+    draggable: true,
+    onDragStart: (e) => {
+      e.dataTransfer.setData(type, node.path);
+      e.dataTransfer.setData('text/plain', node.name);
+      e.dataTransfer.effectAllowed = 'move';
+      setTimeout(() => drag.startFolder(node), 0); // Chrome cancels a drag whose source changes as it starts
+    },
+    onDragEnd: drag.end,
+  };
+}
+
+// Whether what's being dragged can go into `folder`: not where it already is, and a folder not into
+// itself or one of its own sub-folders
+export function canDropInto(drag, folder) {
+  if (!drag.dragging || drag.from === folder) return false;
+  return drag.kind !== 'folder' || (folder !== drag.dragging && !folder.startsWith(`${drag.dragging}/`));
+}
 
 function TreeNote({note, depth, ctx}) {
   const {url, selecting, selected, onToggle, drag} = ctx;
@@ -604,7 +679,7 @@ function TreeNote({note, depth, ctx}) {
 function useDropTarget(folder, ctx, onHoverOpen) {
   const {drag} = ctx;
   const timer = useRef(null);
-  const canDrop = drag.dragging && drag.from !== folder;
+  const canDrop = canDropInto(drag, folder);
   const leave = () => {
     clearTimeout(timer.current);
     if (drag.over === folder) drag.setOver(null);
@@ -612,8 +687,9 @@ function useDropTarget(folder, ctx, onHoverOpen) {
   // Both dragenter and dragover accept the note: browsers that follow the spec closely (Firefox)
   // only drop on a target whose dragenter was accepted too
   const accept = (e) => {
-    if (!canDrop || !e.dataTransfer.types.includes(NOTE_TYPE)) return;
+    if (!canDrop || !(e.dataTransfer.types.includes(NOTE_TYPE) || e.dataTransfer.types.includes(FOLDER_TYPE))) return;
     e.preventDefault();
+    e.stopPropagation(); // the innermost folder takes it, not the folders around it
     e.dataTransfer.dropEffect = 'move';
     if (drag.over !== folder) {
       drag.setOver(folder);
@@ -630,7 +706,7 @@ function useDropTarget(folder, ctx, onHoverOpen) {
       onDrop: (e) => {
         e.preventDefault();
         clearTimeout(timer.current);
-        const path = e.dataTransfer.getData(NOTE_TYPE);
+        const path = e.dataTransfer.getData(NOTE_TYPE) || e.dataTransfer.getData(FOLDER_TYPE);
         if (path && canDrop) drag.drop(path, folder);
       },
     },
@@ -638,18 +714,25 @@ function useDropTarget(folder, ctx, onHoverOpen) {
 }
 
 function TreeFolder({node, depth, ctx}) {
-  const {open, selecting, selected, onToggle, onExport, busy, editing, setEditing, actions} = ctx;
+  const {open, selecting, selected, onToggle, onExport, busy, editing, setEditing, actions, drag} = ctx;
   const isOpen = open.isOpen(node.path);
   const drop = useDropTarget(node.path, ctx, () => open.set(node.path, true));
   const empty = !node.all.length && !node.folders.length;
   const renaming = editing?.mode === 'rename' && editing.path === node.path;
+  const dragging = drag.kind === 'folder' && (drag.dragging === node.path || node.path.startsWith(`${drag.dragging}/`));
   return (
     <li>
       {renaming ? (
         <FolderNameInput initial={node.name} depth={depth} onSubmit={(name) => actions.renameFolder(node.path, name)} onCancel={() => setEditing(null)} />
       ) : (
-        <div className={`${styles.folderRow} ${drop.over ? styles.dropOver : ''}`} style={{'--depth': depth}} {...drop.props}>
-          {selecting && <GroupCheck paths={node.all} selected={selected} onToggle={onToggle} label={node.name} />}
+        <div
+          className={`${styles.folderRow} ${drop.over ? styles.dropOver : ''} ${dragging ? styles.dragSource : ''}`}
+          style={{'--depth': depth}}
+          title={selecting ? undefined : 'Drag onto another folder to move it, with everything in it'}
+          {...(selecting ? {} : folderDragProps(node, drag, FOLDER_TYPE))}
+          {...drop.props}
+        >
+          {selecting && <GroupCheck paths={[...node.all, ...node.dirs]} selected={selected} onToggle={onToggle} label={node.name} />}
           <button type="button" className={styles.folderToggle} onClick={() => open.toggle(node.path)} aria-expanded={isOpen}>
             {isOpen ? <FolderOpenIcon size={15} /> : <FolderIcon size={15} />}
             <span className={styles.treeLabel}>{node.name}</span>
@@ -741,7 +824,7 @@ function FolderTree({notes, list, url, filtered, ...props}) {
   const open = useOpenFolders(url.note, filtered);
   const [editing, setEditing] = useState(null); // {mode: 'new', parent} | {mode: 'rename', path}
   const [message, setMessage] = useState(null);
-  const [dragging, setDragging] = useState(null); // {path, from}
+  const [dragging, setDragging] = useState(null); // {path, from, kind: 'note' | 'folder'}
   const [over, setOver] = useState(null);
 
   const done = async (text) => {
@@ -759,7 +842,7 @@ function FolderTree({notes, list, url, filtered, ...props}) {
     },
     renameFolder: async (path, name) => {
       const {folder} = await call('/folder/rename', {method: 'POST', body: {path, name}});
-      open.set(folder, open.isOpen(path));
+      if (folder !== path) open.move(path, folder);
       // The open note was inside: follow it to its new path
       if (url.note?.startsWith(`${path}/`)) url.go(url.href({note: folder + url.note.slice(path.length)}), {replace: true});
       await done();
@@ -772,20 +855,34 @@ function FolderTree({notes, list, url, filtered, ...props}) {
   const drag = {
     dragging: dragging?.path,
     from: dragging?.from,
+    kind: dragging?.kind,
     over,
     setOver,
     start: (note) => {
       setMessage(null);
-      setDragging({path: note.path, from: note.folder});
+      setDragging({path: note.path, from: note.folder, kind: 'note'});
+    },
+    startFolder: (node) => {
+      setMessage(null);
+      setDragging({path: node.path, from: node.path.includes('/') ? node.path.slice(0, node.path.lastIndexOf('/')) : '', kind: 'folder'});
     },
     end: () => {
       setDragging(null);
       setOver(null);
     },
     drop: async (path, folder) => {
+      const kind = dragging?.kind;
       setDragging(null);
       setOver(null);
       try {
+        if (kind === 'folder') {
+          const moved = await call('/folder/move', {method: 'POST', body: {path, folder}});
+          open.move(path, moved.folder);
+          if (folder) open.set(folder, true);
+          // The open note was inside: follow it to its new path
+          if (url.note?.startsWith(`${path}/`)) url.go(url.href({note: moved.folder + url.note.slice(path.length)}), {replace: true});
+          return await done(`Moved the folder “${path.split('/').pop()}” to ${folder || 'the top level'}`);
+        }
         const moved = await call('/move', {method: 'POST', body: {path, folder}});
         if (url.note === path) url.go(url.href({note: moved.path}), {replace: true});
         if (folder) open.set(folder, true);
@@ -849,7 +946,8 @@ function useSearch(q) {
 function NoteList({list, url, onJump, onCollapse}) {
   const ex = useExporter(list);
   const trash = useTrash(list.notes.length);
-  const [deleting, setDeleting] = useState(null);
+  const [deleting, setDeleting] = useState(null); // {notes, folders}
+  const [kept, setKept] = useState(null); // folders a delete left because they weren't empty
   const [query, setQuery] = useState(url.q);
   useEffect(() => {
     setQuery(url.q);
@@ -912,15 +1010,16 @@ function NoteList({list, url, onJump, onCollapse}) {
           {/* One checkbox for every note shown: ticks them all, or clears them when all are ticked */}
           <label className={styles.selectAll}>
             <GroupCheck paths={notes.map((n) => n.path)} selected={ex.selected} onToggle={ex.toggle} label="the list" />
-            {ex.chosen.length ? (
-              <span>
-                <strong>{ex.chosen.length}</strong> selected
-              </span>
-            ) : (
-              'Select all'
-            )}
+            {ex.chosen.length || ex.chosenFolders.length ? <SelectionCount items={ex.chosen.length} folders={ex.chosenFolders.length} kind="note" /> : 'Select all'}
           </label>
-          <button type="button" className={`${styles.iconOnly} ${styles.danger}`} onClick={() => setDeleting(ex.chosen)} disabled={!ex.chosen.length || ex.state?.busy} title="Delete selected notes" aria-label="Delete selected notes">
+          <button
+            type="button"
+            className={`${styles.iconOnly} ${styles.danger}`}
+            onClick={() => setDeleting({notes: ex.chosen, folders: ex.chosenFolders})}
+            disabled={!(ex.chosen.length || ex.chosenFolders.length) || ex.state?.busy}
+            title="Delete selected notes and folders"
+            aria-label="Delete selected notes and folders"
+          >
             <TrashIcon />
           </button>
           <button type="button" className={`button button--primary button--sm ${styles.withIcon}`} onClick={ex.exportChosen} disabled={!ex.chosen.length || ex.state?.busy}>
@@ -929,15 +1028,25 @@ function NoteList({list, url, onJump, onCollapse}) {
         </div>
       )}
       <ConfirmDelete
-        notes={deleting}
+        notes={deleting?.notes}
+        folders={deleting?.folders}
         onCancel={() => setDeleting(null)}
-        onDeleted={async (paths) => {
+        onDeleted={async (paths, kept) => {
           setDeleting(null);
           ex.stop();
           await list.reload();
           if (paths.includes(url.note)) url.go(url.href({note: null, edit: null}), {replace: true});
+          if (kept?.length) setKept(kept);
         }}
       />
+      {kept && (
+        <p className={styles.sideError} role="alert">
+          {kept.length === 1 ? `Kept the folder “${kept[0].folder}”` : `Kept ${kept.length} folders`}: {kept.length === 1 ? 'it still holds' : 'they still hold'} notes or folders you didn't select.
+          <button type="button" className={styles.tagRemove} onClick={() => setKept(null)} aria-label="Dismiss">
+            <XIcon size={12} />
+          </button>
+        </p>
+      )}
       {ex.state?.error && (
         <p className={styles.sideError} role="alert">
           Export failed: {ex.state.error}
@@ -1355,7 +1464,7 @@ function NoteView({list, url, resolve, flash}) {
 
 // --- Writing -------------------------------------------------------------------------------------
 
-function TagInput({tags, onChange, known}) {
+export function TagInput({tags, onChange, known}) {
   const [draft, setDraft] = useState('');
   const add = (raw) => {
     const t = raw.trim().replace(/^#/, '').replace(/\s+/g, '-');
@@ -1897,23 +2006,6 @@ function NoteCard({note, to}) {
   );
 }
 
-function Stat({icon, value, label, to}) {
-  const body = (
-    <>
-      <span className={styles.statIcon}>{icon}</span>
-      <span className={styles.statValue}>{value}</span>
-      <span className={styles.statLabel}>{label}</span>
-    </>
-  );
-  return to ? (
-    <Link to={to} className={`${styles.stat} ${styles.statLink}`}>
-      {body}
-    </Link>
-  ) : (
-    <div className={styles.stat}>{body}</div>
-  );
-}
-
 const WAYS = [
   [EditIcon, 'Here', <><em>New note</em>, or open a note and choose <em>Edit</em>. Start from a template, paste images, link notes with <code>[[</code>.</>],
   [SparkleIcon, 'Ask the docs', <>Ask it to save something, or use <em>Save as note</em> under an answer.</>],
@@ -1932,30 +2024,25 @@ function Overview({list, url}) {
   const noteTo = (n) => url.href({note: n.path, edit: null, new: null, title: null});
   return (
     <div className={styles.overview}>
-      <header className={styles.hero}>
-        <div>
-          <h1>Your notes</h1>
-          <p className={styles.lead}>
+      <PageHero
+        title="Your notes"
+        lead={
+          <>
             Markdown files in your vault{list.vault ? <> “{list.vault}”</> : null}, also open in Obsidian. Press <kbd className={styles.kbd}>{mac ? '⌘' : 'Ctrl'}</kbd>{' '}
             <kbd className={styles.kbd}>P</kbd> to jump to one.
-          </p>
-        </div>
-        <div className={styles.overviewActions}>
-          <Link to={url.href({new: true})} className={`button button--primary ${styles.withIcon}`}>
-            <PlusIcon size={16} /> New note
-          </Link>
-          <Link to="/guides/notes" className={`button button--secondary ${styles.withIcon}`}>
-            <HelpIcon size={16} /> How notes work
-          </Link>
-        </div>
-      </header>
-
-      <div className={styles.stats}>
-        <Stat icon={<NoteIcon size={18} />} value={notes.length} label={notes.length === 1 ? 'note' : 'notes'} />
-        <Stat icon={<ClockIcon size={18} />} value={week} label="changed this week" />
-        <Stat icon={<TagIcon size={18} />} value={list.tags.length} label={list.tags.length === 1 ? 'tag' : 'tags'} to={url.href({view: 'tags'})} />
-        <Stat icon={<SparkleIcon size={18} />} value={ai} label="written by AI" />
-      </div>
+          </>
+        }
+        actions={[
+          {label: 'New note', to: url.href({new: true}), icon: <PlusIcon size={16} />, primary: true},
+          {label: 'How notes work', to: '/guides/notes', icon: <HelpIcon size={16} />},
+        ]}
+        stats={[
+          {icon: <NoteIcon size={18} />, value: notes.length, label: notes.length === 1 ? 'note' : 'notes'},
+          {icon: <ClockIcon size={18} />, value: week, label: 'changed this week'},
+          {icon: <TagIcon size={18} />, value: list.tags.length, label: list.tags.length === 1 ? 'tag' : 'tags', to: url.href({view: 'tags'})},
+          {icon: <SparkleIcon size={18} />, value: ai, label: 'written by AI'},
+        ]}
+      />
 
       {pinned.length > 0 && (
         <section>

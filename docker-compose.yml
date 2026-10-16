@@ -4,6 +4,10 @@
 #   docker compose --profile prod up --build   → production build served by nginx at http://localhost:8080
 #   Both also start the MCP server for AI agents at http://localhost:3001/mcp (dev: live docs/, prod: build snapshot)
 #   Notes (the Notes page and the notes MCP tools) live in ./notes, or the folder NOTES_DIR names in .env
+#   Notebooks (the Notebooks page and the notebook MCP tools) live in ./notebooks (NOTEBOOKS_DIR) and
+#   run in JupyterLab at http://localhost:8888 (service "jupyter"), against your local Bluecore stack or a
+#   deployed environment (dev, stage)
+#   Your bluecore-stack checkout (BLUECORE_STACK_DIR in .env) is mounted read-only at /bluecore-stack
 
 x-app: &app
   build:
@@ -13,8 +17,15 @@ x-app: &app
   environment:
     BASE_URL: /
     SYNC_FORCE: ${SYNC_FORCE:-} # `SYNC_FORCE=1 make sync` converts unchanged Drive/Box files again
+    BLUECORE_STACK_DIR: /bluecore-stack
+    BLUECORE_STACK_SOURCE: ${BLUECORE_STACK_DIR:-}
+    JUPYTER_NOTEBOOK: ${JUPYTER_NOTEBOOK:-false} # true: the Notebooks page (and make starts JupyterLab)
   env_file:
     - path: .env
+      required: false
+    # Logins for deployed environments, for notebooks; the MCP server only reads them to keep them out
+    # of what it sends to AI agents
+    - path: .env.notebooks
       required: false
   volumes:
     - .:/app
@@ -29,6 +40,13 @@ x-app: &app
     - ${BOX_DIR:-./imports/box}:/box:ro
     # Notes vault, read and written by the MCP server (set NOTES_DIR in .env to use an existing Obsidian vault)
     - ${NOTES_DIR:-./notes}:/notes
+    # Jupyter notebooks, shared with the jupyter service; the MCP server reads, edits and runs them
+    - ${NOTEBOOKS_DIR:-./notebooks}:/notebooks
+    # JupyterLab's token, written by the jupyter service when it starts
+    - jupyter-token:/run/jupyter:ro
+    # Your bluecore-stack checkout (BLUECORE_STACK_DIR in .env), read-only: the local_stack MCP tool.
+    # Unset, this is an empty folder and the tool says so.
+    - ${BLUECORE_STACK_DIR:-./imports/bluecore-stack}:/bluecore-stack:ro
 
 services:
   docs:
@@ -47,8 +65,54 @@ services:
       NOTES_DIR: /notes
       NOTES_SOURCE: ${NOTES_DIR:-./notes} # the vault's name in Obsidian is this folder's name
       NOTES_VAULT_NAME: ${NOTES_VAULT_NAME:-}
+      NOTEBOOKS_DIR: /notebooks
+      NOTEBOOKS_SOURCE: ${NOTEBOOKS_DIR:-./notebooks}
+      JUPYTER_URL: http://jupyter:8888
+      JUPYTER_NOTEBOOK: ${JUPYTER_NOTEBOOK:-false} # true: the notebook API and tools
+      BLUECORE_STACK_DIR: /bluecore-stack
+      BLUECORE_STACK_SOURCE: ${BLUECORE_STACK_DIR:-}
+      # "mcp": notebooks in the jupyter container call the dashboard's live API at http://mcp:3001
+      MCP_ALLOWED_HOSTS: mcp,${MCP_ALLOWED_HOSTS:-}
     ports:
       - "127.0.0.1:3001:3001" # this machine only: the docs include internal Google Drive pages
+
+  # JupyterLab for debugging and troubleshooting the Bluecore stack: notebooks in ./notebooks, a Python
+  # kernel that reaches your local stack through host.docker.internal and the deployed environments
+  # over the internet. The Notebooks page and the notebook MCP tools run cells here. Off by default:
+  # only built and started with the "notebooks" profile, which make adds when JUPYTER_NOTEBOOK=true.
+  jupyter:
+    build: docker/jupyter
+    image: bluecore-dev-dashboard-jupyter
+    profiles: ["notebooks"]
+    # Logins for the deployed environments (BLUECORE_DEV_AIRFLOW_USER, …; see .env.notebooks.example).
+    # Not .env: the kernel runs code agents write, so it never gets GITHUB_TOKEN.
+    env_file:
+      - path: .env.notebooks
+        required: false
+    environment:
+      # The local stack. Empty: docker/jupyter/bluecore.py reads them from your stack checkout's .env
+      # (BLUECORE_STACK_DIR), else the stack's documented local-development defaults.
+      BLUECORE_URL: ${BLUECORE_URL:-}
+      BLUECORE_DB_URL: ${BLUECORE_DB_URL:-}
+      AIRFLOW_USER: ${AIRFLOW_USER:-}
+      AIRFLOW_PASSWORD: ${AIRFLOW_PASSWORD:-}
+      KEYCLOAK_USERNAME: ${KEYCLOAK_USERNAME:-}
+      KEYCLOAK_PASSWORD: ${KEYCLOAK_PASSWORD:-}
+      BLUECORE_STACK_DIR: /bluecore-stack
+      BLUECORE_STACK_SOURCE: ${BLUECORE_STACK_DIR:-}
+      DASHBOARD_API_URL: http://mcp:3001/api
+      DASHBOARD_SOURCES: /dashboard/docs-sources.json # the deployed environments (versionDrift.environments)
+      JUPYTER_TOKEN: ${JUPYTER_TOKEN:-}
+    volumes:
+      - ${NOTEBOOKS_DIR:-./notebooks}:/notebooks
+      - jupyter-token:/run/jupyter
+      - ${BLUECORE_STACK_DIR:-./imports/bluecore-stack}:/bluecore-stack:ro
+      - ./docs-sources.json:/dashboard/docs-sources.json:ro
+      - ./docker/jupyter:/opt/bluecore:ro # bluecore.py: edits apply on a kernel restart (a folder, so editors that replace the file still work)
+    ports:
+      - "127.0.0.1:8888:8888" # this machine only
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # your local Bluecore stack (built in on Docker Desktop)
 
   sync:
     <<: *app
@@ -59,6 +123,8 @@ services:
     build:
       context: .
       target: prod
+      args:
+        JUPYTER_NOTEBOOK: ${JUPYTER_NOTEBOOK:-false} # true: the build includes the Notebooks page and links
     image: bluecore-dev-dashboard
     ports:
       - "8080:80"
@@ -77,14 +143,31 @@ services:
     env_file: # GITHUB_TOKEN for the live Project Status data
       - path: .env
         required: false
+      - path: .env.notebooks # only read to keep these logins out of what goes to AI agents
+        required: false
     environment:
-      MCP_ALLOWED_HOSTS: ${MCP_ALLOWED_HOSTS:-}
+      MCP_ALLOWED_HOSTS: mcp,${MCP_ALLOWED_HOSTS:-}
+      JUPYTER_NOTEBOOK: ${JUPYTER_NOTEBOOK:-false}
+      BLUECORE_STACK_DIR: /bluecore-stack
+      BLUECORE_STACK_SOURCE: ${BLUECORE_STACK_DIR:-}
       NOTES_DIR: /notes
       NOTES_SOURCE: ${NOTES_DIR:-./notes}
       NOTES_VAULT_NAME: ${NOTES_VAULT_NAME:-}
+      NOTEBOOKS_DIR: /notebooks
+      NOTEBOOKS_SOURCE: ${NOTEBOOKS_DIR:-./notebooks}
+      JUPYTER_URL: http://jupyter:8888
     volumes:
       - ${NOTES_DIR:-./notes}:/notes # the notes vault (read and written)
+      - ${NOTEBOOKS_DIR:-./notebooks}:/notebooks
+      - jupyter-token:/run/jupyter:ro
+      - ${BLUECORE_STACK_DIR:-./imports/bluecore-stack}:/bluecore-stack:ro
+    networks:
+      default:
+        aliases: [mcp] # notebooks call the live API at http://mcp:3001, as in dev
     ports:
       - "127.0.0.1:3001:3001" # same port as the dev server, so agent configs work for both
     restart: unless-stopped
     profiles: ["prod"]
+
+volumes:
+  jupyter-token: # JupyterLab's current token, shared with the MCP server

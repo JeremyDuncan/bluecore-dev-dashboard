@@ -332,3 +332,12 @@ export const PanelIcon = (p) => (
     <path d="M9 4v16" />
   </Svg>
 );
+
+// A notebook: a page with a code bracket (the Notebooks page)
+export const NotebookIcon = (p) => (
+  <Svg {...p}>
+    <path d="M6 3h11a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6z" />
+    <path d="M6 3v18M3 7h3M3 12h3M3 17h3" />
+    <path d="M11.5 10l-2 2 2 2M14.5 10l2 2-2 2" />
+  </Svg>
+);

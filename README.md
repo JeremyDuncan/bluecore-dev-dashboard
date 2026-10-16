@@ -21,6 +21,7 @@ make sync              # pull all sources again while the site runs
 make prod              # pull all sources, then production build served by nginx at http://localhost:8080
 make mcp               # only the dev MCP server for AI agents (make up and make prod start one too)
 make chat              # only the "Ask the docs" chat helper (make up / make prod start it automatically)
+make lab               # print JupyterLab's address with its token (make up / make prod start JupyterLab on :8888)
 make down              # stop everything
 ```
 
@@ -181,6 +182,19 @@ Settings (environment): `CHAT_PROVIDER` (`claude`), `CHAT_CLAUDE_MODEL` (`sonnet
 
 Notes are local only: the public build has no Notes link (`LIVE_API_URL: ''`), and in `make prod` nginx only serves them to `localhost`. The vault is handled by the MCP server (`mcp/notes.mjs`, `notes-api.mjs`, `notes-tools.mjs`); the page is `src/pages/notes.js`. See the [Notes guide](docs/guides/notes.md).
 
+### Notebooks
+**Notebooks** (navbar, local only) are Jupyter notebooks for debugging and troubleshooting the Bluecore stack. Off by default: with `JUPYTER_NOTEBOOK=true` in `.env`, `make up` builds and starts JupyterLab (`http://localhost:8888`, service `jupyter`, compose profile `notebooks`) next to the site; its Python kernel reaches your running stack through `host.docker.internal`: the API, Postgres, Airflow and Keycloak.
+
+- **Starters** (`mcp/starter-notebooks/`): stack health check, Blue Core API explorer, Postgres inspection, Airflow DAG runs, integration test triage.
+- **Organizing:** the list works like Notes: search (code and outputs too), by date / tag / folder, folders with drag-and-drop, tags, pins, select to export (`.ipynb` / `.zip`) or delete, copies, a Trash with restore (JupyterLab's deletions included), and Copy on outputs (tables paste as tables).
+- **On the site:** a full notebook editor: edit, add, move, retype and delete cells, run one or all (Shift+Enter, Stop, restart), rename, clear outputs; edits save on their own. Tables, charts and tracebacks show as in Jupyter. JupyterLab is one click away under **More**.
+- **Environments:** each notebook runs against **local** (your stack), **dev** or **stage** (the deployed sites in `docs-sources.json` → `versionDrift.environments`), picked on the page. Notebooks connect through `from bluecore import target` (`docker/jupyter/bluecore.py`), which knows each environment's address and logins and keeps deployed ones read-only. Logins for dev and stage go in `.env.notebooks` (see `.env.notebooks.example`); only JupyterLab gets them.
+- **AI:** agents get `list_notebooks`, `read_notebook`, `create_notebook`, `update_notebook` and `run_notebook`. They write and run notebooks only when you ask, and each notebook records which agent and model wrote it and who ran it last.
+- **Environment variables:** kernels start with variables matching the notebook's environment (locally, every setting of your stack, e.g. `API_KEYCLOAK_USER`), for notebooks that read `os.environ`. The image includes `bluecore-client`.
+- **Your stack checkout:** set `BLUECORE_STACK_DIR` in `.env` to your bluecore-stack checkout. It's mounted read-only into JupyterLab (local notebooks use its `.env` logins) and the MCP server (the `local_stack` tool). To override one local setting, set `BLUECORE_URL`, `BLUECORE_DB_URL`, `AIRFLOW_USER` / `AIRFLOW_PASSWORD` or `KEYCLOAK_USERNAME` / `KEYCLOAK_PASSWORD` in `.env`.
+
+Notebooks are git-ignored files in `notebooks/` (or `NOTEBOOKS_DIR`). JupyterLab writes a new random token on every start to a volume the MCP server reads; it's only reachable from this machine, and in `make prod` nginx serves the notebooks API to `localhost` only, because running a notebook runs code. Code: `mcp/notebooks.mjs`, `jupyter.mjs`, `notebooks-api.mjs`, `notebooks-tools.mjs`; the page is `src/pages/notebooks.js`. See the [Notebooks guide](docs/guides/notebooks.md).
+
 ### Google Docs setup
 - **If your organization blocks Google API access (no token possible):** in Google Drive, right-click the folder → **Download**. Google zips the Docs as `.docx`. Put the `.zip` in `imports/<name>/` (matching a `driveDownloads` entry in `docs-sources.json`) and run `make sync`. Pandoc converts every doc to Markdown, including images, and keeps the folder structure. Re-download to update. Everything in `imports/` is git-ignored, and the section is left out of the site when the folder is empty.
 - **Easiest:** share the doc as *Anyone with the link → Viewer*, then paste its ID (the long string in the URL between `/d/` and `/edit`) into `docs-sources.json`.
@@ -216,7 +230,7 @@ ngrok http 8080 --basic-auth="bluecore:a-long-password"     # terminal 2 (passwo
 - `https://<your-site>/llms-full.txt` contains the entire doc set in one file. Give it to your agent to "chat with the docs."
 
 ### MCP server (agents search the docs themselves)
-`make up` also starts an [MCP](https://modelcontextprotocol.io) server at **`http://localhost:3001/mcp`**. Any MCP-capable agent (Claude Code, Claude Desktop, Cursor, VS Code Copilot, …) can then look things up in the docs while it works. Its tools are read-only, except `create_note` and `update_note`, which add to your notes:
+`make up` also starts an [MCP](https://modelcontextprotocol.io) server at **`http://localhost:3001/mcp`**. Any MCP-capable agent (Claude Code, Claude Desktop, Cursor, VS Code Copilot, …) can then look things up in the docs while it works. Its tools are read-only, except the note tools (which add to and change your notes) and the notebook tools (which write and run notebooks), and agents use those only when you ask:
 
 | Tool | What it does |
 |---|---|
@@ -230,6 +244,7 @@ ngrok http 8080 --basic-auth="bluecore:a-long-password"     # terminal 2 (passwo
 | `list_releases` | Latest releases per repo with highlights, or full notes. |
 | `list_files` / `get_file` | List a repo's files (filter by folder or text) and read any file, or part of one, on any branch. |
 | `search_code` | GitHub code search across the org's repos, with the matching lines (GitHub allows ~10 code searches a minute). GitHub doesn't index forks, so for marva_editor and graph-toolbox it lists matching file names instead. |
+| `local_stack` | Your own bluecore-stack checkout (`BLUECORE_STACK_DIR`): branch, last commit, uncommitted changes, compose files and services, `.env` setting names; pass `path` to read a file as it is on your machine. Secret files aren't readable. |
 | `fork_changes` | For forks (marva_editor, graph-toolbox): what the fork changed vs its upstream project: commits ahead/behind, files added/modified by folder, commit messages, and a file's diff. |
 | `ci_status` | Latest GitHub Actions run of every workflow per repo (default branch), with the failed steps. |
 | `recent_changes` | Pull requests merged since a date (default 7 days), grouped by repo; bot dependency updates hidden by default. |
@@ -241,7 +256,9 @@ ngrok http 8080 --basic-auth="bluecore:a-long-password"     # terminal 2 (passwo
 | `docs_health` | Cleanup list: stale pages, broken links between pages (missing pages or headings), near-empty pages, repos without docs. |
 | `list_notes` / `search_notes` / `read_note` / `list_note_tags` | Your [notes](#notes): list them by tag, folder or date, search them, read one (or one `section` of it, with its backlinks, and with `include_images` the images it embeds), list the tags. |
 | `related_notes` / `list_tasks` / `list_templates` / `list_attachments` / `get_note_image` / `notes_for_doc` / `notes_health` | A note's links, backlinks and notes sharing its tags; open checklist items across notes; templates; images and which notes use them; one image to look at; notes about a docs page; and a tidy-up list. |
-| `create_note` / `update_note` / `duplicate_note` / `complete_task` / `rename_note` / `pin_note` / `attach_image` / `save_template` | Add a note (optionally from a template), append to one, replace its text, change its tags or folder, copy it, tick a task, rename (updating links), pin, add an image, or save a template. The only tools that write anything. Agents can't delete notes; only you can, on the Notes page. |
+| `create_note` / `update_note` / `duplicate_note` / `complete_task` / `rename_note` / `pin_note` / `attach_image` / `save_template` | Add a note (optionally from a template), append to one, replace its text, change its tags or folder, copy it, tick a task, rename (updating links), pin, add an image, or save a template. Agents can't delete notes; only you can, on the Notes page. |
+| `list_notebooks` / `read_notebook` | Your [notebooks](#notebooks) and the starters; one notebook's cells and saved outputs (tracebacks included, charts with `include_images`). |
+| `create_notebook` / `update_notebook` / `run_notebook` | Write a notebook (optionally from a starter), add, change or delete cells, and run them in JupyterLab against your local stack, dev or stage (`target`), saving the outputs (secret values hidden). With the note tools, the only tools that change anything; `run_notebook` runs code on your machine. |
 
 **Prompts** (one-click reports; in Claude Code they're slash commands like `/mcp__docs__standup_summary`): `standup_summary`, `weekly_update`, `onboarding_plan`, `summarize_epic`, `docs_cleanup`, `notes_review`.
 

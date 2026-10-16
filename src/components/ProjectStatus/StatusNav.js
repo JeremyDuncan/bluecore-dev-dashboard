@@ -4,6 +4,7 @@
 // site has no project board.
 import React from 'react';
 import Link from '@docusaurus/Link';
+import PageHero from '../PageHero';
 import styles from './styles.module.css';
 
 const PATHS = {
@@ -105,15 +106,32 @@ function NavLink({page: p, active, sub}) {
   );
 }
 
-// Row of icon links at the top of each Project Status page. Pages with a `group` (each test suite,
-// group "tests") get a second row, shown on the group's page and on every page in the group.
-export default function StatusNav({pages, current}) {
+// The top of each Project Status page: the site's page header (PageHero) with the page's title and
+// description (the generated pages hide Docusaurus's own title), then a row of icon links. Pages with
+// a `group` (each test suite, group "tests") get a second row, shown on the group's page and on every
+// page in the group. hero={false} leaves the header out (the overview page writes its own).
+export default function StatusNav({pages, current, hero = true}) {
   const page = pages.find((p) => p.id === current);
   const group = page?.group ?? (pages.some((p) => p.group === current) ? current : null);
   const members = group ? pages.filter((p) => p.group === group) : [];
+  const groupTitle = group && pages.find((p) => p.id === group)?.title;
+  return (
+    <>
+      {hero && page && (
+        <PageHero
+          eyebrow={`Project Status${page.group && groupTitle ? ` · ${groupTitle}` : ''} · live from GitHub`}
+          title={page.title}
+          lead={page.description}
+        />
+      )}
+      <StatusNavRows pages={pages} current={current} group={group} members={members} />
+    </>
+  );
+}
+
+function StatusNavRows({pages, current, group, members}) {
   return (
     <nav className={styles.statusNav} aria-label="Project Status pages">
-      <p className={styles.statusNavIntro}>Live GitHub activity for the Blue Core repositories (a dashboard, not documentation).</p>
       <ul>
         {pages
           .filter((p) => !p.group)

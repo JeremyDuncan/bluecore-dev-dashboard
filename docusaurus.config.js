@@ -42,6 +42,8 @@ const STACK_URL = `/${STACK_DIR}/`;
 // Live GitHub data and the Notes page come from the MCP container (mcp/live-api.mjs, notes-api.mjs).
 // Empty (the public deploy) = Project Status shows its snapshot and there are no notes.
 const LIVE_API_URL = process.env.LIVE_API_URL ?? 'http://localhost:3001/api';
+// Jupyter notebooks (the Notebooks page): local only, and off unless JUPYTER_NOTEBOOK=true in .env
+const NOTEBOOKS = Boolean(LIVE_API_URL) && /^(true|1|yes|on)$/i.test(String(process.env.JUPYTER_NOTEBOOK ?? '').trim());
 
 // Sidebar icon for each top-level section, by its folder under docs/ (drawn in src/css/custom.css,
 // .sidebar-icon--<name>). Sections not listed get a folder icon.
@@ -166,6 +168,8 @@ const config = {
     liveApiUrl: LIVE_API_URL,
     // "Ask the docs" chat helper (chat/server.mjs, `make chat`), which uses your Claude Code CLI. Empty = no chat box.
     chatApiUrl: process.env.CHAT_API_URL ?? 'http://localhost:3002',
+    // The Notebooks page and links to it (only with JUPYTER_NOTEBOOK=true, never on the public site)
+    notebooks: NOTEBOOKS,
   },
 
   i18n: {
@@ -274,6 +278,8 @@ const config = {
           ...ifSection('project-status', {to: '/project-status', label: 'Project Status', position: 'right', className: 'navbar-icon sidebar-icon--status'}),
           // Your notes vault (src/pages/notes.js): local only, so not on the public site
           ...(LIVE_API_URL ? [{to: '/notes', label: 'Notes', position: 'right', className: 'navbar-icon sidebar-icon--notes'}] : []),
+          // Jupyter notebooks for debugging the stack (src/pages/notebooks.js): local only, like Notes
+          ...(NOTEBOOKS ? [{to: '/notebooks', label: 'Notebooks', position: 'right', className: 'navbar-icon sidebar-icon--notebook'}] : []),
           {href: 'https://github.com/blue-core-lod', label: 'GitHub', position: 'right', className: 'navbar-icon sidebar-icon--github'},
           // Guides: a small "?" with a tooltip rather than a full link (the label shows in the phone menu)
           ...ifSection('guides', {

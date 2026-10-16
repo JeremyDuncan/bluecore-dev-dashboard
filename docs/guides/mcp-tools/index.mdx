@@ -3,16 +3,18 @@ title: MCP tools
 sidebar_label: Overview
 hide_table_of_contents: true
 description: Every tool and prompt the Blue Core MCP server gives AI agents, what each is for, and how to chain them.
+hide_title: true
 ---
 
 import {Card, Cards, Part} from '@site/src/components/Welcome';
 import {GroupCards, McpHero} from '@site/src/components/McpTools';
 
-# MCP tools
-
-The docs site runs an [MCP](https://modelcontextprotocol.io) server, so an AI agent (Claude Code, Codex, Cursor, VS Code Copilot, …) can look things up while it works: it searches these docs, reads live GitHub data for the `blue-core-lod` org, reads the Blue Core API spec, and reads and writes your notes. These pages cover every tool, what it's for, and how agents chain them.
-
-<McpHero tools={41} writes={8} prompts={7} />
+<McpHero
+  tools={47}
+  writes={11}
+  prompts={7}
+  lead={<>The docs site runs an <a href="https://modelcontextprotocol.io">MCP</a> server, so an AI agent (Claude Code, Codex, Cursor, VS Code Copilot, …) can look things up while it works: these docs, live GitHub data for the <code>blue-core-lod</code> org, the Blue Core API spec, your notes, and Jupyter notebooks it writes and runs. These pages cover every tool, what it's for, and how agents chain them.</>}
+/>
 
 <Part icon="mcp" title="Start here">
   Connect once, then try a prompt.
@@ -22,7 +24,7 @@ The docs site runs an [MCP](https://modelcontextprotocol.io) server, so an AI ag
   <Card icon="mcp" title="Connect your agent" to="/guides/mcp-tools/connect" meta="Claude Code, Codex, other agents">
     Add the server to your agent in one command, and check that it works.
   </Card>
-  <Card icon="help" title="Example prompts" to="/guides/mcp-tools/example-prompts" meta="18 prompts in 6 categories">
+  <Card icon="help" title="Example prompts" to="/guides/mcp-tools/example-prompts" meta="22 prompts in 7 categories">
     Real prompts for Blue Core work, each with a copy button.
   </Card>
   <Card icon="status-overview" title="Prompts" to="/guides/mcp-tools/prompts" meta="7 slash commands">
@@ -31,7 +33,7 @@ The docs site runs an [MCP](https://modelcontextprotocol.io) server, so an AI ag
 </Cards>
 
 <Part icon="code" title="Tool reference">
-  The 41 tools in seven groups. Each card says what the tool does, when to use it, and its arguments.
+  The 47 tools in eight groups. Each card says what the tool does, when to use it, and its arguments.
 </Part>
 
 <GroupCards />

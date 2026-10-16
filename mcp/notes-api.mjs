@@ -7,10 +7,12 @@
 //   PUT  /api/notes/note?path=<path>    save {body, tags, baseMtime} (409 if it changed meanwhile)
 //   GET  /api/notes/file?path=<path>    an image or PDF from the vault (for ![[embeds]])
 //   POST /api/notes/export              {paths, name} → a zip of those notes and the images they embed
-//   POST /api/notes/delete              {paths} → moves those notes to the vault's .trash folder
+//   POST /api/notes/delete              {paths, folders?} → moves those notes to the vault's .trash folder, then deletes
+//                                       the folders named that are empty by then
 //   POST /api/notes/move                {path, folder} → moves a note to a folder ('' = top level)
 //   POST /api/notes/folder              {path} → creates a folder
 //   POST /api/notes/folder/rename       {path, name} → renames a folder
+//   POST /api/notes/folder/move         {path, folder} → moves a folder, with everything in it ('' = top level)
 //   POST /api/notes/folder/delete       {path} → deletes an empty folder
 //   POST /api/notes/pin                 {path, pinned} → pins or unpins a note
 //   POST /api/notes/rename              {path, title} → renames a note and updates [[links]] to it
@@ -43,7 +45,7 @@ import {
   saveTemplate,
   TEMPLATE_DIR,
 } from './notes.mjs';
-import {allTags, createFolder, createNote, deleteFolder, deleteNotes, exportFiles, listFolders, moveNote, renameFolder, findAttachment, listNotes, NoteError, readAttachment, readNote, searchNotes, updateNote, VAULT_NAME} from './notes.mjs';
+import {allTags, createFolder, createNote, deleteFolder, deleteFolders, deleteNotes, exportFiles, listFolders, moveFolder, moveNote, renameFolder, findAttachment, listNotes, NoteError, readAttachment, readNote, searchNotes, updateNote, VAULT_NAME} from './notes.mjs';
 import {allowedOrigin} from './live-api.mjs';
 import {registerRun} from './agent-runs.mjs';
 
@@ -64,7 +66,7 @@ async function readImage(req) {
   return Buffer.concat(chunks);
 }
 
-function send(res, status, body, origin) {
+export function send(res, status, body, origin) {
   res.writeHead(status, {
     'content-type': 'application/json',
     'cache-control': 'no-store',
@@ -73,7 +75,7 @@ function send(res, status, body, origin) {
   res.end(JSON.stringify(body));
 }
 
-async function readJson(req) {
+export async function readJson(req) {
   if (!/^application\/json\b/i.test(req.headers['content-type'] ?? '')) throw new NoteError(415, 'Send JSON (content-type: application/json)');
   const chunks = [];
   let size = 0;
@@ -181,11 +183,15 @@ export async function handleNotesApi(req, res, pathname) {
     } else if (pathname === '/api/notes/folder/rename' && req.method === 'POST') {
       const {path: folder, name} = await readJson(req);
       send(res, 200, renameFolder(folder, name), origin);
+    } else if (pathname === '/api/notes/folder/move' && req.method === 'POST') {
+      const {path: folder, folder: into} = await readJson(req);
+      send(res, 200, moveFolder(folder, into ?? ''), origin);
     } else if (pathname === '/api/notes/folder/delete' && req.method === 'POST') {
       send(res, 200, deleteFolder((await readJson(req)).path), origin);
     } else if (pathname === '/api/notes/delete' && req.method === 'POST') {
-      const {paths} = await readJson(req);
-      send(res, 200, deleteNotes(paths), origin);
+      const {paths = [], folders = []} = await readJson(req);
+      const notes = paths.length || !folders.length ? deleteNotes(paths) : {deleted: [], trash: '.trash'};
+      send(res, 200, {...notes, ...deleteFolders(folders)}, origin);
     } else if (pathname === '/api/notes/export' && req.method === 'POST') {
       const {paths, name} = await readJson(req);
       const data = zip(exportFiles(paths));

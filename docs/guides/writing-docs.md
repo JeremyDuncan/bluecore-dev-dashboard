@@ -1,6 +1,7 @@
 ---
 title: How these docs work
 sidebar_class_name: sidebar-icon sidebar-icon--design
+description: "How to add or change pages, add a new source to docs-sources.json, and the commands that build and sync the site."
 ---
 
 ## Adding or changing docs

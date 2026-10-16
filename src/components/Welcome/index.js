@@ -60,8 +60,9 @@ export function Featured({icon, title, to, children}) {
 // `needs="chat"` (Ask the docs). The public build sets both URLs empty, so these never show there.
 export function LocalOnly({needs = 'live', children}) {
   const {siteConfig} = useDocusaurusContext();
-  const url = needs === 'chat' ? siteConfig.customFields?.chatApiUrl : siteConfig.customFields?.liveApiUrl;
-  return url ? children : null;
+  const f = siteConfig.customFields ?? {};
+  const on = needs === 'chat' ? f.chatApiUrl : needs === 'notebooks' ? f.notebooks : f.liveApiUrl;
+  return on ? children : null;
 }
 
 const allDocs = (data) => Object.values(data).flatMap((plugin) => plugin.versions.flatMap((v) => v.docs));

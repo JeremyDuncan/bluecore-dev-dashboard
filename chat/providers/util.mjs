@@ -84,5 +84,11 @@ export function describeTool(name, input = {}) {
   if (/notes_for_doc$/.test(name)) return 'Checking your notes about that page';
   if (/notes_health$/.test(name)) return 'Checking your notes for things to tidy';
   if (/fork_changes$/.test(name)) return `Comparing ${input.repo} with its upstream project`;
+  if (/local_stack$/.test(name)) return input.path ? `Reading ${input.path} in your stack checkout` : 'Looking at your local stack checkout';
+  if (/list_notebooks$/.test(name)) return 'Listing your notebooks';
+  if (/read_notebook$/.test(name)) return `Reading the notebook ${input.notebook ?? ''}`;
+  if (/create_notebook$/.test(name)) return `Writing a notebook: “${input.title ?? input.starter ?? ''}”`;
+  if (/update_notebook$/.test(name)) return `Editing the notebook ${input.notebook ?? ''}`;
+  if (/run_notebook$/.test(name)) return `Running the notebook ${input.notebook ?? ''}${input.target ? ` against ${input.target}` : ''} in JupyterLab`;
   return 'Working…';
 }

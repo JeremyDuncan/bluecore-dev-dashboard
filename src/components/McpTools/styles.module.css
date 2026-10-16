@@ -9,67 +9,22 @@
   --mcp-on-accent: var(--bc-navy);
 }
 
-.hero {
-  --hero-fg: #ffffff;
-  --hero-dim: rgba(222, 241, 255, 0.78);
-  --hero-line: rgba(97, 198, 255, 0.28);
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 24px;
-  align-items: center;
-  margin: 8px 0 32px;
-  padding: 26px 28px;
-  border-radius: 16px;
-  background:
-    radial-gradient(120% 140% at 100% 0%, rgba(97, 198, 255, 0.28), transparent 55%),
-    linear-gradient(135deg, var(--bc-navy) 0%, var(--bc-core-blue) 100%);
-  color: var(--hero-fg);
-}
-
-[data-theme='dark'] .hero {
-  border: 1px solid var(--hero-line);
-  background:
-    radial-gradient(120% 140% at 100% 0%, rgba(97, 198, 255, 0.2), transparent 55%),
-    linear-gradient(135deg, #06144f 0%, var(--bc-navy) 100%);
-}
-
-.heroMain {
-  min-width: 0;
-}
-
-.eyebrow {
-  display: block;
-  margin-bottom: 8px;
-  color: var(--bc-accent-blue);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.heroLead {
-  max-width: 34em;
-  margin: 0 0 16px;
-  font-size: 19px;
-  line-height: 1.4;
-  text-wrap: balance;
-}
-
+/* The endpoint to copy, inside the page header (PageHero) */
 .endpoint {
   display: inline-flex;
   align-items: center;
   max-width: 100%;
-  border: 1px solid var(--hero-line);
+  margin-top: 4px;
+  border: 1px solid var(--bc-sky-line);
   border-radius: 10px;
-  background: rgba(0, 0, 0, 0.22);
+  background: var(--bc-surface);
 }
 
 .endpoint code {
   overflow-x: auto;
-  padding: 8px 12px;
+  padding: 7px 12px;
   border: none;
   background: none;
-  color: var(--hero-fg);
   font-size: 14px;
   white-space: nowrap;
 }
@@ -78,10 +33,10 @@
   align-self: stretch;
   padding: 0 14px;
   border: none;
-  border-left: 1px solid var(--hero-line);
+  border-left: 1px solid var(--bc-sky-line);
   border-radius: 0 9px 9px 0;
-  background: rgba(97, 198, 255, 0.16);
-  color: var(--hero-fg);
+  background: color-mix(in srgb, var(--bc-link) 8%, transparent);
+  color: var(--bc-link);
   font: inherit;
   font-size: 13px;
   font-weight: 600;
@@ -89,62 +44,7 @@
 }
 
 .copy:hover {
-  background: rgba(97, 198, 255, 0.3);
-}
-
-.stats {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(92px, auto));
-  gap: 10px;
-  margin: 0;
-}
-
-.stats div {
-  padding: 10px 14px;
-  border: 1px solid var(--hero-line);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.stats dt {
-  color: var(--hero-dim);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.stats dd {
-  margin: 0;
-  font-size: 28px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.15;
-}
-
-@media (max-width: 760px) {
-  .hero {
-    grid-template-columns: minmax(0, 1fr);
-    padding: 22px 20px;
-  }
-
-  .stats {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .stats div {
-    padding: 8px 10px;
-  }
-
-  .stats dd {
-    font-size: 22px;
-  }
-}
-
-@media (max-width: 520px) {
-  .stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+  background: color-mix(in srgb, var(--bc-link) 16%, transparent);
 }
 
 /* Filter row on the tool index */

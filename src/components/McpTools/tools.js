@@ -5,11 +5,12 @@
 export const GROUPS = [
   {id: 'docs', title: 'Docs', icon: 'page', blurb: 'Search and read this site: guides, repo docs, the wiki, Drive and Box.'},
   {id: 'project', title: 'Project and issues', icon: 'status-board', blurb: 'The project board, issues, pull requests and releases, live from GitHub.'},
-  {id: 'code', title: 'Source code', icon: 'code', blurb: 'Read the Blue Core repositories without cloning them.'},
+  {id: 'code', title: 'Source code', icon: 'code', blurb: 'Read the Blue Core repositories on GitHub, and your own stack checkout.'},
   {id: 'ci', title: 'CI, tests and deploys', icon: 'status-tests', blurb: "Build and test health, failure diagnosis, and what's deployed."},
   {id: 'api', title: 'Blue Core API', icon: 'stack', blurb: 'Endpoints and schemas from the live OpenAPI spec.'},
   {id: 'notes-read', title: 'Notes: read', icon: 'notes', blurb: 'Search, read and follow links in your notes vault.'},
-  {id: 'notes-write', title: 'Notes: write', icon: 'notes', blurb: 'The only writes, used only when you ask. None deletes.'},
+  {id: 'notes-write', title: 'Notes: write', icon: 'notes', blurb: 'Add and change notes, only when you ask. None deletes.'},
+  {id: 'notebooks', title: 'Notebooks', icon: 'notebook', blurb: 'Write and run Jupyter notebooks that debug your local stack, dev or stage.'},
 ];
 
 // [name, title, group, access]
@@ -29,6 +30,7 @@ export const TOOLS = [
   ['list_files', 'List files in a repo', 'code'],
   ['get_file', 'Read a source file', 'code'],
   ['fork_changes', 'What a fork changed', 'code'],
+  ['local_stack', 'Your local stack checkout', 'code'],
   ['ci_status', 'CI status (GitHub Actions)', 'ci'],
   ['integration_tests', 'Test metrics', 'ci'],
   ['diagnose_test_failure', 'Diagnose a failing test run', 'ci'],
@@ -55,6 +57,11 @@ export const TOOLS = [
   ['duplicate_note', 'Duplicate a note', 'notes-write', 'write'],
   ['save_template', 'Save a note template', 'notes-write', 'write'],
   ['attach_image', 'Add an image to the notes', 'notes-write', 'write'],
+  ['list_notebooks', 'List notebooks', 'notebooks'],
+  ['read_notebook', 'Read a notebook', 'notebooks'],
+  ['create_notebook', 'Create a notebook', 'notebooks', 'write'],
+  ['update_notebook', 'Update a notebook', 'notebooks', 'write'],
+  ['run_notebook', 'Run a notebook', 'notebooks', 'write'],
 ].map(([name, title, group, access = 'read']) => ({name, title, group, access}));
 
 export const groupPath = (id) => `/guides/mcp-tools/tools/${id}`;

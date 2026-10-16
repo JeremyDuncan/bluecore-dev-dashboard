@@ -4,16 +4,25 @@ sidebar_label: Overview
 sidebar_position: 1
 hide_table_of_contents: true
 sidebar_class_name: sidebar-icon sidebar-icon--guides
+hide_title: true
 ---
 
 import {Card, Cards, Part} from '@site/src/components/Welcome';
+import PageHero from '@site/src/components/PageHero';
+import {EditIcon, PlugIcon} from '@site/src/components/Notes/icons';
 
-# Guides
-
-How this documentation site works: where its content comes from, how the live GitHub data is fetched, how to add or change docs, how your notes work, and which tools AI agents get. Read these if a page is missing or out of date, or before you add a new source.
+<PageHero
+  eyebrow="Guides"
+  title="How this site works"
+  lead="Where the content comes from, how the live GitHub data is fetched, how to add or change docs, how your notes and notebooks work, and which tools AI agents get. Read these if a page is missing or out of date, or before you add a new source."
+  actions={[
+    {label: 'Add or change docs', to: '/guides/writing-docs', icon: <EditIcon size={16} />, primary: true},
+    {label: 'MCP tools', to: '/guides/mcp-tools', icon: <PlugIcon size={16} />},
+  ]}
+/>
 
 <Part icon="guides" title="The guides">
-  Five short guides, each about one part of the site.
+  Six short guides, each about one part of the site.
 </Part>
 
 <Cards>
@@ -29,7 +38,10 @@ How this documentation site works: where its content comes from, how the live Gi
   <Card icon="notes" title="Notes" to="/guides/notes" meta="Your notes, Obsidian and AI">
     Your own Markdown notes on the site: tags, dates, Obsidian, and AI agents that read and add notes.
   </Card>
-  <Card icon="mcp" title="MCP tools" to="/guides/mcp-tools" meta="41 tools and 7 prompts for AI agents">
+  <Card icon="notebook" title="Notebooks" to="/guides/notebooks" meta="JupyterLab, starters and AI">
+    Jupyter notebooks that debug your local stack, and AI agents that write and run them.
+  </Card>
+  <Card icon="mcp" title="MCP tools" to="/guides/mcp-tools" meta="47 tools and 7 prompts for AI agents">
     Every tool the MCP server gives Claude Code, Codex and other agents, what each is for, and how to chain them.
   </Card>
 </Cards>

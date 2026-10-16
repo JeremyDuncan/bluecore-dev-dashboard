@@ -1,0 +1,141 @@
+/* PageHero: the header panel of the main pages (same look as the Notes page) */
+
+.wrap {
+  margin-bottom: 28px;
+}
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 28px 28px 24px;
+  border: 1px solid var(--bc-sky-line);
+  border-radius: 16px;
+  background:
+    radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--bc-link) 14%, transparent), transparent 60%),
+    color-mix(in srgb, var(--bc-link) 4%, var(--bc-surface));
+}
+
+@media (max-width: 600px) {
+  .hero {
+    padding: 22px 18px 18px;
+  }
+}
+
+.eyebrow {
+  color: var(--bc-link);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Explicit sizes: inside a doc page, the Markdown styles would otherwise apply */
+.hero .title {
+  margin: 0;
+  color: var(--bc-heading);
+  font-size: clamp(32px, 2vw + 20px, 44px);
+  font-weight: 300;
+  line-height: 1.15;
+}
+
+.hero .lead {
+  max-width: 68ch;
+  margin: 0;
+  color: var(--bc-meta);
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none !important;
+}
+
+/* In a doc page, Markdown link colors would win over the buttons' own (white on the primary, the
+   theme's dark text on the secondary; custom.css makes it white in dark mode) */
+.actions :global(.button--primary).action,
+.actions :global(.button--primary).action:hover {
+  color: var(--ifm-button-color);
+}
+
+.actions :global(.button--secondary).action,
+.actions :global(.button--secondary).action:hover {
+  color: var(--ifm-color-secondary-contrast-foreground);
+}
+
+:global([data-theme='dark']) .actions :global(.button--secondary).action,
+:global([data-theme='dark']) .actions :global(.button--secondary).action:hover {
+  color: #ffffff;
+}
+
+/* Numbers under the panel */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.stat {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 12px;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1px solid var(--bc-sky-line);
+  border-radius: 12px;
+  background: var(--bc-surface);
+  color: inherit;
+}
+
+.statLink {
+  text-decoration: none !important;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.statLink:hover {
+  border-color: var(--bc-link);
+  color: inherit;
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+
+.statIcon {
+  display: grid;
+  grid-row: span 2;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bc-link) 12%, transparent);
+  color: var(--bc-link);
+}
+
+.statIconBad {
+  background: color-mix(in srgb, var(--bc-error) 12%, transparent);
+  color: var(--bc-danger-text);
+}
+
+.statValue {
+  color: var(--bc-heading);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.statLabel {
+  color: var(--bc-meta);
+  font-size: 13px;
+}
