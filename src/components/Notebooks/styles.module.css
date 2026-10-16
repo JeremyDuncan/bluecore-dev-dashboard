@@ -1152,6 +1152,8 @@
 
 /* Header: a title you can rename, run controls, a menu, and whether edits are saved */
 .title {
+  display: flex;
+  align-items: center;
   margin: 2px 0 6px;
 }
 

@@ -11,8 +11,10 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {ProviderIcon} from '../AskDocs/CliPicker';
 import {TagInput} from '../Notes';
 import {copyText} from '../Notes/api';
+import ns from '../Notes/styles.module.css';
 import {writer} from '../Notes/authors';
-import {CopyIcon, DownloadIcon, DuplicateIcon, FolderIcon, PinIcon} from '../Notes/icons';
+import {CopyIcon, DownloadIcon, DuplicateIcon, FolderIcon, NotebookIcon, PinIcon} from '../Notes/icons';
+import {Glyph, IconButtonGlyph, IconPicker} from '../FolderIcons';
 import CodeEditor from './CodeEditor';
 import Output, {joined, Markdown} from './Output';
 import styles from './styles.module.css';
@@ -109,7 +111,8 @@ function TargetPicker({environments, value, disabled, onChange}) {
   );
 }
 
-function Title({title, disabled, onRename}) {
+// icon: the notebook's own icon, shown before the title (click it to change it)
+function Title({title, icon, disabled, onRename, onIcon}) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(title);
   useEffect(() => setValue(title), [title]);
@@ -138,6 +141,11 @@ function Title({title, disabled, onRename}) {
     );
   return (
     <h2 className={styles.title}>
+      {icon && (
+        <button type="button" className={ns.titleIcon} onClick={onIcon} title="Change icon" aria-label="Change this notebook's icon">
+          <Glyph icon={icon} size={24} />
+        </button>
+      )}
       <button type="button" className={styles.titleButton} disabled={disabled} onClick={() => setEditing(true)} title="Rename">
         {title}
         <span className={styles.titleEdit} aria-hidden="true">
@@ -395,6 +403,7 @@ function AddCell({onAdd, disabled, always}) {
 // --- The notebook ---------------------------------------------------------------------------------------
 export default function NotebookEditor({nb: loaded, call, jupyterRunning, environments, knownTags = [], folders = [], onChanged, onOpen, onExport, onFlash, onDelete, onError}) {
   const [meta, setMeta] = useState(loaded);
+  const [pickingIcon, setPickingIcon] = useState(false);
   const [cells, setCells] = useState(() => fromServer(loaded));
   const [saveState, setSaveState] = useState('saved');
   const [running, setRunning] = useState(null); // null, 'all' or a cell key
@@ -601,7 +610,18 @@ export default function NotebookEditor({nb: loaded, call, jupyterRunning, enviro
       <header className={styles.head}>
         <div className={styles.headText}>
           <span className={styles.path}>{meta.path}</span>
-          <Title title={meta.title} disabled={locked} onRename={(title) => put({title})} />
+          <Title title={meta.title} icon={meta.icon} disabled={locked} onRename={(title) => put({title})} onIcon={() => setPickingIcon(true)} />
+          <IconPicker
+            item={pickingIcon ? meta.path : null}
+            name={meta.title}
+            fallback={<NotebookIcon size={20} />}
+            current={meta.icon}
+            onPick={async (icon) => {
+              await organize('/meta', {icon});
+              setPickingIcon(false);
+            }}
+            onClose={() => setPickingIcon(false)}
+          />
           <Byline nb={meta} />
           <div className={styles.tagsRow}>
             <TagInput tags={meta.tags ?? []} known={knownTags} onChange={(tags) => organize('/meta', {tags})} />
@@ -641,6 +661,9 @@ export default function NotebookEditor({nb: loaded, call, jupyterRunning, enviro
                 </button>
                 <button type="button" onClick={(e) => (closeMenu(e), flush().then(() => onExport([loaded.path])))}>
                   <DownloadIcon size={14} /> Export (.ipynb)
+                </button>
+                <button type="button" onClick={(e) => (closeMenu(e), setPickingIcon(true))}>
+                  <IconButtonGlyph size={14} /> {meta.icon ? 'Change icon…' : 'Set an icon…'}
                 </button>
                 <label className={styles.menuMove}>
                   <FolderIcon size={14} /> Move to

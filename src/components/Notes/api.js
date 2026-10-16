@@ -79,14 +79,14 @@ export async function copyText(text) {
 // (the chat box saved a note), so notes written in Obsidian or by an agent show up without a reload.
 export function useNoteList() {
   const {enabled, call} = useNotesApi();
-  const [state, setState] = useState({status: enabled ? 'loading' : 'disabled', notes: [], folders: [], tags: [], vault: null, error: null});
+  const [state, setState] = useState({status: enabled ? 'loading' : 'disabled', notes: [], folders: [], folderIcons: {}, tags: [], vault: null, error: null});
   const busy = useRef(false);
   const reload = useCallback(async () => {
     if (!enabled || busy.current) return;
     busy.current = true;
     try {
       const data = await call('');
-      setState({status: 'ready', notes: data.notes, folders: data.folders ?? [], tags: data.tags, vault: data.vault, error: null});
+      setState({status: 'ready', notes: data.notes, folders: data.folders ?? [], folderIcons: data.folderIcons ?? {}, tags: data.tags, vault: data.vault, error: null});
     } catch (err) {
       setState((s) => ({...s, status: s.status === 'ready' ? 'ready' : 'error', error: err.message}));
     } finally {

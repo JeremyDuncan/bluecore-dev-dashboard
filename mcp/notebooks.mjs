@@ -15,6 +15,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {validIcon} from './folder-icons.mjs';
 import {checkTarget} from './local-stack.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -164,6 +165,7 @@ function summary(rel, nb, mtime) {
     created: meta.created ?? new Date(mtime).toISOString(),
     tags: cleanTags(meta.tags),
     pinned: meta.pinned === true,
+    icon: validIcon(meta.icon) ? meta.icon : null, // its own icon on the page ("line:<name>" or "emoji:<emoji>")
     // The first line of text, for the list: the intro Markdown under the title, else the first code line
     excerpt: excerptOf(nb),
   };
@@ -558,8 +560,8 @@ function putBack(abs, from) {
 
 // --- Organizing: tags, pins, folders, copies -----------------------------------------------------
 
-// Changes a notebook's tags or pin (metadata.bluecore), without touching its cells
-export function setNotebookMeta(ref, {tags, pinned} = {}) {
+// Changes a notebook's tags, pin or icon (metadata.bluecore), without touching its cells
+export function setNotebookMeta(ref, {tags, pinned, icon} = {}) {
   const rel = findNotebook(ref);
   const {abs} = resolve(rel);
   const {nb} = load(abs);
@@ -572,6 +574,11 @@ export function setNotebookMeta(ref, {tags, pinned} = {}) {
   if (pinned !== undefined) {
     if (pinned) meta.pinned = true;
     else delete meta.pinned;
+  }
+  if (icon === null) delete meta.icon;
+  else if (icon !== undefined) {
+    if (!validIcon(icon)) throw new NotebookError(400, 'Pick an icon from the list, or one emoji');
+    meta.icon = icon;
   }
   save(abs, nb);
   return readNotebook(rel);

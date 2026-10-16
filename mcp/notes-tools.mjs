@@ -8,6 +8,7 @@
 // (which moves notes to the vault's .trash), never to an agent.
 import {z} from 'zod';
 import {writerOf} from './agent-runs.mjs';
+import {ICON_HELP, iconFromInput} from './folder-icons.mjs';
 import {
   allTags,
   createNote,
@@ -53,6 +54,18 @@ const failed = (err) => {
   if (err instanceof NoteError) return {...text(err.message), isError: true};
   throw err;
 };
+// The icon option of create_note and update_note: an icon name, an emoji or "none" → the stored form
+const ICON_FIELD = z.string().max(40).optional().describe(`The note's icon on the Notes page. ${ICON_HELP}`);
+const iconOf = (input) => {
+  try {
+    return iconFromInput(input);
+  } catch (err) {
+    throw new NoteError(400, err.message);
+  }
+};
+// "🧪" or "bug (line icon)"
+const iconLabel = (icon) => (icon?.startsWith('emoji:') ? icon.slice(6) : icon ? `${icon.slice(5)} (line icon)` : null);
+
 const siteUrl = (rel) => `${(process.env.DOCS_SITE_URL ?? 'http://localhost:3000').replace(/\/$/, '')}/notes?note=${encodeURIComponent(rel)}`;
 
 const line = (n) =>
@@ -60,6 +73,7 @@ const line = (n) =>
     `- ${n.title}`,
     `  path: ${n.path}`,
     n.tags.length ? `  tags: ${n.tags.map((t) => `#${t}`).join(' ')}` : null,
+    n.icon ? `  icon: ${iconLabel(n.icon)}` : null,
     `  created: ${n.created.slice(0, 10)} · updated: ${n.updated.slice(0, 16).replace('T', ' ')}`,
     n.snippet ?? n.excerpt ? `  ${n.snippet ?? n.excerpt}` : null,
   ]
@@ -67,7 +81,7 @@ const line = (n) =>
     .join('\n');
 
 const describe = (note, verb) =>
-  `${verb} "${note.title}"\npath: ${note.path}\nurl: ${siteUrl(note.path)}${note.tags.length ? `\ntags: ${note.tags.map((t) => `#${t}`).join(' ')}` : ''}${note.author && note.author !== 'you' ? `\n${byline(note)}` : ''}`;
+  `${verb} "${note.title}"\npath: ${note.path}\nurl: ${siteUrl(note.path)}${note.tags.length ? `\ntags: ${note.tags.map((t) => `#${t}`).join(' ')}` : ''}${note.icon ? `\nicon: ${iconLabel(note.icon)}` : ''}${note.author && note.author !== 'you' ? `\n${byline(note)}` : ''}`;
 
 export function registerNotesTools(server) {
   server.registerTool(
@@ -151,6 +165,7 @@ export function registerNotesTools(server) {
           `path: ${n.path}`,
           `url: ${siteUrl(n.path)}`,
           n.tags.length ? `tags: ${n.tags.map((t) => `#${t}`).join(' ')}` : null,
+          n.icon ? `icon: ${iconLabel(n.icon)}` : null,
           `created: ${n.created} · updated: ${n.updated}`,
           byline(n),
           n.backlinks.length ? `linked from: ${n.backlinks.map((b) => b.path).join(', ')}` : null,
@@ -214,12 +229,13 @@ export function registerNotesTools(server) {
         template: z.string().optional().describe('Start from this template (see list_templates), e.g. "Meeting notes"; {{title}} and {{date}} are filled in'),
         tags: z.array(z.string()).optional().describe('Tags without #, e.g. ["meeting", "bluecore_api"]'),
         folder: z.string().optional().describe('Folder inside the vault, e.g. "Meetings" (created if needed). Default: the top level'),
+        icon: ICON_FIELD,
         author: z.string().optional().describe('Which AI agent you are, e.g. "Claude Code" or "Codex" (filled in automatically when the server knows)'),
         model: MODEL_FIELD,
       },
       annotations: {readOnlyHint: false, destructiveHint: false, idempotentHint: false},
     },
-    async ({title, body = '', tags = [], folder, author, model, template}, extra) => {
+    async ({title, body = '', tags = [], folder, icon, author, model, template}, extra) => {
       try {
         let text_ = body;
         let allTags_ = tags;
@@ -229,7 +245,7 @@ export function registerNotesTools(server) {
           allTags_ = [...t.tags, ...tags];
         }
         const writer = writerOf(extra, {author, model});
-        return text(describe(createNote({title, body: text_, tags: allTags_, folder, ...writer}), template ? `Created from "${template}"` : 'Created'));
+        return text(describe(createNote({title, body: text_, tags: allTags_, folder, icon: icon == null ? undefined : (iconOf(icon) ?? undefined), ...writer}), template ? `Created from "${template}"` : 'Created'));
       } catch (err) {
         return failed(err);
       }
@@ -241,7 +257,7 @@ export function registerNotesTools(server) {
     {
       title: 'Update a note',
       description:
-        'Changes an existing note: append text (preferred, keeps what is there), replace the whole text, add/remove tags, or move it to another folder. ' +
+        'Changes an existing note: append text (preferred, keeps what is there), replace the whole text, add/remove tags, set its icon, or move it to another folder. ' +
         'Only when the user asks. Read the note first when replacing its text.',
       inputSchema: {
         note: z.string().min(1).describe('Path or title of the note'),
@@ -250,16 +266,28 @@ export function registerNotesTools(server) {
         add_tags: z.array(z.string()).optional(),
         remove_tags: z.array(z.string()).optional(),
         move_to: z.string().optional().describe('Folder to move the note to ("" = the top level); the file name stays, so [[links]] keep working'),
+        icon: ICON_FIELD,
         model: MODEL_FIELD,
       },
       annotations: {readOnlyHint: false, destructiveHint: true, idempotentHint: false},
     },
-    async ({note: ref, append, body, add_tags, remove_tags, move_to, model}, extra) => {
-      if (append == null && body == null && !add_tags && !remove_tags && move_to == null) {
-        return {...text('Nothing to change: pass append, body, add_tags, remove_tags or move_to.'), isError: true};
+    async ({note: ref, append, body, add_tags, remove_tags, move_to, icon, model}, extra) => {
+      if (append == null && body == null && !add_tags && !remove_tags && move_to == null && icon == null) {
+        return {...text('Nothing to change: pass append, body, add_tags, remove_tags, icon or move_to.'), isError: true};
       }
       try {
-        let note = append == null && body == null && !add_tags && !remove_tags ? readNote(ref) : updateNote(ref, {append, body, addTags: add_tags, removeTags: remove_tags, editor: writerOf(extra, {model})});
+        const textChange = append != null || body != null || add_tags || remove_tags;
+        // An icon alone doesn't count as an edit by the AI (no edited_by), like pinning
+        let note = textChange || icon != null
+          ? updateNote(ref, {
+              append,
+              body,
+              addTags: add_tags,
+              removeTags: remove_tags,
+              ...(icon != null && {icon: iconOf(icon)}),
+              ...(textChange && {editor: writerOf(extra, {model})}),
+            })
+          : readNote(ref);
         if (move_to != null) note = moveNote(note.path, move_to);
         return text(describe(note, move_to != null ? 'Updated and moved' : 'Updated'));
       } catch (err) {

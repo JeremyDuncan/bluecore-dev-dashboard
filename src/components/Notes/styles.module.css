@@ -2966,3 +2966,27 @@ label.treeRow {
 .tagFoot .linkButton:hover {
   text-decoration: underline;
 }
+
+/* A note's or notebook's own icon before its title: click it to change the icon */
+.titleIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10px;
+  padding: 4px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: none;
+  color: var(--bc-link);
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+.titleIcon:hover {
+  border-color: var(--bc-sky-line);
+  background: var(--bc-sky-light);
+}
+
+[data-theme='dark'] .titleIcon:hover {
+  background: rgba(97, 198, 255, 0.12);
+}

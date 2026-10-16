@@ -12,10 +12,10 @@
 //   POST /api/notebooks/delete                {path} or {paths}, and {folders}? → moves notebooks to the folder's .trash, then
 //                                             deletes the folders named that are empty by then
 //   GET  /api/notebooks/search?q=             full-text search: titles, tags, cells and outputs
-//   POST /api/notebooks/meta                  {path, tags?, pinned?}
+//   POST /api/notebooks/meta                  {path, tags?, pinned?, icon?} (icon null removes it)
 //   POST /api/notebooks/duplicate             {path} → a copy next to it
 //   POST /api/notebooks/move                  {path, folder} ('' = top level)
-//   POST /api/notebooks/folder                {path} → a new folder; /folder/rename {path, name}; /folder/move {path, folder} (with its contents; '' = top level); /folder/delete {path} (empty only)
+//   POST /api/notebooks/folder                {path} → a new folder; /folder/rename {path, name}; /folder/move {path, folder} (with its contents; '' = top level); /folder/icon {path, icon}; /folder/delete {path} (empty only)
 //   GET  /api/notebooks/trash                 what's in .trash; POST /trash/restore {name} puts one back;
 //                                             POST /trash/purge {name} deletes it for good
 //   GET  /api/notebooks/export?path=          the .ipynb file; POST /export {paths, name} → a .zip
@@ -47,6 +47,7 @@ import {
   setNotebookMeta,
   trashNotebooks,
 } from './notebooks.mjs';
+import {dropFolderIcons, folderIcons, moveFolderIcons, setFolderIcon} from './folder-icons.mjs';
 import {createNotebook, createStarterNotebooks, listNotebooks, listStarters, NOTEBOOKS, NOTEBOOKS_ENABLED, readNotebook, saveOutputs, trashNotebook, updateNotebook} from './notebooks.mjs';
 
 const withLab = (nb) => ({...nb, labUrl: labUrl(nb.path)});
@@ -111,6 +112,7 @@ export async function handleNotebooksApi(req, res, pathname) {
         notebooks,
         tags: allTags(notebooks),
         folders: listFolders(),
+        folderIcons: folderIcons(NOTEBOOKS, listFolders()),
         starters: listStarters(),
         jupyter: await jupyterStatus(),
         environments: environments(),
@@ -143,12 +145,14 @@ export async function handleNotebooksApi(req, res, pathname) {
     } else if (pathname === '/api/notebooks/delete' && req.method === 'POST') {
       const {path, paths, folders = []} = await readJson(req);
       const notebooks = paths?.length || (!path && !folders.length) ? trashNotebooks(paths) : {deleted: path ? [trashNotebook(path)] : []};
-      send(res, 200, {...notebooks, ...deleteFolders(folders)}, origin);
+      const gone = deleteFolders(folders);
+      dropFolderIcons(NOTEBOOKS, gone.foldersDeleted);
+      send(res, 200, {...notebooks, ...gone}, origin);
     } else if (pathname === '/api/notebooks/search' && req.method === 'GET') {
       send(res, 200, {results: searchNotebooks(params.get('q'))}, origin);
     } else if (pathname === '/api/notebooks/meta' && req.method === 'POST') {
-      const {path, tags, pinned} = await readJson(req);
-      send(res, 200, withLab(setNotebookMeta(path, {tags, pinned})), origin);
+      const {path, tags, pinned, icon} = await readJson(req);
+      send(res, 200, withLab(setNotebookMeta(path, {tags, pinned, icon})), origin);
     } else if (pathname === '/api/notebooks/duplicate' && req.method === 'POST') {
       const {path, title} = await readJson(req);
       send(res, 201, withLab(duplicateNotebook(path, {title})), origin);
@@ -159,12 +163,21 @@ export async function handleNotebooksApi(req, res, pathname) {
       send(res, 201, createFolder((await readJson(req)).path), origin);
     } else if (pathname === '/api/notebooks/folder/rename' && req.method === 'POST') {
       const {path, name} = await readJson(req);
-      send(res, 200, renameFolder(path, name), origin);
+      const renamed = renameFolder(path, name);
+      moveFolderIcons(NOTEBOOKS, String(path ?? '').replace(/^\/+|\/+$/g, ''), renamed.folder);
+      send(res, 200, renamed, origin);
     } else if (pathname === '/api/notebooks/folder/move' && req.method === 'POST') {
       const {path, folder} = await readJson(req);
-      send(res, 200, moveFolder(path, folder ?? ''), origin);
+      const moved = moveFolder(path, folder ?? '');
+      moveFolderIcons(NOTEBOOKS, moved.from, moved.folder);
+      send(res, 200, moved, origin);
+    } else if (pathname === '/api/notebooks/folder/icon' && req.method === 'POST') {
+      const {path, icon} = await readJson(req);
+      send(res, 200, setFolderIcon(NOTEBOOKS, path, icon ?? null), origin);
     } else if (pathname === '/api/notebooks/folder/delete' && req.method === 'POST') {
-      send(res, 200, deleteFolder((await readJson(req)).path), origin);
+      const deleted = deleteFolder((await readJson(req)).path);
+      dropFolderIcons(NOTEBOOKS, [deleted.deleted]);
+      send(res, 200, deleted, origin);
     } else if (pathname === '/api/notebooks/trash' && req.method === 'GET') {
       send(res, 200, {items: listTrash()}, origin);
     } else if (pathname === '/api/notebooks/trash/restore' && req.method === 'POST') {

@@ -12,9 +12,11 @@
 //   POST /api/notes/move                {path, folder} → moves a note to a folder ('' = top level)
 //   POST /api/notes/folder              {path} → creates a folder
 //   POST /api/notes/folder/rename       {path, name} → renames a folder
+//   POST /api/notes/folder/icon         {path, icon} → a folder's icon ("line:<name>" or "emoji:<emoji>"; null removes it)
 //   POST /api/notes/folder/move         {path, folder} → moves a folder, with everything in it ('' = top level)
 //   POST /api/notes/folder/delete       {path} → deletes an empty folder
 //   POST /api/notes/pin                 {path, pinned} → pins or unpins a note
+//   POST /api/notes/icon                {path, icon} → a note's icon (an `icon` property; null removes it)
 //   POST /api/notes/rename              {path, title} → renames a note and updates [[links]] to it
 //   POST /api/notes/agent-run           {run, agent, model} → the chat helper names the model behind a run
 //   POST /api/notes/duplicate           {path, title?} → a copy of the note next to it ("<title> copy")
@@ -45,7 +47,8 @@ import {
   saveTemplate,
   TEMPLATE_DIR,
 } from './notes.mjs';
-import {allTags, createFolder, createNote, deleteFolder, deleteFolders, deleteNotes, exportFiles, listFolders, moveFolder, moveNote, renameFolder, findAttachment, listNotes, NoteError, readAttachment, readNote, searchNotes, updateNote, VAULT_NAME} from './notes.mjs';
+import {dropFolderIcons, folderIcons, moveFolderIcons, setFolderIcon} from './folder-icons.mjs';
+import {allTags, createFolder, createNote, deleteFolder, deleteFolders, deleteNotes, exportFiles, listFolders, moveFolder, moveNote, renameFolder, findAttachment, listNotes, NoteError, readAttachment, readNote, searchNotes, updateNote, VAULT, VAULT_NAME} from './notes.mjs';
 import {allowedOrigin} from './live-api.mjs';
 import {registerRun} from './agent-runs.mjs';
 
@@ -119,7 +122,8 @@ export async function handleNotesApi(req, res, pathname) {
   try {
     if (pathname === '/api/notes' && req.method === 'GET') {
       const notes = listNotes();
-      send(res, 200, {vault: VAULT_NAME, notes, folders: listFolders(), tags: allTags(notes), at: new Date().toISOString()}, origin);
+      const folders = listFolders();
+      send(res, 200, {vault: VAULT_NAME, notes, folders, folderIcons: folderIcons(VAULT, folders), tags: allTags(notes), at: new Date().toISOString()}, origin);
     } else if (pathname === '/api/notes/search' && req.method === 'GET') {
       send(res, 200, {results: searchNotes(params.get('q'), {limit: 100}).map((n) => ({path: n.path, snippet: n.snippet}))}, origin);
     } else if (pathname === '/api/notes/note' && req.method === 'GET') {
@@ -139,6 +143,9 @@ export async function handleNotesApi(req, res, pathname) {
     } else if (pathname === '/api/notes/pin' && req.method === 'POST') {
       const {path: notePath, pinned} = await readJson(req);
       send(res, 200, strip(updateNote(notePath, {pinned: Boolean(pinned)})), origin);
+    } else if (pathname === '/api/notes/icon' && req.method === 'POST') {
+      const {path: notePath, icon} = await readJson(req);
+      send(res, 200, strip(updateNote(notePath, {icon: icon ?? null})), origin);
     } else if (pathname === '/api/notes/rename' && req.method === 'POST') {
       const {path: notePath, title} = await readJson(req);
       const result = renameNote(notePath, String(title ?? ''));
@@ -182,16 +189,27 @@ export async function handleNotesApi(req, res, pathname) {
       send(res, 201, createFolder((await readJson(req)).path), origin);
     } else if (pathname === '/api/notes/folder/rename' && req.method === 'POST') {
       const {path: folder, name} = await readJson(req);
-      send(res, 200, renameFolder(folder, name), origin);
+      const renamed = renameFolder(folder, name);
+      moveFolderIcons(VAULT, renamed.from ?? folder, renamed.folder);
+      send(res, 200, renamed, origin);
     } else if (pathname === '/api/notes/folder/move' && req.method === 'POST') {
       const {path: folder, folder: into} = await readJson(req);
-      send(res, 200, moveFolder(folder, into ?? ''), origin);
+      const moved = moveFolder(folder, into ?? '');
+      moveFolderIcons(VAULT, moved.from, moved.folder);
+      send(res, 200, moved, origin);
+    } else if (pathname === '/api/notes/folder/icon' && req.method === 'POST') {
+      const {path: folder, icon} = await readJson(req);
+      send(res, 200, setFolderIcon(VAULT, folder, icon ?? null), origin);
     } else if (pathname === '/api/notes/folder/delete' && req.method === 'POST') {
-      send(res, 200, deleteFolder((await readJson(req)).path), origin);
+      const deleted = deleteFolder((await readJson(req)).path);
+      dropFolderIcons(VAULT, [deleted.deleted]);
+      send(res, 200, deleted, origin);
     } else if (pathname === '/api/notes/delete' && req.method === 'POST') {
       const {paths = [], folders = []} = await readJson(req);
       const notes = paths.length || !folders.length ? deleteNotes(paths) : {deleted: [], trash: '.trash'};
-      send(res, 200, {...notes, ...deleteFolders(folders)}, origin);
+      const gone = deleteFolders(folders);
+      dropFolderIcons(VAULT, gone.foldersDeleted);
+      send(res, 200, {...notes, ...gone}, origin);
     } else if (pathname === '/api/notes/export' && req.method === 'POST') {
       const {paths, name} = await readJson(req);
       const data = zip(exportFiles(paths));

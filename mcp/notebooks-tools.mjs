@@ -13,13 +13,17 @@ import {writerOf} from './agent-runs.mjs';
 import {CELL_TIMEOUT_MS, labUrl} from './jupyter.mjs';
 import {afterTargetChange, runNotebook} from './notebooks-api.mjs';
 import {environments, redact} from './local-stack.mjs';
-import {createNotebook, listNotebooks, listStarters, NotebookError, outputText, readNotebook, updateNotebook} from './notebooks.mjs';
+import {ICON_HELP, iconFromInput} from './folder-icons.mjs';
+import {createNotebook, listNotebooks, listStarters, NotebookError, outputText, readNotebook, setNotebookMeta, updateNotebook} from './notebooks.mjs';
 
 const MAX_OUTPUT_CHARS = 4000;
 const MAX_IMAGES = 6;
 const MAX_IMAGE_BYTES = 3_000_000;
 
 const MODEL_FIELD = z.string().max(80).optional().describe('Your exact model id, if you know it; recorded as who wrote or ran it');
+const ICON_FIELD = z.string().max(40).optional().describe(`The notebook's icon on the Notebooks page. ${ICON_HELP}`);
+// "🧪" or "bug (line icon)"
+const iconLabel = (icon) => (icon?.startsWith('emoji:') ? icon.slice(6) : icon ? `${icon.slice(5)} (line icon)` : null);
 const text = (t) => ({content: [{type: 'text', text: t}]});
 const failed = (err) => {
   if (err instanceof NotebookError || err.status) return {...text(err.message), isError: true};
@@ -48,6 +52,7 @@ const head = (nb) =>
     `page: ${siteUrl(nb.path)}`,
     `JupyterLab: ${labUrl(nb.path, {withToken: false})}`,
     `runs against: ${targetLabel(nb.target)}`,
+    nb.icon ? `icon: ${iconLabel(nb.icon)}` : null,
     `${nb.cells} cells (${nb.codeCells} code; ${nb.ran} with outputs${nb.errors ? `; ${nb.errors} with errors` : ''})`,
     nb.author && nb.author !== 'you' && nb.author !== 'starter' ? `author: ${nb.author}${nb.model ? ` (model: ${nb.model})` : ''}` : null,
     nb.lastRun ? `last run: ${nb.lastRun.at.slice(0, 16).replace('T', ' ')} UTC by ${nb.lastRun.by}` : null,
@@ -104,7 +109,7 @@ export function registerNotebookTools(server) {
       const nbs = listNotebooks().filter((n) => !f || n.folder === f || n.folder.startsWith(`${f}/`));
       const starters = listStarters();
       const list = nbs.length
-        ? nbs.map((n) => `- ${n.title}\n  path: ${n.path}${n.target !== 'local' ? ` · runs against ${n.target}` : ''}\n  ${n.codeCells} code cells, ${n.ran} ran${n.errors ? `, ${n.errors} with errors` : ''} · updated ${n.updated.slice(0, 16).replace('T', ' ')}${n.lastRun ? ` · last run ${n.lastRun.at.slice(0, 16).replace('T', ' ')} by ${n.lastRun.by}` : ''}`).join('\n')
+        ? nbs.map((n) => `- ${n.title}\n  path: ${n.path}${n.target !== 'local' ? ` · runs against ${n.target}` : ''}${n.icon ? ` · icon: ${iconLabel(n.icon)}` : ''}\n  ${n.codeCells} code cells, ${n.ran} ran${n.errors ? `, ${n.errors} with errors` : ''} · updated ${n.updated.slice(0, 16).replace('T', ' ')}${n.lastRun ? ` · last run ${n.lastRun.at.slice(0, 16).replace('T', ' ')} by ${n.lastRun.by}` : ''}`).join('\n')
         : 'No notebooks yet.';
       const st = starters.map((s) => `- ${s.name}: ${s.title}${s.group ? ` [${s.group}]` : ''}${s.description ? ` — ${s.description}` : ''}`).join('\n');
       const envs = environments().map((e) => `- ${e.name}${e.deployed ? `: ${e.url} (deployed, read-only)` : ': the user\'s local stack'}`).join('\n');
@@ -155,14 +160,17 @@ export function registerNotebookTools(server) {
         starter: z.string().optional().describe('Start from this starter notebook (its name from list_notebooks)'),
         folder: z.string().optional().describe('Folder inside the notebooks folder, e.g. "Investigations"'),
         target: TARGET_FIELD(),
+        icon: ICON_FIELD,
         model: MODEL_FIELD,
       },
       annotations: {readOnlyHint: false, destructiveHint: false, idempotentHint: false},
     },
-    async ({title, cells = [], starter, folder, target, model}, extra) => {
+    async ({title, cells = [], starter, folder, target, icon, model}, extra) => {
       if (!title && !starter) return {...text('Give the notebook a title (or a starter to copy).'), isError: true};
       try {
-        const nb = createNotebook({title, cells, starter, folder, target, writer: writerOf(extra, {model})});
+        const chosen = icon == null ? null : iconFromInput(icon); // checked before anything is written
+        let nb = createNotebook({title, cells, starter, folder, target, writer: writerOf(extra, {model})});
+        if (chosen) nb = setNotebookMeta(nb.path, {icon: chosen});
         return text(`Created ${head(nb)}`);
       } catch (err) {
         return failed(err);
@@ -175,7 +183,7 @@ export function registerNotebookTools(server) {
     {
       title: 'Update a notebook',
       description:
-        'Changes a notebook\'s cells: append, insert (before index), replace (a cell\'s text; clears its outputs), delete, or clear_outputs. ' +
+        'Changes a notebook\'s cells: append, insert (before index), replace (a cell\'s text; clears its outputs), delete, or clear_outputs; or its title, environment or icon. ' +
         'Ops apply in order and indexes refer to the notebook as each op runs (read_notebook shows them). Only when the user asks. ' +
         'Never put real passwords or tokens in cells.',
       inputSchema: {
@@ -183,15 +191,19 @@ export function registerNotebookTools(server) {
         ops: z.array(OP).max(100).optional(),
         title: z.string().max(120).optional().describe('A new display title (the file name stays)'),
         target: TARGET_FIELD(),
+        icon: ICON_FIELD,
         model: MODEL_FIELD,
       },
       annotations: {readOnlyHint: false, destructiveHint: true, idempotentHint: false},
     },
-    async ({notebook, ops = [], title, target, model}, extra) => {
-      if (!ops.length && !title && !target) return {...text('Nothing to change: pass ops, a title or a target.'), isError: true};
+    async ({notebook, ops = [], title, target, icon, model}, extra) => {
+      if (!ops.length && !title && !target && icon == null) return {...text('Nothing to change: pass ops, a title, a target or an icon.'), isError: true};
       try {
+        const chosen = icon == null ? undefined : iconFromInput(icon); // null removes it
         const before = target && readNotebook(notebook).target;
-        const nb = updateNotebook(notebook, {ops, title, target, writer: writerOf(extra, {model})});
+        // An icon alone isn't an edit of the notebook's content, so it doesn't record the AI as its editor
+        let nb = ops.length || title || target ? updateNotebook(notebook, {ops, title, target, writer: writerOf(extra, {model})}) : readNotebook(notebook);
+        if (chosen !== undefined) nb = setNotebookMeta(nb.path, {icon: chosen});
         if (target && nb.target !== before) await afterTargetChange(nb.path);
         return text(`Updated ${head(nb)}`);
       } catch (err) {

@@ -7,6 +7,7 @@ import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import Link from '@docusaurus/Link';
 import {useHistory, useLocation} from '@docusaurus/router';
 import useBaseUrl from '@docusaurus/useBaseUrl';
+import {FolderGlyph, Glyph, IconButtonGlyph, IconPicker, IconPickerHost, RowIconButton, rowItemClass} from '../FolderIcons';
 import {buildTree, canDropInto, dateGroup, folderDragProps, FolderNameInput, GroupCheck, Menu, SelectionCount, selectedFolders, shortWhen, TagBrowser, useOpenFolders} from '../Notes';
 import {
   ArrowLeftIcon,
@@ -15,7 +16,6 @@ import {
   DownloadIcon,
   EditIcon,
   FolderIcon,
-  FolderOpenIcon,
   ChevronIcon,
   NotebookIcon,
   PanelIcon,
@@ -161,6 +161,7 @@ function NotebookRow({nb, active, to, field, snippet, selecting, checked, onTogg
     <>
       <span className={ns.rowTitle}>
         {nb.pinned && <PinIcon size={13} />}
+        <Glyph icon={nb.icon} size={14} />
         {nb.errors > 0 && <span className={styles.errDot} title={`${nb.errors} cell(s) failed on the last run`} />}
         {nb.title}
         {nb.target !== 'local' && <span className={styles.envBadge}>{nb.target}</span>}
@@ -197,10 +198,11 @@ function NotebookRow({nb, active, to, field, snippet, selecting, checked, onTogg
       </li>
     );
   return (
-    <li>
+    <li className={rowItemClass}>
       <Link to={to} className={`${ns.row} ${active ? ns.rowActive : ''}`} aria-current={active ? 'page' : undefined}>
         {content}
       </Link>
+      <RowIconButton item={{path: nb.path, name: nb.title, icon: nb.icon, fallback: <NotebookIcon size={20} />}} />
     </li>
   );
 }
@@ -242,13 +244,13 @@ function TreeNotebook({nb, depth, ctx}) {
   const active = nb.path === url.nb;
   const inner = (
     <>
-      {nb.pinned ? <PinIcon size={15} /> : <NotebookIcon size={15} />}
+      <Glyph icon={nb.icon} size={15} fallback={nb.pinned ? <PinIcon size={15} /> : <NotebookIcon size={15} />} />
       <span className={ns.treeLabel}>{nb.title}</span>
       {nb.errors > 0 && <span className={styles.errDot} title={`${nb.errors} cell(s) failed`} />}
     </>
   );
   return (
-    <li>
+    <li className={rowItemClass}>
       {selecting ? (
         <label className={`${ns.treeRow} ${selected.has(nb.path) ? ns.rowChecked : ''}`} style={{'--depth': depth}}>
           <input type="checkbox" className={ns.check} checked={selected.has(nb.path)} onChange={(e) => onToggle([nb.path], e.target.checked)} />
@@ -272,6 +274,7 @@ function TreeNotebook({nb, depth, ctx}) {
           {inner}
         </Link>
       )}
+      {!selecting && <RowIconButton compact item={{path: nb.path, name: nb.title, icon: nb.icon, fallback: <NotebookIcon size={20} />}} />}
     </li>
   );
 }
@@ -333,7 +336,7 @@ function TreeFolder({node, depth, ctx}) {
         {...drop.props}>
         {selecting && <GroupCheck paths={[...node.all, ...node.dirs]} selected={selected} onToggle={onToggle} label={node.name} />}
         <button type="button" className={ns.folderToggle} onClick={() => open.toggle(node.path)} aria-expanded={isOpen}>
-          {isOpen ? <FolderOpenIcon size={15} /> : <FolderIcon size={15} />}
+          <FolderGlyph icon={ctx.icons[node.path]} open={isOpen} />
           <span className={ns.treeLabel}>{node.name}</span>
           <span className={ns.groupCount}>{node.all.length}</span>
         </button>
@@ -355,6 +358,9 @@ function TreeFolder({node, depth, ctx}) {
                 },
               ]}
             />
+            <button type="button" className={ns.folderAction} onClick={() => ctx.setPicking(node.path)} title="Set an icon" aria-label={`Set an icon for folder ${node.name}`}>
+              <IconButtonGlyph size={14} />
+            </button>
             <button type="button" className={ns.folderAction} onClick={() => setEditing({mode: 'rename', path: node.path})} title="Rename folder" aria-label={`Rename folder ${node.name}`}>
               <EditIcon size={14} />
             </button>
@@ -421,6 +427,8 @@ function FolderTree({notebooks, list, url, call, filtered, ...props}) {
   const [message, setMessage] = useState(null);
   const [dragging, setDragging] = useState(null);
   const [over, setOver] = useState(null);
+  const [picking, setPicking] = useState(null); // the folder whose icon is being picked
+  const icons = list.folderIcons ?? {};
   const post = (route, body) => call(route, {method: 'POST', body});
 
   const done = async (text) => {
@@ -486,10 +494,20 @@ function FolderTree({notebooks, list, url, call, filtered, ...props}) {
       }
     },
   };
-  const ctx = {url, open, editing, setEditing, actions, drag, ...props};
+  const ctx = {url, open, editing, setEditing, actions, drag, icons, setPicking, ...props};
 
   return (
     <nav aria-label="Notebooks by folder" className={ns.treeNav}>
+      <IconPicker
+        item={picking}
+        current={picking ? icons[picking] : null}
+        onPick={async (icon) => {
+          await post('/folder/icon', {path: picking, icon});
+          setPicking(null);
+          await list.reload();
+        }}
+        onClose={() => setPicking(null)}
+      />
       <div className={ns.treeHead}>
         <span>Folders</span>
         {!props.selecting && (
@@ -521,8 +539,14 @@ function FolderTree({notebooks, list, url, call, filtered, ...props}) {
 // --- The panel -----------------------------------------------------------------------------------------
 
 // list: {notebooks, tags, folders, jupyter, stack, reload}; status: JupyterLab and the stack checkout
-export default function NotebookList({list, url, call, exportPaths, onCollapse, onDeleteMany, trashCount, status}) {
+export default function NotebookList({list, url, call, exportPaths, onCollapse, onDeleteMany, trashCount, status, onIconChanged}) {
   const ex = useSelection(list, exportPaths);
+  // The hover button on a notebook's row (RowIconButton): sets its icon, then the list (and an open editor) refresh
+  const saveIcon = async (item, icon) => {
+    await call('/meta', {method: 'POST', body: {path: item.path, icon}});
+    await list.reload();
+    onIconChanged?.(item.path);
+  };
   const [query, setQuery] = useState(url.q);
   useEffect(() => setQuery(url.q), [url.q]);
   const hits = useSearch(url.q, call);
@@ -555,6 +579,7 @@ export default function NotebookList({list, url, call, exportPaths, onCollapse, 
   ];
 
   return (
+    <IconPickerHost save={saveIcon}>
     <aside className={ns.side} aria-label="Jupyter Notebooks">
       <div className={ns.sideHead}>
         <Link to={url.href({}, {keep: false})} className={ns.sideTitle}>
@@ -695,6 +720,7 @@ export default function NotebookList({list, url, call, exportPaths, onCollapse, 
         </Link>
       </div>
     </aside>
+    </IconPickerHost>
   );
 }
 

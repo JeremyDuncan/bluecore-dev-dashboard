@@ -9,6 +9,7 @@ import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import {ProviderIcon} from '../AskDocs/CliPicker';
 import ConfirmDialog from '../Notes/ConfirmDialog';
+import {Glyph} from '../FolderIcons';
 import {relWhen, shortWhen} from '../Notes';
 import {writer} from '../Notes/authors';
 import {ArrowLeftIcon, ClockIcon, FolderIcon, HelpIcon, NotebookIcon, PinIcon, PlusIcon, SparkleIcon, TagIcon, TrashIcon, XIcon} from '../Notes/icons';
@@ -159,6 +160,7 @@ function NotebookCard({nb, to}) {
     <Link to={to} className={ns.card}>
       <span className={ns.cardTitle}>
         {nb.pinned && <PinIcon size={14} />}
+        <Glyph icon={nb.icon} size={15} />
         {nb.title}
       </span>
       <span className={ns.rowMeta}>
@@ -486,6 +488,7 @@ export default function Notebooks() {
           }}
           trashCount={trash?.length ?? 0}
           status={status}
+          onIconChanged={(path) => path === url.nb && loadNb(path)}
         />
       )}
       <main className={ns.main}>

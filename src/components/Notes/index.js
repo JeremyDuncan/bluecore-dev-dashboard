@@ -9,6 +9,7 @@ import useBaseUrl from '@docusaurus/useBaseUrl';
 import NoteMarkdown from './NoteMarkdown';
 import {copyText, makeResolver, useNoteList, useNotesApi} from './api';
 import ConfirmDelete from './ConfirmDelete';
+import {FolderGlyph, Glyph, IconButtonGlyph, IconPicker, IconPickerHost, RowIconButton, rowItemClass} from '../FolderIcons';
 import MarkdownToolbar, {insertAtCursor} from './MarkdownToolbar';
 import Outline, {useOutline} from './Outline';
 import QuickSwitcher from './QuickSwitcher';
@@ -27,7 +28,6 @@ import {
   EditIcon,
   EyeIcon,
   FolderIcon,
-  FolderOpenIcon,
   HelpIcon,
   LayoutIcon,
   LinkIcon,
@@ -272,6 +272,7 @@ function NoteRow({note, active, to, field, snippet, selecting, checked, onToggle
     <>
       <span className={styles.rowTitle}>
         {note.pinned && <PinIcon size={13} />}
+        <Glyph icon={note.icon} size={14} />
         {note.title}
       </span>
       <span className={styles.rowMeta}>
@@ -315,10 +316,11 @@ function NoteRow({note, active, to, field, snippet, selecting, checked, onToggle
     );
   }
   return (
-    <li>
+    <li className={rowItemClass}>
       <Link to={to} className={`${styles.row} ${active ? styles.rowActive : ''}`} aria-current={active ? 'page' : undefined}>
         {content}
       </Link>
+      <RowIconButton item={{path: note.path, name: note.title, icon: note.icon, fallback: <NoteIcon size={20} />}} />
     </li>
   );
 }
@@ -638,12 +640,12 @@ function TreeNote({note, depth, ctx}) {
   const active = note.path === url.note;
   const inner = (
     <>
-      {note.pinned ? <PinIcon size={15} /> : <NoteIcon size={15} />}
+      <Glyph icon={note.icon} size={15} fallback={note.pinned ? <PinIcon size={15} /> : <NoteIcon size={15} />} />
       <span className={styles.treeLabel}>{note.title}</span>
     </>
   );
   return (
-    <li>
+    <li className={rowItemClass}>
       {selecting ? (
         <label className={`${styles.treeRow} ${selected.has(note.path) ? styles.rowChecked : ''}`} style={{'--depth': depth}}>
           <input type="checkbox" className={styles.check} checked={selected.has(note.path)} onChange={(e) => onToggle([note.path], e.target.checked)} />
@@ -670,6 +672,7 @@ function TreeNote({note, depth, ctx}) {
           {inner}
         </Link>
       )}
+      {!selecting && <RowIconButton compact item={{path: note.path, name: note.title, icon: note.icon, fallback: <NoteIcon size={20} />}} />}
     </li>
   );
 }
@@ -734,7 +737,7 @@ function TreeFolder({node, depth, ctx}) {
         >
           {selecting && <GroupCheck paths={[...node.all, ...node.dirs]} selected={selected} onToggle={onToggle} label={node.name} />}
           <button type="button" className={styles.folderToggle} onClick={() => open.toggle(node.path)} aria-expanded={isOpen}>
-            {isOpen ? <FolderOpenIcon size={15} /> : <FolderIcon size={15} />}
+            <FolderGlyph icon={ctx.icons[node.path]} open={isOpen} />
             <span className={styles.treeLabel}>{node.name}</span>
             <span className={styles.groupCount}>{node.all.length}</span>
           </button>
@@ -756,6 +759,9 @@ function TreeFolder({node, depth, ctx}) {
                   },
                 ]}
               />
+              <button type="button" className={styles.folderAction} onClick={() => ctx.setPicking(node.path)} title="Set an icon" aria-label={`Set an icon for folder ${node.name}`}>
+                <IconButtonGlyph size={14} />
+              </button>
               <button type="button" className={styles.folderAction} onClick={() => setEditing({mode: 'rename', path: node.path})} title="Rename folder" aria-label={`Rename folder ${node.name}`}>
                 <EditIcon size={14} />
               </button>
@@ -826,6 +832,8 @@ function FolderTree({notes, list, url, filtered, ...props}) {
   const [message, setMessage] = useState(null);
   const [dragging, setDragging] = useState(null); // {path, from, kind: 'note' | 'folder'}
   const [over, setOver] = useState(null);
+  const [picking, setPicking] = useState(null); // the folder whose icon is being picked
+  const icons = list.folderIcons ?? {};
 
   const done = async (text) => {
     setEditing(null);
@@ -892,10 +900,20 @@ function FolderTree({notes, list, url, filtered, ...props}) {
       }
     },
   };
-  const ctx = {url, open, editing, setEditing, actions, drag, ...props};
+  const ctx = {url, open, editing, setEditing, actions, drag, icons, setPicking, ...props};
 
   return (
     <nav aria-label="Notes by folder" className={styles.treeNav}>
+      <IconPicker
+        item={picking}
+        current={picking ? icons[picking] : null}
+        onPick={async (icon) => {
+          await call('/folder/icon', {method: 'POST', body: {path: picking, icon}});
+          setPicking(null);
+          await list.reload();
+        }}
+        onClose={() => setPicking(null)}
+      />
       <div className={styles.treeHead}>
         <span>Folders</span>
         {!props.selecting && (
@@ -944,7 +962,13 @@ function useSearch(q) {
 }
 
 function NoteList({list, url, onJump, onCollapse}) {
+  const {call} = useNotesApi();
   const ex = useExporter(list);
+  // The hover button on a note's row (RowIconButton): sets its icon, then the list (and the open note) refresh
+  const saveIcon = async (item, icon) => {
+    await call('/icon', {method: 'POST', body: {path: item.path, icon}});
+    await list.reload();
+  };
   const trash = useTrash(list.notes.length);
   const [deleting, setDeleting] = useState(null); // {notes, folders}
   const [kept, setKept] = useState(null); // folders a delete left because they weren't empty
@@ -987,6 +1011,7 @@ function NoteList({list, url, onJump, onCollapse}) {
   ];
 
   return (
+    <IconPickerHost save={saveIcon}>
     <aside className={styles.side} aria-label="Notes">
       <div className={styles.sideHead}>
         <Link to={url.href({}, {keep: false})} className={styles.sideTitle}>
@@ -1138,6 +1163,7 @@ function NoteList({list, url, onJump, onCollapse}) {
         </Link>
       </div>
     </aside>
+    </IconPickerHost>
   );
 }
 
@@ -1170,7 +1196,7 @@ function obsidianUrl(vault, path) {
 
 // Copy (the note's Markdown, front matter included, to paste anywhere) and Export (.md download),
 // Delete, and a "⋯" menu with the less frequent actions
-function NoteTools({note, onDelete, vault, onShowInFolders, onTogglePin, onDuplicate, onSaveTemplate}) {
+function NoteTools({note, onDelete, vault, onShowInFolders, onTogglePin, onSetIcon, onDuplicate, onSaveTemplate}) {
   const {exportNotes} = useNotesApi();
   const [copied, setCopied] = useState(null); // 'ok' | error message
   useEffect(() => {
@@ -1203,6 +1229,7 @@ function NoteTools({note, onDelete, vault, onShowInFolders, onTogglePin, onDupli
         className={`${styles.iconButton} ${styles.moreButton}`}
         items={[
           {label: note.pinned ? 'Unpin' : 'Pin to the top of the list', icon: <PinIcon size={14} />, onClick: onTogglePin},
+          {label: note.icon ? 'Change icon…' : 'Set an icon…', icon: <IconButtonGlyph size={14} />, onClick: onSetIcon},
           {label: 'Duplicate', icon: <DuplicateIcon size={14} />, onClick: onDuplicate},
           {label: 'Save as template', icon: <TemplateIcon size={14} />, onClick: onSaveTemplate},
           ...(vault
@@ -1240,6 +1267,7 @@ function NoteView({list, url, resolve, flash}) {
   const {call, fileUrl} = useNotesApi();
   const [deleting, setDeleting] = useState(null);
   const [pendingBody, setPendingBody] = useState(null); // a ticked task, shown while it saves
+  const [pickingIcon, setPickingIcon] = useState(false);
   const bodyRef = useRef(null);
   useEffect(() => setPendingBody(null), [note?.mtimeMs]);
   const outline = useOutline(bodyRef, [note?.raw, pendingBody]);
@@ -1277,6 +1305,11 @@ function NoteView({list, url, resolve, flash}) {
       await reload();
       flash(err.status === 409 ? 'This note changed somewhere else, so it was reloaded. Tick the box again.' : `Couldn't save: ${err.message}`, 'error');
     }
+  };
+  const setIcon = async (icon) => {
+    await call('/icon', {method: 'POST', body: {path: note.path, icon}});
+    setPickingIcon(false);
+    await Promise.all([reload(), list.reload()]);
   };
   const togglePin = async () => {
     try {
@@ -1330,7 +1363,7 @@ function NoteView({list, url, resolve, flash}) {
             </nav>
             <div className={styles.noteActions}>
               <div className={styles.actionGroup}>
-                <NoteTools note={note} vault={list.vault} onDelete={() => setDeleting([note])} onShowInFolders={() => url.go(url.href({view: 'folders'}))} onTogglePin={togglePin} onDuplicate={duplicate} onSaveTemplate={saveTemplate} />
+                <NoteTools note={note} vault={list.vault} onDelete={() => setDeleting([note])} onShowInFolders={() => url.go(url.href({view: 'folders'}))} onTogglePin={togglePin} onSetIcon={() => setPickingIcon(true)} onDuplicate={duplicate} onSaveTemplate={saveTemplate} />
               </div>
               <Link to={url.href({edit: true})} className={`button button--primary button--sm ${styles.withIcon}`}>
                 <EditIcon size={14} /> Edit
@@ -1343,8 +1376,14 @@ function NoteView({list, url, resolve, flash}) {
                 <PinIcon size={20} />
               </span>
             )}
+            {note.icon && (
+              <button type="button" className={styles.titleIcon} onClick={() => setPickingIcon(true)} title="Change icon" aria-label="Change this note's icon">
+                <Glyph icon={note.icon} size={30} />
+              </button>
+            )}
             {note.title}
           </h1>
+          <IconPicker item={pickingIcon ? note.path : null} name={note.title} fallback={<NoteIcon size={20} />} current={note.icon} onPick={setIcon} onClose={() => setPickingIcon(false)} />
           <div className={styles.byline}>
             <span className={`${styles.avatar} ${by.ai ? styles.avatarAi : ''} ${by.provider ? styles.avatarLogo : ''}`} aria-hidden="true">
               {by.provider ? <ProviderIcon icon={by.provider} size={20} /> : by.ai ? <SparkleIcon size={16} /> : <UserIcon size={16} />}
@@ -1971,6 +2010,7 @@ function NoteCard({note, to}) {
     <Link to={to} className={styles.card}>
       <span className={styles.cardTitle}>
         {note.pinned && <PinIcon size={14} />}
+        <Glyph icon={note.icon} size={15} />
         {note.title}
       </span>
       <span className={styles.rowMeta}>
