@@ -30,6 +30,12 @@ imports/**
 # src/components/Notes/ and broke the build on GitHub.
 /notes/
 
+# Your notebooks (the Notebooks page; NOTEBOOKS_DIR can point elsewhere). Starters are in mcp/starter-notebooks.
+/notebooks/
+
 # Personal editor / agent settings
 .idea/
 .claude/settings.local.json
+
+# Logins for deployed environments, for notebooks (see .env.notebooks.example)
+.env.notebooks
