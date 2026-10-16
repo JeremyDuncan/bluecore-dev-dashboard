@@ -13,7 +13,18 @@ import path from 'node:path';
 import {DOCS_DIR, enabled, extractTitle, loadSources, log, writeDoc} from './lib.mjs';
 
 export const OUT_DIR = path.join(DOCS_DIR, 'google-drive');
-export const DRIVE_CATEGORY = {label: 'Google Drive', position: 60};
+// The section's sidebar entry, with a landing page at /google-drive listing what's in it (the navbar's
+// Docs menu links there)
+export const DRIVE_CATEGORY = {
+  label: 'Google Drive',
+  position: 60,
+  link: {
+    type: 'generated-index',
+    slug: '/google-drive',
+    title: 'Google Drive',
+    description: 'Planning documents, decisions and demos from the shared drive. Internal: only on machines that have the files.',
+  },
+};
 const DRIVE_API = 'https://www.googleapis.com/drive/v3';
 const GOOGLE_DOC = 'application/vnd.google-apps.document';
 const FOLDER = 'application/vnd.google-apps.folder';
