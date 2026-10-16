@@ -10,7 +10,7 @@ export const GROUPS = [
   {id: 'api', title: 'Blue Core API', icon: 'stack', blurb: 'Endpoints and schemas from the live OpenAPI spec.'},
   {id: 'notes-read', title: 'Notes: read', icon: 'notes', blurb: 'Search, read and follow links in your notes vault.'},
   {id: 'notes-write', title: 'Notes: write', icon: 'notes', blurb: 'Add and change notes, only when you ask. None deletes.'},
-  {id: 'notebooks', title: 'Notebooks', icon: 'notebook', blurb: 'Write and run Jupyter notebooks that debug your local stack, dev or stage.'},
+  {id: 'notebooks', title: 'Jupyter Notebooks', icon: 'notebook', blurb: 'Write and run Jupyter notebooks that debug your local stack, dev or stage.'},
 ];
 
 // [name, title, group, access]

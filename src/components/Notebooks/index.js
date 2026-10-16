@@ -34,9 +34,9 @@ function useApi() {
 }
 
 // A new notebook: title, folder, and optionally a starter to begin from
-function NewNotebook({starters, folders, folder, onCreate, onCancel}) {
+function NewNotebook({starters, folders, folder, picked = '', onCreate, onCancel}) {
   const [title, setTitle] = useState('');
-  const [starter, setStarter] = useState('');
+  const [starter, setStarter] = useState(starters.some((s) => s.name === picked) ? picked : '');
   const [into, setInto] = useState(folder);
   return (
     <form
@@ -215,6 +215,7 @@ function Overview({list, url, onCreate, onAddStarters}) {
   return (
     <div className={ns.overview}>
       <PageHero
+        eyebrow="Workspace · Jupyter Notebooks"
         title="Your notebooks"
         lead={
           <>
@@ -391,7 +392,7 @@ export default function Notebooks() {
     return () => clearTimeout(t);
   }, [flash]);
 
-  const open = (path, {replace} = {}) => url.go(url.href({nb: path, new: null, in: null, trash: null}), {replace});
+  const open = (path, {replace} = {}) => url.go(url.href({nb: path, new: null, in: null, starter: null, trash: null}), {replace});
 
   const create = async (body) => {
     try {
@@ -417,13 +418,13 @@ export default function Notebooks() {
     return (
       <main className={styles.page}>
         <div className={styles.notice}>
-          <h1>Notebooks</h1>
+          <h1>Jupyter Notebooks</h1>
           {api.turnedOff ? (
             <p>
               Notebooks are off. To use them, set <code>JUPYTER_NOTEBOOK=true</code> in this site&apos;s <code>.env</code> and run <code>make up</code>, which also starts JupyterLab.
             </p>
           ) : (
-            <p>Notebooks run in a JupyterLab container next to the local site. Run the site with <code>make up</code> to use them.</p>
+            <p>Jupyter notebooks run in a JupyterLab container next to the local site. Run the site with <code>make up</code> to use them.</p>
           )}
         </div>
       </main>
@@ -507,7 +508,15 @@ export default function Notebooks() {
           </div>
         )}
         {url.creating ? (
-          <NewNotebook starters={list.starters ?? []} folders={list.folders ?? []} folder={url.in} onCreate={create} onCancel={() => url.go(url.href({new: null, in: null}))} />
+          <NewNotebook
+            key={url.starter}
+            starters={list.starters ?? []}
+            folders={list.folders ?? []}
+            folder={url.in}
+            picked={url.starter}
+            onCreate={create}
+            onCancel={() => url.go(url.href({new: null, in: null, starter: null}))}
+          />
         ) : url.trash ? (
           <TrashView
             call={call}

@@ -1,10 +1,10 @@
 ---
-title: Notebooks
+title: Jupyter Notebooks
 sidebar_position: 5
 sidebar_class_name: sidebar-icon sidebar-icon--notebook
 description: "Jupyter notebooks for debugging and troubleshooting Bluecore. They run Python in a local JupyterLab container, against your running stack (its API, Postgres, Airflow and Keycloak) or a deployed environment (dev, stage), and AI agents can write and run them for you."
 hero_actions:
-  - {label: Open Notebooks, to: /notebooks, primary: true, needs: notebooks}
+  - {label: Open Jupyter Notebooks, to: /notebooks, primary: true, needs: notebooks}
 ---
 
 This page explains how to use them, the starter notebooks, environments, and how agents work with them.
@@ -17,9 +17,9 @@ Notebooks are off by default. Turn them on in this repo's `.env`, then run `make
 JUPYTER_NOTEBOOK=true
 ```
 
-`make up` then builds and starts JupyterLab next to the site (the first build takes a few minutes), and the navbar gets **Notebooks**. Without it, JupyterLab is neither built nor started, and the site, MCP server and Ask the docs leave notebooks out; your notebooks stay in `notebooks/`. Then:
+`make up` then builds and starts JupyterLab next to the site (the first build takes a few minutes), and the navbar's **Workspace** menu gets **Jupyter Notebooks**. Without it, JupyterLab is neither built nor started, and the site, MCP server and Ask the docs leave notebooks out; your notebooks stay in `notebooks/`. Then:
 
-1. Open **Notebooks** in the navbar (only on the local site).
+1. Open **Workspace → Jupyter Notebooks** in the navbar (only on the local site).
 2. Pick a starter, or click **Add all to a Starters folder** to copy them into `Starters/` (when new starters arrive, the same link adds just those).
 3. Pick where it runs: **local**, **dev** or **stage** (see [Environments](#environments)).
 4. Click **Run all**. Outputs (tables, charts, errors) appear under each cell and are saved in the notebook.
@@ -200,7 +200,7 @@ Notebooks are `.ipynb` files in `notebooks/` in this repo (git-ignored, like you
 
 | Problem | Fix |
 |---|---|
-| No **Notebooks** in the navbar | Set `JUPYTER_NOTEBOOK=true` in `.env` and run `make up`. |
+| No **Jupyter Notebooks** in the navbar's **Workspace** menu | Set `JUPYTER_NOTEBOOK=true` in `.env` and run `make up`. |
 | "JupyterLab isn't running" | Run `make up`, or `docker compose --profile notebooks up -d jupyter`. |
 | "JupyterLab refused the token" | Restart both: `docker compose restart jupyter mcp`. |
 | A cell can't connect to the stack | Check the stack is running (`docker compose ps` in `bluecore-stack`) and that the notebook runs against the environment you meant. |

@@ -57,6 +57,7 @@ export function useNotebooksUrl() {
     nb: params.get('nb'),
     creating: params.has('new'),
     in: params.get('in') ?? '',
+    starter: params.get('starter') ?? '', // ?new&starter=<name>: the new-notebook form with that starter picked
     view: params.get('view') || 'date',
     tag: params.get('tag'),
     folder: params.get('folder'),
@@ -554,7 +555,7 @@ export default function NotebookList({list, url, call, exportPaths, onCollapse, 
   ];
 
   return (
-    <aside className={ns.side} aria-label="Notebooks">
+    <aside className={ns.side} aria-label="Jupyter Notebooks">
       <div className={ns.sideHead}>
         <Link to={url.href({}, {keep: false})} className={ns.sideTitle}>
           Notebooks

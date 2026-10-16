@@ -2025,6 +2025,7 @@ function Overview({list, url}) {
   return (
     <div className={styles.overview}>
       <PageHero
+        eyebrow="Workspace · Notes"
         title="Your notes"
         lead={
           <>

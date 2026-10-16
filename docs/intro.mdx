@@ -13,7 +13,7 @@ import {BookIcon, HelpIcon, PlugIcon, SparkleIcon} from '@site/src/components/No
 <PageHero
   eyebrow="Blue Core developer dashboard"
   title="Welcome"
-  lead="The Blue Core developer documentation, a live view of the project on GitHub, and AI tools that know both, in one place."
+  lead="The Blue Core developer documentation, a live view of the project on GitHub, AI tools that know both, and a workspace for your own notes and Jupyter notebooks, in one place."
   actions={[
     {label: 'Start with the Bluecore Stack', to: '/blue-core-repos/bluecore-stack/', icon: <BookIcon size={16} />, primary: true},
     {label: 'Ask the docs', event: 'ask-docs:open', icon: <SparkleIcon size={16} />, needs: 'chat'},
@@ -93,7 +93,7 @@ These pages are copies, overwritten on every sync. To change one, use its **Edit
 When you run the site locally, these pages update live (with a **Refresh** button). On the public site they're updated every hour.
 
 <Part icon="mcp" title="Work with AI">
-  The site runs an MCP server that gives AI agents these docs, live GitHub data, the Blue Core API spec and your notes.
+  The site runs an MCP server that gives AI agents these docs, live GitHub data, the Blue Core API spec, your notes and your Jupyter notebooks.
 </Part>
 
 <Cards>
@@ -115,29 +115,63 @@ When you run the site locally, these pages update live (with a **Refresh** butto
 
 <LocalOnly>
 
-<Part icon="notes" title="Your notes and notebooks">
-  Markdown notes that are also an Obsidian vault, and Jupyter notebooks for debugging the stack. Both stay on your machine.
+<Part icon="workspace" title="Your workspace">
+  Two tools of your own, on your machine only (**Workspace** in the top bar). Notes are for writing things down; Jupyter Notebooks are for running Python against the stack.
 </Part>
+
+### Notes
 
 <Cards>
   <Card icon="notes" title="Open your notes" to="/notes" meta="⌘P to jump to a note">
-    Write, tag, link and search notes, with templates, tasks and pasted screenshots.
+    Markdown notes you write, tag, link and search, with templates, tasks, pasted screenshots and nested folders.
   </Card>
   <Card icon="design" title="Use with Obsidian" to="/guides/notes#using-an-existing-obsidian-vault" meta="Same files, both ways">
-    Open the notes in Obsidian, or point the site at a vault you already have.
+    The notes are an Obsidian vault: open them there, or point the site at a vault you already have.
   </Card>
-  <LocalOnly needs="notebooks">
-    <Card icon="notebook" title="Notebooks" to="/notebooks" meta="Runs in JupyterLab · starters included">
-      Debug the stack with Python: health checks, the API, Postgres, Airflow, test triage.
-    </Card>
-  </LocalOnly>
   <Card icon="mcp" title="AI and your notes" to="/guides/notes#notes-and-ai" meta="Records which AI wrote what">
-    Agents can search, read and, when you ask, write notes.
+    Agents can search, read and, when you ask, write notes. Save any Ask the docs answer as a note.
+  </Card>
+</Cards>
+
+### Jupyter Notebooks
+
+<LocalOnly needs="notebooks">
+
+<Cards>
+  <Card icon="notebook" title="Open Jupyter Notebooks" to="/notebooks" meta="Edit and run on the page, or in JupyterLab">
+    Python notebooks that check and debug Bluecore: against your local stack, or dev and stage (read-only).
+  </Card>
+  <Card icon="code" title="Every API endpoint" to="/notebooks?new&starter=10-api-tour" meta="Starter · Blue Core API">
+    One example call to each endpoint, grouped by purpose, checked against the live OpenAPI spec.
+  </Card>
+  <Card icon="status-overview" title="Stack health check" to="/notebooks?new&starter=01-stack-health" meta="Starter · Check the stack">
+    Is each service up, and is it running the latest release? Compare local, dev and stage too.
+  </Card>
+  <Card icon="status-tests" title="Debug a failure" to="/notebooks" meta="Starters · Debug">
+    Keycloak logins and roles, Airflow DAG runs and logs, Postgres, and integration test triage.
+  </Card>
+  <Card icon="stack" title="Load and export records" to="/notebooks?new&starter=21-batch-load" meta="Starters · Load and export">
+    Create, edit and delete records, convert MARC to BIBFRAME, load batches and export to a catalog.
+  </Card>
+  <Card icon="mcp" title="AI and notebooks" to="/guides/notebooks#notebooks-and-ai" meta="Agents write and run them">
+    Ask an agent to write a notebook that investigates a problem and run it. Known secrets are hidden from what it reads.
   </Card>
 </Cards>
 
 </LocalOnly>
 
+<LocalOnly needs="notebooks" off>
+
+<Cards>
+  <Card icon="notebook" title="Turn on Jupyter Notebooks" to="/guides/notebooks#getting-started" meta="Off by default · one line in .env">
+    Python notebooks that check and debug the stack, with 14 ready-to-run starters. Set `JUPYTER_NOTEBOOK=true` in `.env`, then run `make up`.
+  </Card>
+</Cards>
+
+</LocalOnly>
+
+</LocalOnly>
+
 <Part icon="help" title="How this site works">
-  Where the content comes from, how the live data is fetched, your notes, the MCP tools, and how to add or change docs: see the [Guides](/guides), also under the **?** in the top bar.
+  Where the content comes from, how the live data is fetched, your notes and Jupyter notebooks, the MCP tools, and how to add or change docs: see the [Guides](/guides), also under the **?** in the top bar.
 </Part>

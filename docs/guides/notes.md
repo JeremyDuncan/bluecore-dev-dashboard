@@ -17,7 +17,7 @@ There's nothing to set up. Run the site as usual:
 make up
 ```
 
-Open **Notes** in the navbar. The first time, the MCP server creates a `notes/` folder in this repo with a *Welcome* note. Click **New note** to write your own.
+Open **Workspace → Notes** in the navbar. The first time, the MCP server creates a `notes/` folder in this repo with a *Welcome* note. Click **New note** to write your own.
 
 :::info[Local only]
 Notes are personal, so they only exist on your machine. The `notes/` folder is git-ignored, and the public site has no Notes link. In `make prod`, notes are only served to `localhost`, not to people opening your site through a tunnel.

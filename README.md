@@ -167,7 +167,7 @@ The question is passed on stdin, never as a command-line argument, and the helpe
 Settings (environment): `CHAT_PROVIDER` (`claude`), `CHAT_CLAUDE_MODEL` (`sonnet`), `CHAT_CODEX_MODEL` (your Codex default), `CLAUDE_BIN`, `CODEX_BIN`, `CHAT_PORT` (3002), `MCP_URL` (`http://localhost:3001/mcp`). Adding another CLI means adding a file in `chat/providers/`. The icons are in `static/img/providers/` (the Codex one is a placeholder; see the README there). The chat box is hidden on the public GitHub Pages build (`CHAT_API_URL: ''`).
 
 ### Notes
-**Notes** (navbar) is your own notebook: Markdown notes you read, write, tag and search on the site, that AI agents can read and add to, and that are also an [Obsidian](https://obsidian.md) vault. Nothing to set up: `make up` creates a git-ignored `notes/` folder with a Welcome note.
+**Notes** (navbar: **Workspace → Notes**) is your own notebook: Markdown notes you read, write, tag and search on the site, that AI agents can read and add to, and that are also an [Obsidian](https://obsidian.md) vault. Nothing to set up: `make up` creates a git-ignored `notes/` folder with a Welcome note.
 
 - **Browse** by date, tag or folder, search, and follow `[[links]]` and backlinks. Obsidian syntax (`[[Note]]`, `![[image.png]]`, `#tags`, `> [!note]` callouts) is rendered.
 - **Write** on the site (**New note** / **Edit**, with tags and a preview). Saving refuses to overwrite a note that changed elsewhere in the meantime.
@@ -183,7 +183,7 @@ Settings (environment): `CHAT_PROVIDER` (`claude`), `CHAT_CLAUDE_MODEL` (`sonnet
 Notes are local only: the public build has no Notes link (`LIVE_API_URL: ''`), and in `make prod` nginx only serves them to `localhost`. The vault is handled by the MCP server (`mcp/notes.mjs`, `notes-api.mjs`, `notes-tools.mjs`); the page is `src/pages/notes.js`. See the [Notes guide](docs/guides/notes.md).
 
 ### Notebooks
-**Notebooks** (navbar, local only) are Jupyter notebooks for debugging and troubleshooting the Bluecore stack. Off by default: with `JUPYTER_NOTEBOOK=true` in `.env`, `make up` builds and starts JupyterLab (`http://localhost:8888`, service `jupyter`, compose profile `notebooks`) next to the site; its Python kernel reaches your running stack through `host.docker.internal`: the API, Postgres, Airflow and Keycloak.
+**Jupyter Notebooks** (navbar: **Workspace → Jupyter Notebooks**, local only) are Jupyter notebooks for debugging and troubleshooting the Bluecore stack. Off by default: with `JUPYTER_NOTEBOOK=true` in `.env`, `make up` builds and starts JupyterLab (`http://localhost:8888`, service `jupyter`, compose profile `notebooks`) next to the site; its Python kernel reaches your running stack through `host.docker.internal`: the API, Postgres, Airflow and Keycloak.
 
 - **Starters** (`mcp/starter-notebooks/`): stack health check, Blue Core API explorer, Postgres inspection, Airflow DAG runs, integration test triage.
 - **Organizing:** the list works like Notes: search (code and outputs too), by date / tag / folder, folders with drag-and-drop, tags, pins, select to export (`.ipynb` / `.zip`) or delete, copies, a Trash with restore (JupyterLab's deletions included), and Copy on outputs (tables paste as tables).

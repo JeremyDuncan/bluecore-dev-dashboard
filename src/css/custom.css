@@ -222,11 +222,11 @@
   }
 }
 
-/* Compact navbar: below 1380px the links don't fit beside the logo and search, so they move into the
+/* Compact navbar: below 1180px the menus don't fit beside the logo and search, so they move into the
    hamburger menu (Docusaurus only does this below 996px). The same width is NAVBAR_BREAKPOINT in
    src/theme/Navbar/MobileSidebar/index.js. The selectors outrank .navbar-icon and .navbar-help,
    which would otherwise keep the links showing next to the hamburger. */
-@media (max-width: 1379px) {
+@media (max-width: 1179px) {
   .navbar__toggle {
     display: inherit;
   }

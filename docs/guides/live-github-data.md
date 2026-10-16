@@ -313,7 +313,7 @@ Hover over the "Snapshot" badge to see the error, then:
 | `unknown project` / `unknown workflow` | The URL doesn't match `docs-sources.json`. In prod, rebuild with `make prod` after editing it. |
 | `Failed to fetch` | The MCP server isn't running. Start `make up`, or `make mcp`. |
 | `Host "…" not allowed` | Add the host name to `MCP_ALLOWED_HOSTS`. |
-| Project Status section and Status link missing | No sync has run with a token yet. Run `make sync`, check its `project-status` log lines, then restart `make up` so the navbar link appears. |
+| Project Status section and Status link missing | No sync has run with a token yet. Run `make sync`, check its `project-status` log lines, then restart `make up` so the navbar's **Project Status** menu appears. |
 | Test details missing for old runs | Their logs have expired on GitHub (90 days). |
 
 ## Related

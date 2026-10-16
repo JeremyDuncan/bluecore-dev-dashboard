@@ -8,7 +8,7 @@ import Notebooks from '@site/src/components/Notebooks';
 
 export default function NotebooksPage() {
   return (
-    <Layout title="Notebooks" description="Jupyter notebooks for debugging and troubleshooting the Bluecore stack">
+    <Layout title="Jupyter Notebooks" description="Jupyter notebooks for debugging and troubleshooting the Bluecore stack">
       <Head>
         <meta name="robots" content="noindex" />
       </Head>
