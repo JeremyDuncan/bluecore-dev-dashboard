@@ -123,6 +123,9 @@ function Heading({level, node, children}) {
 // onToggleTask(line, checked): makes "- [ ]" checkboxes clickable; `line` counts from 1 in `body`
 export default function NoteMarkdown({body, resolve, noteHref, tagHref, newHref, fileUrl, onToggleTask}) {
   const components = {
+    table({children}) {
+      return <div className={styles.tableWrap}><table>{children}</table></div>;
+    },
     h1: (p) => <Heading level={1} {...p} />,
     h2: (p) => <Heading level={2} {...p} />,
     h3: (p) => <Heading level={3} {...p} />,
