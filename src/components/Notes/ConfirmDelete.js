@@ -16,7 +16,8 @@ export default function ConfirmDelete({notes, folders = [], onCancel, onDeleted}
   const open = Boolean(list.length || dirs.length);
   const one = list.length === 1 && !dirs.length ? list[0] : null;
   const oneFolder = !list.length && dirs.length === 1 ? dirs[0] : null;
-  const linked = one?.backlinks?.length ?? 0;
+  // The warning follows the one selected note, also when folders are selected with it (`one` is only for the labels)
+  const linked = list.length === 1 ? (list[0].backlinks?.length ?? 0) : 0;
   const what = [list.length && count(list.length, 'note'), dirs.length && count(dirs.length, 'folder')].filter(Boolean).join(' and ');
   return (
     <ConfirmDialog
@@ -47,7 +48,7 @@ export default function ConfirmDelete({notes, folders = [], onCancel, onDeleted}
       {open && dirs.length > 0 && <p>{dirs.length === 1 ? 'The folder is' : 'The folders are'} removed once empty; a folder that still holds anything you didn't select is kept.</p>}
       {linked > 0 && (
         <p className={styles.warning}>
-          {linked} {linked === 1 ? 'note links' : 'notes link'} to it. Those links will point to a missing note.
+          {linked} {linked === 1 ? 'note links' : 'notes link'} to {one ? 'it' : `“${list[0].title}”`}. Those links will point to a missing note.
         </p>
       )}
     </ConfirmDialog>

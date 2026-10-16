@@ -124,13 +124,31 @@ async function connect(kernelId) {
     ws.addEventListener('open', ok, {once: true});
     ws.addEventListener('error', () => fail(new JupyterError('Couldn\'t connect to the notebook\'s kernel')), {once: true});
   });
-  let pending = null; // {msgId, outputs, executionCount, idle, reply, done}
+  let pending = null; // {msgId, outputs, executionCount, idle, reply, lost, done}
+  // The socket can close mid-run (JupyterLab restarted, the container recreated), or the kernel shut
+  // down: end the waiting cell at once instead of letting it, and every cell after it, wait out its timeout
+  let closed = false;
+  const lose = () => {
+    closed = true;
+    if (pending) {
+      pending.lost = true;
+      pending.done();
+    }
+  };
+  ws.addEventListener('close', lose);
   ws.addEventListener('message', (event) => {
     let msg;
     try {
       msg = JSON.parse(typeof event.data === 'string' ? event.data : Buffer.from(event.data).toString('utf8'));
     } catch {
       return; // binary frames (buffers) aren't used for outputs
+    }
+    // The kernel shut down or died (from JupyterLab, the API or the idle culler): Jupyter announces it
+    // on iopub but keeps the socket open, and would quietly drop every cell sent after it
+    if (msg.channel === 'iopub' && (msg.header?.msg_type === 'shutdown_reply' || (msg.header?.msg_type === 'status' && msg.content?.execution_state === 'dead'))) {
+      lose();
+      ws.close();
+      return;
     }
     if (!pending || msg.parent_header?.msg_id !== pending.msgId) return;
     const type = msg.header.msg_type;
@@ -146,6 +164,7 @@ async function connect(kernelId) {
   });
 
   async function run(code, timeoutMs = CELL_TIMEOUT_MS) {
+    if (closed) throw new JupyterError('The connection to the notebook\'s kernel closed. Run it again.');
     const msgId = crypto.randomUUID();
     const result = await new Promise((resolve) => {
       const timer = setTimeout(() => {
@@ -165,6 +184,10 @@ async function connect(kernelId) {
       );
     });
     pending = null;
+    if (result.lost) {
+      result.outputs.push({output_type: 'error', ename: 'ConnectionError', evalue: 'The kernel shut down or the connection to it closed during the run (JupyterLab restarted?). Run it again.', traceback: []});
+      return {status: 'error', outputs: result.outputs, executionCount: result.executionCount, lost: true};
+    }
     if (result.timedOut) {
       await api('POST', `/api/kernels/${kernelId}/interrupt`).catch(() => {});
       result.outputs.push({output_type: 'error', ename: 'TimeoutError', evalue: `The cell ran for more than ${Math.round(timeoutMs / 1000)} s and was interrupted`, traceback: []});
@@ -186,8 +209,9 @@ export async function runCells(rel, cells, {indexes, restart = false, keepGoing 
   try {
     for (const i of wanted) {
       const r = await conn.run(cells[i].source, timeoutMs || CELL_TIMEOUT_MS);
-      results.push({index: i, ...r});
-      if (r.status !== 'ok' && !keepGoing) break;
+      const {lost, ...rest} = r;
+      results.push({index: i, ...rest});
+      if (lost || (r.status !== 'ok' && !keepGoing)) break; // no kernel left to run the rest on
     }
   } finally {
     conn.close();

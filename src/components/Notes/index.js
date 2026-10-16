@@ -1061,7 +1061,7 @@ function NoteList({list, url, onJump, onCollapse}) {
           ex.stop();
           await list.reload();
           if (paths.includes(url.note)) url.go(url.href({note: null, edit: null}), {replace: true});
-          if (kept?.length) setKept(kept);
+          setKept(kept?.length ? kept : null); // the latest delete's result, so an old alert doesn't linger
         }}
       />
       {kept && (

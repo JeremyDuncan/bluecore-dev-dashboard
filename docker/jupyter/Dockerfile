@@ -20,11 +20,17 @@ RUN pip install --no-cache-dir \
       tabulate==0.9.0 \
       bluecore-client==0.2.0
 
+# JupyterLab runs as "jupyter", UID 1000: the same UID as the MCP server's "node" user (mcp-prod), so
+# notebooks, checkpoints and JupyterLab's .Trash-1000 it writes in the shared /notebooks stay writable
+# for the MCP server (saves, trash restores and purges rename and remove files there)
+RUN useradd --uid 1000 --create-home --shell /bin/bash jupyter
+
 # bluecore.py: where each environment is (local stack or dev/stage), for `from bluecore import target`.
 # docker-compose.yml also mounts it over this copy, so edits apply on a kernel restart.
 COPY bluecore.py /opt/bluecore/bluecore.py
-COPY startup.py /root/.ipython/profile_default/startup/00-bluecore.py
+COPY --chown=jupyter:jupyter startup.py /home/jupyter/.ipython/profile_default/startup/00-bluecore.py
 ENV PYTHONPATH=/opt/bluecore
+RUN mkdir -p /run/jupyter && chown jupyter:jupyter /run/jupyter
 
 WORKDIR /notebooks
 EXPOSE 8888
@@ -35,4 +41,6 @@ EXPOSE 8888
 # shut down, so notebooks run from the page or by agents don't pile up memory next to the stack.
 # extension_manager=readonly: no installing JupyterLab extensions from the UI (the image defines what's
 # there), which also skips JupyterLab 4.2's PyPI manager, which fails with httpx 0.28 (bluecore-client).
-CMD ["sh", "-c", "TOKEN=\"${JUPYTER_TOKEN:-$(python -c 'import secrets; print(secrets.token_hex(24))')}\"; mkdir -p /run/jupyter && printf %s \"$TOKEN\" > /run/jupyter/token && exec jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root --ServerApp.root_dir=/notebooks --ServerApp.allow_remote_access=True --IdentityProvider.token=\"$TOKEN\" --LabApp.extension_manager=readonly --MappingKernelManager.cull_idle_timeout=900 --MappingKernelManager.cull_interval=120 --ServerApp.terminado_settings='{\"shell_command\": [\"/bin/bash\"]}'"]
+# The container starts as root only to hand the token volume to "jupyter" (a volume made by an older,
+# root-run image is root-owned), then setpriv drops to UID 1000 before JupyterLab starts.
+CMD ["sh", "-c", "TOKEN=\"${JUPYTER_TOKEN:-$(python -c 'import secrets; print(secrets.token_hex(24))')}\"; mkdir -p /run/jupyter && chown -R jupyter:jupyter /run/jupyter && printf %s \"$TOKEN\" > /run/jupyter/token && chown jupyter:jupyter /run/jupyter/token && exec setpriv --reuid=jupyter --regid=jupyter --init-groups env HOME=/home/jupyter USER=jupyter jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --ServerApp.root_dir=/notebooks --ServerApp.allow_remote_access=True --IdentityProvider.token=\"$TOKEN\" --LabApp.extension_manager=readonly --MappingKernelManager.cull_idle_timeout=900 --MappingKernelManager.cull_interval=120 --ServerApp.terminado_settings='{\"shell_command\": [\"/bin/bash\"]}'"]

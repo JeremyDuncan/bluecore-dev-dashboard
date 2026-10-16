@@ -871,8 +871,10 @@ function titleHeading(title) {
 
 // After a note or folder moves: [[links]] written as a path to it ([[Folder/Note]]) get the new path.
 // Plain [[Note]] links don't name a folder, so they keep working. `from`/`to`: the old and new path
-// of a note (without .md) or of a folder. Returns how many links changed.
-function rewritePathLinks(from, to) {
+// of a note (without .md) or of a folder. `folder`: only links through it (`from/…`) change, never one
+// that is exactly `from`, which names a note ("Projects.md" next to a "Projects/" folder).
+// Returns how many links changed.
+function rewritePathLinks(from, to, {folder = false} = {}) {
   const old = from.toLowerCase();
   let linksUpdated = 0;
   for (const rel of walk()) {
@@ -881,7 +883,7 @@ function rewritePathLinks(from, to) {
     const body = rewriteLinks(note.body, (t) => {
       const target = t.replace(/\.md$/i, '');
       const lower = target.toLowerCase();
-      if (lower !== old && !lower.startsWith(`${old}/`)) return null;
+      if ((folder || lower !== old) && !lower.startsWith(`${old}/`)) return null;
       count++;
       return to + target.slice(from.length);
     });
@@ -935,7 +937,7 @@ export function renameFolder(folder, name) {
   if (fs.existsSync(targetAbs) && target.toLowerCase() !== rel.toLowerCase()) throw new NoteError(409, `There's already a folder "${target}"`);
   fs.renameSync(abs, targetAbs);
   for (const key of cache.keys()) if (key.startsWith(`${rel}/`)) cache.delete(key);
-  return {folder: target, from: rel, linksUpdated: rewritePathLinks(rel, target)};
+  return {folder: target, from: rel, linksUpdated: rewritePathLinks(rel, target, {folder: true})};
 }
 
 // Moves a folder, with everything in it, into another folder ('' = the top level), keeping its name.
@@ -954,7 +956,7 @@ export function moveFolder(folder, into) {
   if (fs.existsSync(targetAbs)) throw new NoteError(409, `There's already a folder "${name}" in ${dest || 'the top level'}`);
   fs.renameSync(abs, targetAbs);
   for (const key of cache.keys()) if (key.startsWith(`${rel}/`)) cache.delete(key);
-  return {folder: target, from: rel, linksUpdated: rewritePathLinks(rel, target)};
+  return {folder: target, from: rel, linksUpdated: rewritePathLinks(rel, target, {folder: true})};
 }
 
 // Deletes selected folders after their contents (deepest first, so a parent is empty by its turn).

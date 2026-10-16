@@ -203,6 +203,7 @@ Notebooks are `.ipynb` files in `notebooks/` in this repo (git-ignored, like you
 | No **Jupyter Notebooks** in the navbar's **Workspace** menu | Set `JUPYTER_NOTEBOOK=true` in `.env` and run `make up`. |
 | "JupyterLab isn't running" | Run `make up`, or `docker compose --profile notebooks up -d jupyter`. |
 | "JupyterLab refused the token" | Restart both: `docker compose restart jupyter mcp`. |
+| Saving, restoring or deleting a notebook fails with *permission denied* (Linux) | JupyterLab runs as UID 1000, like the MCP server. Files an older image created as root (for example `.Trash-0`) need handing over once: `sudo chown -R 1000:1000 notebooks`. Docker Desktop on macOS and Windows isn't affected. |
 | A cell can't connect to the stack | Check the stack is running (`docker compose ps` in `bluecore-stack`) and that the notebook runs against the environment you meant. |
 | `NotConfigured: … needs BLUECORE_DEV_…` | Add that login to `.env.notebooks`, then `docker compose --profile notebooks up -d jupyter`. |
 | `ReadOnlyError` | The cell tried to change a deployed environment. Check it really should, then use `target("dev", allow_writes=True)`. |
