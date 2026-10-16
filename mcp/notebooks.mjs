@@ -517,6 +517,26 @@ export function restoreFromTrash(name) {
   return {restored: rel};
 }
 
+// Deletes a trashed notebook for good (only from the Notebooks page's Trash, after a confirmation):
+// one deleted on the page (.trash), or one deleted in JupyterLab ("jupyterlab:…", with its .trashinfo)
+export function purgeFromTrash(name) {
+  if (String(name ?? '').startsWith('jupyterlab:')) {
+    const item = jupyterTrash().find((t) => t.name === name);
+    if (!item) throw new NotebookError(404, `"${name}" isn't in the trash`);
+    fs.rmSync(item.file);
+    fs.rmSync(item.info, {force: true});
+    return {purged: name};
+  }
+  const clean = path.basename(String(name ?? ''));
+  const abs = path.join(NOTEBOOKS, TRASH, clean);
+  if (!clean.toLowerCase().endsWith('.ipynb') || !fs.existsSync(abs)) throw new NotebookError(404, `"${name}" isn't in the trash`);
+  fs.rmSync(abs);
+  const origins = readOrigins();
+  delete origins[clean];
+  writeOrigins(origins);
+  return {purged: clean};
+}
+
 // Moves a file back to `from` (a path inside the folder), numbering the name if it's taken now
 function putBack(abs, from) {
   const safeFrom = (() => {

@@ -1516,9 +1516,35 @@
   font-size: 13px;
 }
 
-.trashList button {
+.trashActions {
+  display: flex;
+  flex-wrap: wrap;
   grid-row: 1 / span 2;
   grid-column: 2;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+/* An outlined button for a destructive action (Delete forever) */
+.ghostDanger,
+.ghostDanger:hover:not(:disabled) {
+  color: var(--bc-danger-text);
+}
+
+.ghostDanger:hover:not(:disabled) {
+  border-color: var(--bc-danger-text);
+}
+
+@media (max-width: 600px) {
+  .trashList li {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .trashActions {
+    grid-row: auto;
+    grid-column: 1;
+    justify-content: flex-start;
+  }
 }
 
 /* A button that looks like the Notes page's section links */

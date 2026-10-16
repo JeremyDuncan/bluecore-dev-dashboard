@@ -46,7 +46,7 @@ The list on the left works like the Notes list:
 - **Select** picks several notebooks to export (one `.ipynb`, or a `.zip` keeping folders) or delete. Folders can be ticked too, empty ones included: deleting moves the notebooks to the trash and removes the selected folders once they're empty.
 - **More → Make a copy** duplicates a notebook (outputs included); **More → Export (.ipynb)** downloads it.
 - **Copy** on an output copies it: tables paste into a spreadsheet as a table, a chart alone as an image, anything else as text.
-- **Trash** (bottom of the list) shows deleted notebooks, including ones deleted in JupyterLab, and **Restore** puts one back where it was.
+- **Trash** (bottom of the list) shows deleted notebooks, including ones deleted in JupyterLab. **Restore** puts one back where it was; **Delete forever** erases it, after you confirm, and can't be undone.
 
 JupyterLab is still there for anything else (`http://localhost:8888`, **More → Open in JupyterLab**, or `make lab` for its address with the token).
 

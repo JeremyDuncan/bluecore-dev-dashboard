@@ -81,8 +81,10 @@ function NewNotebook({starters, folders, folder, onCreate, onCancel}) {
 }
 
 // Deleted notebooks (?trash): Restore puts one back where it was
-function TrashView({call, items, onRestored}) {
+// The trash: Restore puts a notebook back; Delete forever erases it, after a confirmation
+function TrashView({call, items, onRestored, onPurged}) {
   const [error, setError] = useState(null);
+  const [purging, setPurging] = useState(null);
   const restore = async (item) => {
     setError(null);
     try {
@@ -118,15 +120,34 @@ function TrashView({call, items, onRestored}) {
                 <FolderIcon size={12} /> {item.from.includes('/') ? item.from.slice(0, item.from.lastIndexOf('/')) : 'Top level'} · deleted {relWhen(item.deleted)}
                 {item.via && ` in ${item.via}`}
               </span>
-              <button type="button" className={styles.ghost} onClick={() => restore(item)}>
-                Restore
-              </button>
+              <span className={styles.trashActions}>
+                <button type="button" className={styles.ghost} onClick={() => restore(item)}>
+                  <ArrowLeftIcon size={14} /> Restore
+                </button>
+                <button type="button" className={`${styles.ghost} ${styles.ghostDanger}`} onClick={() => setPurging(item)} aria-label={`Delete ${item.title} forever`}>
+                  <TrashIcon size={14} /> Delete forever
+                </button>
+              </span>
             </li>
           ))}
         </ul>
       ) : (
         <p className={ns.empty}>The trash is empty.</p>
       )}
+      <ConfirmDialog
+        open={Boolean(purging)}
+        title={`Delete “${purging?.title}” forever?`}
+        confirmLabel="Delete forever"
+        busyLabel="Deleting…"
+        onCancel={() => setPurging(null)}
+        onConfirm={async () => {
+          await call('/trash/purge', {method: 'POST', body: {name: purging.name}});
+          const gone = purging;
+          setPurging(null);
+          onPurged(gone);
+        }}>
+        <p>This erases the notebook file, outputs included. It can't be undone{purging?.via ? `, here or in ${purging.via}` : ''}.</p>
+      </ConfirmDialog>
     </div>
   );
 }
@@ -498,6 +519,10 @@ export default function Notebooks() {
                   Restored “{item.title}”. <Link to={url.href({nb: restored, trash: null}, {keep: false})}>Open it</Link>
                 </>,
               );
+            }}
+            onPurged={async (item) => {
+              await reload();
+              setFlash(`Deleted “${item.title}” forever.`);
             }}
           />
         ) : nb && nb.path === url.nb ? (

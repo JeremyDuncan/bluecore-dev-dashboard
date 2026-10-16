@@ -16,7 +16,8 @@
 //   POST /api/notebooks/duplicate             {path} → a copy next to it
 //   POST /api/notebooks/move                  {path, folder} ('' = top level)
 //   POST /api/notebooks/folder                {path} → a new folder; /folder/rename {path, name}; /folder/move {path, folder} (with its contents; '' = top level); /folder/delete {path} (empty only)
-//   GET  /api/notebooks/trash                 what's in .trash; POST /trash/restore {name} puts one back
+//   GET  /api/notebooks/trash                 what's in .trash; POST /trash/restore {name} puts one back;
+//                                             POST /trash/purge {name} deletes it for good
 //   GET  /api/notebooks/export?path=          the .ipynb file; POST /export {paths, name} → a .zip
 //
 // Same rules as the notes API: this machine only, and writes need a JSON body from an allowed origin.
@@ -40,6 +41,7 @@ import {
   moveNotebook,
   renameFolder,
   resolveNotebook,
+  purgeFromTrash,
   restoreFromTrash,
   searchNotebooks,
   setNotebookMeta,
@@ -167,6 +169,8 @@ export async function handleNotebooksApi(req, res, pathname) {
       send(res, 200, {items: listTrash()}, origin);
     } else if (pathname === '/api/notebooks/trash/restore' && req.method === 'POST') {
       send(res, 200, restoreFromTrash((await readJson(req)).name), origin);
+    } else if (pathname === '/api/notebooks/trash/purge' && req.method === 'POST') {
+      send(res, 200, purgeFromTrash((await readJson(req)).name), origin);
     } else if (pathname === '/api/notebooks/export') {
       // One notebook: the .ipynb as it is. Several (POST): a zip keeping their folders.
       let data;
