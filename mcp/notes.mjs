@@ -17,6 +17,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {validIcon} from './folder-icons.mjs';
 import YAML from 'yaml';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -237,6 +238,7 @@ function load(rel) {
     editedBy: typeof data.edited_by === 'string' ? data.edited_by : null,
     editedModel: typeof data.edited_model === 'string' ? data.edited_model : null,
     pinned: data.pinned === true,
+    icon: validIcon(data.icon) ? data.icon : null, // its own icon on the Notes page ("line:<name>" or "emoji:<emoji>")
     template: isTemplatePath(rel),
     links: [...new Set(wikiLinks(body))],
     excerpt: excerptOf(body),
@@ -803,7 +805,8 @@ function checkSize(body) {
 }
 
 // New note at <folder>/<title>.md (" 2", " 3", … added if the name is taken). Returns the note.
-export function createNote({title, body = '', tags = [], folder = '', author, model} = {}) {
+export function createNote({title, body = '', tags = [], folder = '', author, model, icon} = {}) {
+  if (icon != null && !validIcon(icon)) throw new NoteError(400, 'Pick an icon from the list, or one emoji');
   checkSize(body);
   const {rel, abs} = newNoteFile(title, folder);
   const now = new Date().toISOString();
@@ -815,6 +818,7 @@ export function createNote({title, body = '', tags = [], folder = '', author, mo
     updated: now,
     ...(author ? {author: String(author).slice(0, 80)} : {}),
     ...(model ? {model: String(model).slice(0, 80)} : {}),
+    ...(icon ? {icon} : {}),
   };
   fs.mkdirSync(path.dirname(abs), {recursive: true});
   fs.writeFileSync(abs, serialize(data, body), {flag: 'wx'});
@@ -865,6 +869,34 @@ function titleHeading(title) {
 
 // --- Folders and moving --------------------------------------------------------------------------
 
+// After a note or folder moves: [[links]] written as a path to it ([[Folder/Note]]) get the new path.
+// Plain [[Note]] links don't name a folder, so they keep working. `from`/`to`: the old and new path
+// of a note (without .md) or of a folder. `folder`: only links through it (`from/…`) change, never one
+// that is exactly `from`, which names a note ("Projects.md" next to a "Projects/" folder).
+// Returns how many links changed.
+function rewritePathLinks(from, to, {folder = false} = {}) {
+  const old = from.toLowerCase();
+  let linksUpdated = 0;
+  for (const rel of walk()) {
+    const note = load(rel);
+    let count = 0;
+    const body = rewriteLinks(note.body, (t) => {
+      const target = t.replace(/\.md$/i, '');
+      const lower = target.toLowerCase();
+      if ((folder || lower !== old) && !lower.startsWith(`${old}/`)) return null;
+      count++;
+      return to + target.slice(from.length);
+    });
+    if (!count) continue;
+    const {abs} = resolve(rel, {ext: ['.md']});
+    const raw = fs.readFileSync(abs, 'utf8');
+    fs.writeFileSync(abs, raw.slice(0, raw.length - note.body.length) + body);
+    cache.delete(rel);
+    linksUpdated += count;
+  }
+  return linksUpdated;
+}
+
 // "a / b//c" → "a/b/c", each part cleaned like a note name; '' is the top level
 const cleanFolder = (folder) =>
   String(folder ?? '')
@@ -889,7 +921,8 @@ export function createFolder(folder) {
   return {folder: rel};
 }
 
-// Renames a folder in place (same parent). Notes inside keep their names, so [[links]] still work.
+// Renames a folder in place (same parent). Notes inside keep their names, so [[links]] still work;
+// links written as a path through the folder are updated.
 export function renameFolder(folder, name) {
   const {abs, rel} = existingFolder(folder);
   const clean = safeName(name);
@@ -904,7 +937,44 @@ export function renameFolder(folder, name) {
   if (fs.existsSync(targetAbs) && target.toLowerCase() !== rel.toLowerCase()) throw new NoteError(409, `There's already a folder "${target}"`);
   fs.renameSync(abs, targetAbs);
   for (const key of cache.keys()) if (key.startsWith(`${rel}/`)) cache.delete(key);
-  return {folder: target, from: rel};
+  return {folder: target, from: rel, linksUpdated: rewritePathLinks(rel, target, {folder: true})};
+}
+
+// Moves a folder, with everything in it, into another folder ('' = the top level), keeping its name.
+// Note file names don't change, so [[links]] by name still work; ones written as a path are updated.
+export function moveFolder(folder, into) {
+  const {abs, rel} = existingFolder(folder);
+  const dest = cleanFolder(into);
+  notInAttachments(rel);
+  notInAttachments(dest);
+  if (dest === rel || dest.startsWith(`${rel}/`)) throw new NoteError(400, `Can't move "${rel}" into itself`);
+  if (dest) existingFolder(dest);
+  const name = path.posix.basename(rel);
+  const target = dest ? `${dest}/${name}` : name;
+  if (target === rel) return {folder: rel, from: rel};
+  const {abs: targetAbs} = resolve(target);
+  if (fs.existsSync(targetAbs)) throw new NoteError(409, `There's already a folder "${name}" in ${dest || 'the top level'}`);
+  fs.renameSync(abs, targetAbs);
+  for (const key of cache.keys()) if (key.startsWith(`${rel}/`)) cache.delete(key);
+  return {folder: target, from: rel, linksUpdated: rewritePathLinks(rel, target, {folder: true})};
+}
+
+// Deletes selected folders after their contents (deepest first, so a parent is empty by its turn).
+// Only empty ones go: a folder still holding something (not selected, or added meanwhile) is kept and
+// reported, never deleted with what's in it.
+export function deleteFolders(folders = []) {
+  if (!Array.isArray(folders) || folders.length > 500) throw new NoteError(400, 'Name the folders to delete');
+  const deepestFirst = [...new Set(folders.map(String))].sort((a, b) => b.split('/').length - a.split('/').length);
+  const foldersDeleted = [];
+  const foldersKept = [];
+  for (const folder of deepestFirst) {
+    try {
+      foldersDeleted.push(deleteFolder(folder).deleted);
+    } catch (err) {
+      if (err.status !== 404) foldersKept.push({folder, reason: err.message});
+    }
+  }
+  return {foldersDeleted, foldersKept};
 }
 
 // Only an empty folder (nothing but a .DS_Store); notes are deleted one by one, to the trash
@@ -932,6 +1002,7 @@ export function moveNote(notePath, folder) {
   fs.mkdirSync(path.dirname(targetAbs), {recursive: true});
   fs.renameSync(abs, targetAbs);
   cache.delete(notePath);
+  rewritePathLinks(notePath.replace(/\.md$/i, ''), target.replace(/\.md$/i, ''));
   return readNote(target);
 }
 
@@ -940,7 +1011,7 @@ export function moveNote(notePath, folder) {
 // `append` adds text at the end instead of replacing it.
 // editor: {author, model} when an AI changes the text (recorded as edited_by / edited_model);
 // null when you save it on the Notes page (clears them); left out for anything else
-export function updateNote(ref, {body, append, tags, addTags, removeTags, baseMtime, pinned, editor} = {}) {
+export function updateNote(ref, {body, append, tags, addTags, removeTags, baseMtime, pinned, icon, editor} = {}) {
   const rel = findNote(ref);
   if (!rel) throw new NoteError(404, `No note "${ref}"`);
   const {abs} = resolve(rel, {ext: ['.md']});
@@ -970,6 +1041,12 @@ export function updateNote(ref, {body, append, tags, addTags, removeTags, baseMt
   data.tags = fmTags;
   if (pinned === true) data.pinned = true;
   if (pinned === false) delete data.pinned;
+  // icon: a line icon or emoji for the Notes page (null removes it)
+  if (icon === null) delete data.icon;
+  else if (icon !== undefined) {
+    if (!validIcon(icon)) throw new NoteError(400, 'Pick an icon from the list, or one emoji');
+    data.icon = icon;
+  }
   if (editor === null || (editor && text !== current.body)) {
     delete data.edited_by;
     delete data.edited_model;

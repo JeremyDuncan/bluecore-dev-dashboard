@@ -123,7 +123,13 @@ async function syncFolder(entry) {
 export async function syncBox() {
   const entries = enabled((await loadSources()).boxFolders);
   await fs.mkdir(OUT_DIR, {recursive: true});
-  await fs.writeFile(path.join(OUT_DIR, '_category_.json'), JSON.stringify({label: 'Box', position: 70}, null, 2) + '\n');
+  // With a landing page at /box listing what's in it (the navbar's Docs menu links there)
+  const category = {
+    label: 'Box',
+    position: 70,
+    link: {type: 'generated-index', slug: '/box', title: 'Box', description: 'MVP planning documents from the project Box folder. Internal: only on machines that have the files.'},
+  };
+  await fs.writeFile(path.join(OUT_DIR, '_category_.json'), JSON.stringify(category, null, 2) + '\n');
   for (const entry of entries) {
     try {
       await syncFolder(entry);

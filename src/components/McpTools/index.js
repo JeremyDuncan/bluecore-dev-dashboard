@@ -6,6 +6,8 @@ import Link from '@docusaurus/Link';
 import useBrokenLinks from '@docusaurus/useBrokenLinks';
 import {Card, Cards, Icon} from '../Welcome';
 import {GROUPS, TOOLS, groupPath, toolPath} from './tools';
+import PageHero from '../PageHero';
+import {EditIcon, EyeIcon, PlugIcon, SparkleIcon, TemplateIcon} from '../Notes/icons';
 import styles from './styles.module.css';
 
 const SOURCES = {
@@ -13,6 +15,8 @@ const SOURCES = {
   github: 'Live GitHub',
   api: 'Live OpenAPI',
   notes: 'Notes vault',
+  notebooks: 'JupyterLab',
+  stack: 'Your checkout',
 };
 
 // Copies text, falling back to a hidden textarea where the Clipboard API is refused
@@ -63,40 +67,31 @@ function Ask({text}) {
   );
 }
 
-// The endpoint and a few numbers, above the catalog
-export function McpHero({tools, writes, prompts, endpoint = 'http://localhost:3001/mcp'}) {
+// The page's header (the shared PageHero): the endpoint to copy, and the numbers as stat cards
+export function McpHero({tools, writes, prompts, endpoint = 'http://localhost:3001/mcp', title = 'MCP tools', lead}) {
   const [copied, copy] = useCopy(endpoint);
   return (
-    <div className={styles.hero}>
-      <div className={styles.heroMain}>
-        <span className={styles.eyebrow}>Model Context Protocol · Streamable HTTP</span>
-        <p className={styles.heroLead}>One server that gives any AI agent the Blue Core docs, live GitHub data, the API spec and your notes.</p>
-        <div className={styles.endpoint}>
-          <code>{endpoint}</code>
-          <button type="button" onClick={copy} className={styles.copy} aria-live="polite">
-            {copied ? 'Copied' : 'Copy'}
-          </button>
-        </div>
+    <PageHero
+      eyebrow="Model Context Protocol · Streamable HTTP"
+      title={title}
+      lead={lead ?? 'One server that gives any AI agent the Blue Core docs, live GitHub data, the API spec, your notes and notebooks.'}
+      actions={[
+        {label: 'Connect your agent', to: '/guides/mcp-tools/connect', icon: <PlugIcon size={16} />, primary: true},
+        {label: 'Example prompts', to: '/guides/mcp-tools/example-prompts', icon: <SparkleIcon size={16} />},
+      ]}
+      stats={[
+        {icon: <PlugIcon size={18} />, value: tools, label: 'tools', to: '/guides/mcp-tools/tools/'},
+        {icon: <EyeIcon size={18} />, value: tools - writes, label: 'read-only'},
+        {icon: <EditIcon size={18} />, value: writes, label: 'write or run, only when asked'},
+        {icon: <TemplateIcon size={18} />, value: prompts, label: 'prompts', to: '/guides/mcp-tools/prompts'},
+      ]}>
+      <div className={styles.endpoint}>
+        <code>{endpoint}</code>
+        <button type="button" onClick={copy} className={styles.copy} aria-live="polite">
+          {copied ? 'Copied' : 'Copy'}
+        </button>
       </div>
-      <dl className={styles.stats}>
-        <div>
-          <dt>Tools</dt>
-          <dd>{tools}</dd>
-        </div>
-        <div>
-          <dt>Read-only</dt>
-          <dd>{tools - writes}</dd>
-        </div>
-        <div>
-          <dt>Write notes</dt>
-          <dd>{writes}</dd>
-        </div>
-        <div>
-          <dt>Prompts</dt>
-          <dd>{prompts}</dd>
-        </div>
-      </dl>
-    </div>
+    </PageHero>
   );
 }
 

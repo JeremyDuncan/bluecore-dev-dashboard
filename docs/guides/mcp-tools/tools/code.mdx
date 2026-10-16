@@ -3,16 +3,12 @@ title: "Source code tools"
 sidebar_label: "Source code"
 sidebar_position: 3
 hide_table_of_contents: true
-description: "Read the Blue Core repositories without cloning them."
+description: "Read the Blue Core repositories on GitHub without cloning them, and your own bluecore-stack checkout with local_stack."
 ---
 
 import {GroupNav, Tool, Tools} from '@site/src/components/McpTools';
 
-# Source code tools
-
 <GroupNav current="code" />
-
-Read the Blue Core repositories without cloning them.
 
 <Tools>
 
@@ -54,6 +50,16 @@ Read the Blue Core repositories without cloning them.
   uses={["What Blue Core changed in marva_editor or graph-toolbox", "How far a fork is behind upstream", "One file's diff against upstream"]}
   ask="What has our marva_editor fork changed compared with upstream?">
   For repos that fork another project: commits ahead and behind, files added, changed and removed with line counts, and commit messages.
+</Tool>
+
+<Tool
+  name="local_stack"
+  title="Your local stack checkout"
+  source="stack"
+  args="path"
+  uses={["Which branch your stack is on and what you changed locally", "Read a compose file as it is on your machine, not on GitHub", "List the stack's services and .env settings (names only)"]}
+  ask="Which branch is my local stack on, and what have I changed?">
+  Your bluecore-stack checkout (`BLUECORE_STACK_DIR` in `.env`): where it is, its branch, last commit and uncommitted changes, compose files and services, and the names of its `.env` settings. Pass a path to list a folder or read a file. Files that may hold secrets (`.env`, `.secrets`, Keycloak exports) aren't readable, and secret values are hidden.
 </Tool>
 
 </Tools>

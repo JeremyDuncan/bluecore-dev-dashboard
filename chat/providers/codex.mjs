@@ -105,11 +105,12 @@ export default {
       `mcp_servers.docs.http_headers={${Object.entries({'x-notes-agent': writer.agent, 'x-notes-model': writer.model ?? '', 'x-notes-run': writer.run})
         .map(([k, v]) => `${JSON.stringify(k)}=${JSON.stringify(v)}`)
         .join(',')}}`,
-      // The notes write tools aren't read-only, so with approvals off Codex would refuse them: approve
-      // just these (they only add or change notes; the prompt allows them only when asked)
-      ...['create_note', 'update_note', 'duplicate_note', 'complete_task', 'rename_note', 'pin_note', 'attach_image', 'save_template'].map(
+      // The notes and notebook write tools aren't read-only, so with approvals off Codex would refuse them: approve
+      // just these (they only add or change notes and notebooks, or run notebooks; the prompt allows them only when asked)
+      ...['create_note', 'update_note', 'duplicate_note', 'complete_task', 'rename_note', 'pin_note', 'attach_image', 'save_template', 'create_notebook', 'update_notebook', 'run_notebook'].map(
         (tool) => `mcp_servers.docs.tools.${tool}.approval_mode="approve"`,
       ),
+      'mcp_servers.docs.tool_timeout_sec=600', // run_notebook can take minutes (Codex's default is 60 s)
       ...DISABLED_FEATURES.map((f) => `features.${f}=false`),
     ].flatMap((c) => ['-c', c]);
     const common = ['--json', '--skip-git-repo-check', '--ignore-user-config', '--ignore-rules', ...config, ...(model ? ['-m', model] : [])];

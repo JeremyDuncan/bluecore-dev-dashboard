@@ -74,14 +74,16 @@ export async function syncDriveDownloads() {
         log('drive-downloads', `- ${entry.slug}: nothing in ${entry.dir}, left out of the site`);
         continue;
       }
+      // The section's own entry (its landing page) is written every run, so a change to it applies
+      // without converting the documents again
+      await fs.mkdir(OUT_DIR, {recursive: true});
+      await fs.writeFile(path.join(OUT_DIR, '_category_.json'), JSON.stringify(DRIVE_CATEGORY, null, 2) + '\n');
       const stamp = await fingerprint(downloads);
       if (await isUpToDate(projectDir, stamp)) {
         log('drive-downloads', `✓ docs/google-drive/${entry.slug}/ unchanged`);
         continue;
       }
       const {staging, root} = await collectFiles(sourceDir);
-      await fs.mkdir(OUT_DIR, {recursive: true});
-      await fs.writeFile(path.join(OUT_DIR, '_category_.json'), JSON.stringify(DRIVE_CATEGORY, null, 2) + '\n');
       await fs.rm(projectDir, {recursive: true, force: true});
       await fs.mkdir(projectDir, {recursive: true});
       await fs.writeFile(

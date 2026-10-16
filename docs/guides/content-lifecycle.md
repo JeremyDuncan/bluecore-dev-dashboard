@@ -2,9 +2,8 @@
 title: How content gets onto the site
 sidebar_position: 2
 sidebar_class_name: sidebar-icon sidebar-icon--drive
+description: "Where each part of the site comes from, which command refreshes it, and why internal content never reaches git or the public site. Read it to find out why a page is missing or out of date."
 ---
-
-This page explains where each part of the site comes from, which command refreshes it, and why internal content never reaches git or the public site. Read it to find out why a page is missing or out of date.
 
 ## Four kinds of content
 

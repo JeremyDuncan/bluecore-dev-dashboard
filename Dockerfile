@@ -25,7 +25,9 @@ ARG BASE_URL=/
 # so they also work when the site is shared through a tunnel such as ngrok
 ARG CHAT_API_URL=/api/chat
 ARG LIVE_API_URL=/api/live
-ENV SITE_URL=$SITE_URL BASE_URL=$BASE_URL CHAT_API_URL=$CHAT_API_URL LIVE_API_URL=$LIVE_API_URL
+# true: the Notebooks page and links (JUPYTER_NOTEBOOK in .env; off by default)
+ARG JUPYTER_NOTEBOOK=false
+ENV SITE_URL=$SITE_URL BASE_URL=$BASE_URL CHAT_API_URL=$CHAT_API_URL LIVE_API_URL=$LIVE_API_URL JUPYTER_NOTEBOOK=$JUPYTER_NOTEBOOK
 COPY . .
 RUN npm run build
 
@@ -41,6 +43,7 @@ WORKDIR /app
 COPY mcp/package.json mcp/package-lock.json mcp/
 RUN npm ci --prefix mcp --omit=dev
 COPY mcp/*.mjs mcp/
+COPY mcp/starter-notebooks mcp/starter-notebooks
 COPY docs docs
 # Which project boards / orgs the live API may serve
 COPY docs-sources.json ./

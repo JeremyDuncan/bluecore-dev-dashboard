@@ -11,10 +11,14 @@
 // related_notes, list_tasks, list_templates, list_attachments, get_note_image, notes_for_doc,
 // notes_health, and the only write tools: create_note, update_note, complete_task, rename_note,
 // pin_note, attach_image (they add or change notes; agents can't delete them).
+// Notebooks (notebooks-tools.mjs): list_notebooks, read_notebook, create_notebook, update_notebook and
+// run_notebook (runs cells in the local JupyterLab container, jupyter.mjs, against the local stack or a
+// deployed environment; only when the user asks). Local stack (local-stack-tools.mjs): local_stack reads
+// the developer's bluecore-stack checkout (BLUECORE_STACK_DIR).
 // Prompts (prompts.mjs): standup_summary, weekly_update, onboarding_plan, summarize_epic, docs_cleanup. Content comes straight from docs/, so it includes
 // everything on the site — internal Google Drive pages too. Don't expose the HTTP port publicly.
 // The HTTP server also serves live GitHub data for the Project Status pages (live-api.mjs) and the
-// notes for the Notes page (notes-api.mjs).
+// notes for the Notes page (notes-api.mjs) and the notebooks for the Notebooks page (notebooks-api.mjs).
 import http from 'node:http';
 import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
 import {StdioServerTransport} from '@modelcontextprotocol/sdk/server/stdio.js';
@@ -23,6 +27,11 @@ import {z} from 'zod';
 import {extractSection, findPage, getIndex, headings, search} from './docs-index.mjs';
 import {allowedOrigin, handleLiveApi, prewarm} from './live-api.mjs';
 import {handleNotesApi} from './notes-api.mjs';
+import {handleNotebooksApi} from './notebooks-api.mjs';
+import {ensureNotebooks, NOTEBOOKS, NOTEBOOKS_ENABLED} from './notebooks.mjs';
+import {registerNotebookTools} from './notebooks-tools.mjs';
+import {registerLocalStackTools} from './local-stack-tools.mjs';
+import {STACK, stackInfo} from './local-stack.mjs';
 import {ensureVault, VAULT} from './notes.mjs';
 import {registerNotesTools} from './notes-tools.mjs';
 import {registerApiTools} from './api-tools.mjs';
@@ -137,6 +146,8 @@ function createServer() {
   registerApiTools(server);
   registerDocsHealthTool(server);
   registerNotesTools(server);
+  if (NOTEBOOKS_ENABLED) registerNotebookTools(server); // JUPYTER_NOTEBOOK=false turns them off
+  registerLocalStackTools(server);
   registerPrompts(server);
 
   return server;
@@ -161,6 +172,7 @@ async function serveHttp() {
     }
     if (await handleLiveApi(req, res, pathname)) return; // live GitHub data for the Project Status pages
     if (await handleNotesApi(req, res, pathname)) return; // the Notes page
+    if (await handleNotebooksApi(req, res, pathname)) return; // the Notebooks page
     if (pathname !== '/mcp') {
       res.writeHead(404).end('MCP endpoint is /mcp');
       return;
@@ -206,6 +218,16 @@ async function serveHttp() {
   } catch (err) {
     console.error(`[mcp] notes vault ${VAULT} unavailable: ${err.message}`);
   }
+  if (!NOTEBOOKS_ENABLED) console.log('[mcp] notebooks: turned off (JUPYTER_NOTEBOOK=false)');
+  else
+    try {
+      ensureNotebooks();
+      console.log(`[mcp] notebooks: ${NOTEBOOKS}`);
+    } catch (err) {
+      console.error(`[mcp] notebooks folder ${NOTEBOOKS} unavailable: ${err.message}`);
+    }
+  const stack = stackInfo();
+  console.log(`[mcp] local stack: ${stack.configured ? `${stack.path} (${stack.branch ?? '?'})` : STACK ? stack.hint : 'not set (BLUECORE_STACK_DIR)'}`);
   httpServer.listen(port, '0.0.0.0', () => console.log(`[mcp] ${pages.length} pages indexed — http://localhost:${port}/mcp`));
 }
 

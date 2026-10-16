@@ -2,9 +2,8 @@
 title: Live GitHub data
 sidebar_position: 3
 sidebar_class_name: sidebar-icon sidebar-icon--status
+description: "The Project Status pages show GitHub data that updates while you look at it. This page explains where that data comes from, how fresh it is, how to add a board or workflow, and what to check when a page says “Snapshot”."
 ---
-
-The **Project Status** pages (project board, Repo Issues, Integration Tests, What's New) show GitHub data that updates while you look at it. This page explains where that data comes from, how fresh it is, how to add a board or workflow, and what to check when a page says "Snapshot".
 
 ## How it works
 
@@ -314,7 +313,7 @@ Hover over the "Snapshot" badge to see the error, then:
 | `unknown project` / `unknown workflow` | The URL doesn't match `docs-sources.json`. In prod, rebuild with `make prod` after editing it. |
 | `Failed to fetch` | The MCP server isn't running. Start `make up`, or `make mcp`. |
 | `Host "…" not allowed` | Add the host name to `MCP_ALLOWED_HOSTS`. |
-| Project Status section and Status link missing | No sync has run with a token yet. Run `make sync`, check its `project-status` log lines, then restart `make up` so the navbar link appears. |
+| Project Status section and Status link missing | No sync has run with a token yet. Run `make sync`, check its `project-status` log lines, then restart `make up` so the navbar's **Project Status** menu appears. |
 | Test details missing for old runs | Their logs have expired on GitHub (90 days). |
 
 ## Related

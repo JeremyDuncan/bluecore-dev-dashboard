@@ -2,9 +2,12 @@
 title: Notes
 sidebar_position: 4
 sidebar_class_name: sidebar-icon sidebar-icon--notes
+description: "Your own notebook on this site: Markdown notes you can read, write, tag and search here, that AI agents can read and add to, and that are also an Obsidian vault."
+hero_actions:
+  - {label: Open Notes, to: /notes, primary: true, needs: live}
 ---
 
-**Notes** is your own notebook on this site: Markdown notes you can read, write, tag and search here, that AI agents can read and add to, and that are also an [Obsidian](https://obsidian.md) vault. This page explains how to set it up, where the notes live, and how the site, Obsidian and AI agents share them.
+This page explains how to set it up, where the notes live, and how the site, [Obsidian](https://obsidian.md) and AI agents share them.
 
 ## Getting started
 
@@ -14,9 +17,9 @@ There's nothing to set up. Run the site as usual:
 make up
 ```
 
-Open **Notes** in the navbar. The first time, the MCP server creates a `notes/` folder in this repo with a *Welcome* note. Click **New note** to write your own.
+Open **Workspace → Notes** in the navbar. The first time, the MCP server creates a `notes/` folder in this repo with a *Welcome* note. Click **New note** to write your own.
 
-:::info Local only
+:::info[Local only]
 Notes are personal, so they only exist on your machine. The `notes/` folder is git-ignored, and the public site has no Notes link. In `make prod`, notes are only served to `localhost`, not to people opening your site through a tunnel.
 :::
 
@@ -61,7 +64,7 @@ To go the other way and open the site's notes in Obsidian, choose **Open folder 
 
 Either way, both read and write the same files. A note you change in Obsidian shows up on the site within about 20 seconds (or when you switch back to the tab), and the other way round.
 
-:::tip Working without Obsidian
+:::tip[Working without Obsidian]
 You never need Obsidian: the site reads and writes plain Markdown files. You can start with the site and open the folder in Obsidian later, or start in Obsidian and point the site at the vault later.
 :::
 
@@ -79,6 +82,7 @@ To give a note more room, hide the notes list with the panel button at the top o
 
 A note page shows its tags, its dates and the notes linking to it (**Linked from**). Its **⋯** menu has **Pin to the top of the list**, **Open in Obsidian**, **Copy [[link]] to this note** (to paste into another note) and **Show in folders**.
 
+- **Icons**: give a note its own icon: hover over it in the list on the left and click the smiley at the right of its row, or use **⋯ → Set an icon…** (a line icon or any emoji, from the same picker as folders). It shows before the note's title, in the lists and in the folder tree; click it on the note to change it. It's saved in the note as an `icon` property, so it moves and copies with the note. Obsidian shows it as a plain property.
 - **Pinned notes** show in a *Pinned* group at the top of the date and tag lists, with a pin icon in the folder tree. Pinning sets `pinned: true` in the note's properties, so it travels with the file.
 - **Outline**: on wide screens, a note with three or more headings shows them beside it (*On this note*), with the section you're reading highlighted. Click one to jump to it.
 - **Tasks**: tick a `- [ ]` checkbox in a note and the note is saved right away. If the note changed somewhere else meanwhile, it reloads instead, and you tick it again.
@@ -123,11 +127,14 @@ Every docs page also has a **Note about this page** link there, which starts a n
 In **By folder**:
 
 - **Add**: the **+** next to *Folders* adds a note or a folder at the top level. Hover over a folder for its own **+**, which adds a note in it or a folder inside it. Type the new folder's name in place, then press Enter (Esc cancels).
-- **Rename a folder**: hover over it and click the pencil. The notes inside keep their names, so `[[links]]` to them still work.
-- **Delete a folder**: the trash icon shows on empty folders only. Move or delete a folder's notes first.
+- **Folders inside folders**: nest them as deep as you like. Hover over a folder, click its **+** and choose **New folder inside**.
+- **Rename a folder**: hover over it and click the pencil. The notes inside keep their names, so `[[links]]` to them still work, and links written as a path through the folder (`[[Projects/API/Plan]]`) are updated.
+- **Give a folder an icon**: hover over it and click the smiley. Pick one of the line icons (search them by name, like *bug*, *docs* or *team*) or an emoji, including any you type or paste. **Remove icon** goes back to the plain folder. Icons are saved in the vault's `.dashboard/folder-icons.json` and follow a folder when you rename or move it. They're for this site only: Obsidian doesn't show them.
+- **Delete a folder**: the trash icon shows on empty folders only. Or click **Select**, tick the folder (an empty one too, or a folder with everything in it) and click the trash icon in the bar: the notes go to the trash and the folders are removed once empty. A folder that still holds a note you didn't select (one hidden by a filter, say) is kept.
 - **Move a note**: drag it onto a folder, or onto *Drop here to move to the top level*, which appears while you drag. Hovering over a closed folder while dragging opens it. You can also change the **Folder** field when editing a note; a folder that doesn't exist yet is created.
+- **Move a folder**: drag the folder itself onto another folder (or onto the top level). Everything in it goes too: its notes and its sub-folders, with what's in them. A folder can't go inside itself or one of its own sub-folders.
 
-Moving keeps the note's file name, so links to it keep working. If the target folder already has a note with that name, the move is refused. Rename notes in Obsidian or your file manager.
+Moving keeps file names, so plain `[[links]]` keep working, and links written as a path to a moved note or folder get the new path. If the target folder already has a note or folder with that name, the move is refused: rename one of them first.
 
 ## Deleting notes
 

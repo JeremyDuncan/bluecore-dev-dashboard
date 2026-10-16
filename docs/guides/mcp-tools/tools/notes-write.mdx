@@ -8,11 +8,7 @@ description: "The server's only writes. Agents use them only when you ask, and n
 
 import {GroupNav, Tool, Tools} from '@site/src/components/McpTools';
 
-# Notes tools: writing
-
 <GroupNav current="notes-write" />
-
-The server's only writes. Agents use them only when you ask, and none of them deletes anything.
 
 <Tools>
 
@@ -21,10 +17,10 @@ The server's only writes. Agents use them only when you ask, and none of them de
   title="Create a note"
   access="write"
   source="notes"
-  args="title*, body, template, tags, folder, author, model"
+  args="title*, body, template, tags, folder, icon, author, model"
   uses={["Save steps you just worked out", "Start a note from a template", "Write up a diagnosis or standup"]}
   ask="Save a note with the steps to export the Keycloak realm, tagged keycloak.">
-  Adds a note, optionally from a template. Never overwrites: a title that's taken gets a number added. The note records which agent and model wrote it.
+  Adds a note, optionally from a template and with an icon (a line icon's name like `bug`, or an emoji like 🧪). Never overwrites: a title that's taken gets a number added. The note records which agent and model wrote it.
 </Tool>
 
 <Tool
@@ -32,10 +28,10 @@ The server's only writes. Agents use them only when you ask, and none of them de
   title="Update a note"
   access="write"
   source="notes"
-  args="note*, append, body, add_tags, remove_tags, move_to, model"
-  uses={["Append today's findings to a running note", "Retag or move a note to another folder"]}
+  args="note*, append, body, add_tags, remove_tags, move_to, icon, model"
+  uses={["Append today's findings to a running note", "Retag or move a note to another folder", "Give a note an icon or emoji"]}
   ask="Add what we found about the token refresh to my Keycloak note.">
-  Appends to a note (preferred), replaces its text, adds or removes tags, or moves it. The note records the AI edit until you next save it yourself.
+  Appends to a note (preferred), replaces its text, adds or removes tags, sets its icon (`none` removes it), or moves it. The note records the AI edit until you next save it yourself; changing only the icon doesn't count as an edit.
 </Tool>
 
 <Tool

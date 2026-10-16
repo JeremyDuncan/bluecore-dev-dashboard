@@ -1,0 +1,70 @@
+---
+title: "Notebook tools"
+sidebar_label: "Notebooks"
+sidebar_position: 8
+hide_table_of_contents: true
+description: "Write, edit and run Jupyter notebooks that debug Bluecore. They run in the local JupyterLab container, against your local stack (its API, Postgres, Airflow and Keycloak) or a deployed environment (dev, stage), which they only read."
+---
+
+import {GroupNav, Tool, Tools} from '@site/src/components/McpTools';
+
+<GroupNav current="notebooks" />
+
+Each notebook remembers its environment (`target`). See the [Notebooks guide](/guides/notebooks).
+
+<Tools>
+
+<Tool
+  name="list_notebooks"
+  title="List notebooks"
+  source="notebooks"
+  args="folder"
+  uses={["See past investigations and which ones failed", "Find a starter to begin from"]}
+  ask="Which of my notebooks have failing cells?">
+  Your notebooks, newest first, with how many cells ran and how many failed and which environment each runs against, plus the starter notebooks and the environments.
+</Tool>
+
+<Tool
+  name="read_notebook"
+  title="Read a notebook"
+  source="notebooks"
+  args="notebook*, cells, include_images"
+  uses={["Explain what a notebook found", "Read a traceback from the last run", "Look at a chart with include_images"]}
+  ask="Read my stack health notebook and tell me which services are behind.">
+  A notebook's cells with their code, Markdown and saved outputs, including errors and tracebacks.
+</Tool>
+
+<Tool
+  name="create_notebook"
+  title="Create a notebook"
+  access="write"
+  source="notebooks"
+  args="title, cells, starter, folder, target, icon, model"
+  uses={["Turn a debugging question into a repeatable notebook", "Start from a starter and add your own checks"]}
+  ask="Create a notebook that checks why exporting to the catalog fails.">
+  Writes a Python notebook from cells and/or a starter, optionally with an icon (a line icon's name or an emoji). Cells connect through the `bluecore` helper, which knows each environment's address and logins, so no passwords go in cells. It doesn't run anything.
+</Tool>
+
+<Tool
+  name="update_notebook"
+  title="Update a notebook"
+  access="write"
+  source="notebooks"
+  args="notebook*, ops, title, target, icon, model"
+  uses={["Add a cell that digs deeper into an error", "Fix a failing cell", "Clear old outputs"]}
+  ask="Add a cell that lists the Airflow tasks that failed today.">
+  Appends, inserts, replaces or deletes cells, clears outputs, switches the environment, or sets its icon (`none` removes it). Changing a cell clears its outputs; switching the environment clears them all.
+</Tool>
+
+<Tool
+  name="run_notebook"
+  title="Run a notebook"
+  access="write"
+  source="notebooks"
+  args="notebook*, cells, restart, keep_going, timeout_seconds, target, model"
+  uses={["Run checks against your local stack and read the results", "Compare your stack with dev or stage", "Re-run one cell after a fix"]}
+  ask="Run the stack health notebook against stage and tell me what's down.">
+  Runs code cells in JupyterLab's Python kernel against the notebook's environment (or the one `target` names) and saves the outputs. Stops at the first error unless keep_going. Only when you ask: it runs code on your machine. Outputs are checked for known secrets before they reach the agent.
+</Tool>
+
+</Tools>
