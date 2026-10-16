@@ -106,6 +106,32 @@ export default function AskDocs() {
     window.addEventListener('ask-docs:open', show);
     return () => window.removeEventListener('ask-docs:open', show);
   }, []);
+  // Other components can also ask a question: window.dispatchEvent(new CustomEvent('ask-docs:ask',
+  // {detail: {question, display, fresh}})). `display`: a short version shown as your message (the full
+  // question goes to the assistant); `fresh`: in a new conversation. It waits for an answer that's
+  // still coming, and for the CLI list to load.
+  const [queued, setQueued] = useState(null);
+  useEffect(() => {
+    const onAsk = (e) => {
+      if (!e.detail?.question) return;
+      setOpen(true);
+      setView('chat');
+      setQueued(e.detail);
+    };
+    window.addEventListener('ask-docs:ask', onAsk);
+    return () => window.removeEventListener('ask-docs:ask', onAsk);
+  }, []);
+  useEffect(() => {
+    if (!queued || busy || !cli.provider?.ready) return;
+    if (queued.fresh && chat.messages.length) {
+      newChat(); // then ask on the next render, with the new conversation's state
+      setQueued({...queued, fresh: false});
+      return;
+    }
+    setQueued(null);
+    ask(queued.question, {display: queued.display});
+  });
+
   // Links like /some-page?ask=How+do+I+… open the chat and ask that question
   // (add &cli=codex or &cli=claude to pick the assistant)
   const askedFromUrl = useRef(false);
@@ -134,7 +160,7 @@ export default function AskDocs() {
       return {...c, messages};
     });
 
-  async function ask(question) {
+  async function ask(question, {display} = {}) {
     const q = question.trim();
     if (!q || busy) return;
     if (!cli.provider?.ready) return;
@@ -152,7 +178,7 @@ export default function AskDocs() {
       messages: [
         ...c.messages,
         ...(switched ? [{role: 'divider', text: `Switched to ${provider.name} · new conversation`}] : []),
-        {role: 'user', text: q},
+        {role: 'user', text: display?.trim() || q},
         {role: 'assistant', text: '', status: 'Thinking…', ...meta},
       ],
     }));

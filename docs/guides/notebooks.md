@@ -174,6 +174,8 @@ If Postgres's port isn't published on your machine, connect JupyterLab to the st
 
 ## Notebooks and AI
 
+**Ask AI about an error.** When a cell fails, its error output has an **Ask AI** button. It saves your edits and opens **Ask the docs** with a request to troubleshoot that cell: the assistant reads the cell and its full error with `read_notebook` (so known secrets stay hidden), looks at the cells before it, and explains what went wrong and how to fix it. It only suggests changes; ask it if you want it to edit or rerun the notebook. The button shows when the chat helper is running (`make up`).
+
 **Ask the docs** and any agent connected to the [MCP server](/guides/mcp-tools) can work with notebooks:
 
 | Tool | What it does |

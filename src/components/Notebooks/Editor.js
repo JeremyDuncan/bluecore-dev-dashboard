@@ -8,12 +8,13 @@
 // baseMtime refuses a save over a change made elsewhere (JupyterLab, an agent). While cells run, the
 // notebook is read-only, so the outputs land on the cells they came from.
 import React, {useCallback, useEffect, useRef, useState} from 'react';
+import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import {ProviderIcon} from '../AskDocs/CliPicker';
 import {TagInput} from '../Notes';
 import {copyText} from '../Notes/api';
 import ns from '../Notes/styles.module.css';
 import {writer} from '../Notes/authors';
-import {CopyIcon, DownloadIcon, DuplicateIcon, FolderIcon, NotebookIcon, PinIcon} from '../Notes/icons';
+import {CopyIcon, DownloadIcon, DuplicateIcon, FolderIcon, NotebookIcon, PinIcon, SparkleIcon} from '../Notes/icons';
 import {Glyph, IconButtonGlyph, IconPicker} from '../FolderIcons';
 import CodeEditor from './CodeEditor';
 import Output, {joined, Markdown} from './Output';
@@ -258,7 +259,8 @@ function CellTools({cell, index, count, locked, canRun, onRun, onMove, onType, o
   );
 }
 
-function Cell({cell, index, count, running, locked, canRun, focus, onChange, onRun, onRunNext, onMove, onType, onDelete, onSave}) {
+// onAskAI(error output): troubleshoot this cell's error in Ask the docs (only when the chat helper runs)
+function Cell({cell, index, count, running, locked, canRun, focus, onChange, onRun, onRunNext, onMove, onType, onDelete, onSave, onAskAI}) {
   const lines = cell.source.split('\n').length;
   const [open, setOpen] = useState(false);
   const [editingMd, setEditingMd] = useState(focus && cell.type === 'markdown');
@@ -372,7 +374,19 @@ function Cell({cell, index, count, running, locked, canRun, focus, onChange, onR
           <section className={styles.output} aria-label={`Output of cell ${index + 1}`}>
             <div className={styles.outHead}>
               <span>{failed ? 'Output · error' : 'Output'}</span>
-              <CopyOutput outputs={cell.outputs} />
+              <span className={styles.outActions}>
+                {failed && onAskAI && (
+                  <button
+                    type="button"
+                    className={`${styles.copyOut} ${styles.askAi}`}
+                    onClick={() => onAskAI(cell.outputs.find((o) => o.output_type === 'error'))}
+                    title="Ask AI what went wrong and how to fix it"
+                    aria-label={`Ask AI to troubleshoot the error in cell ${index + 1}`}>
+                    <SparkleIcon size={13} /> Ask AI
+                  </button>
+                )}
+                <CopyOutput outputs={cell.outputs} />
+              </span>
             </div>
             <div className={styles.outBody}>
               {cell.outputs.map((o, i) => (
@@ -404,6 +418,7 @@ function AddCell({onAdd, disabled, always}) {
 export default function NotebookEditor({nb: loaded, call, jupyterRunning, environments, knownTags = [], folders = [], onChanged, onOpen, onExport, onFlash, onDelete, onError}) {
   const [meta, setMeta] = useState(loaded);
   const [pickingIcon, setPickingIcon] = useState(false);
+  const chatOn = Boolean(useDocusaurusContext().siteConfig.customFields?.chatApiUrl);
   const [cells, setCells] = useState(() => fromServer(loaded));
   const [saveState, setSaveState] = useState('saved');
   const [running, setRunning] = useState(null); // null, 'all' or a cell key
@@ -499,6 +514,21 @@ export default function NotebookEditor({nb: loaded, call, jupyterRunning, enviro
   const flush = async () => {
     clearTimeout(timer.current);
     return save();
+  };
+
+  // "Ask AI" on an error output: saves pending edits (so the agent reads what's on screen), then asks
+  // Ask the docs to troubleshoot, in a new conversation. The agent reads the cell and its full error
+  // through read_notebook, which hides known secrets, rather than the error being pasted into the chat.
+  const askAI = async (index, error) => {
+    await flush();
+    const what = error?.ename || 'error';
+    const question =
+      `Troubleshoot the error in my Jupyter notebook "${meta.title}" (path: ${meta.path}; it runs against ${meta.target || 'local'}). ` +
+      `Cell ${index} (read_notebook numbering; cell ${index + 1} on the page) failed with ${what}. ` +
+      'Read the notebook with read_notebook to see that cell\'s code and its full error, and the cells before it for context. ' +
+      'Explain in plain terms what went wrong and why, then give a fix: the corrected code for the cell, or what to change in the stack or its settings. ' +
+      'Use the docs, the API spec and local_stack if they help. Don\'t change or run the notebook unless I ask.';
+    window.dispatchEvent(new CustomEvent('ask-docs:ask', {detail: {question, display: `Troubleshoot the ${what} in cell ${index + 1} of “${meta.title}”`, fresh: true}}));
   };
 
   const run = async (keys, {restart = false} = {}) => {
@@ -730,6 +760,7 @@ export default function NotebookEditor({nb: loaded, call, jupyterRunning, enviro
               onType={(type) => retype(c.key, type)}
               onDelete={() => remove(c.key)}
               onSave={flush}
+              onAskAI={chatOn ? (error) => askAI(i, error) : undefined}
             />
           </React.Fragment>
         ))}

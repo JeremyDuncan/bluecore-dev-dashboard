@@ -1556,3 +1556,21 @@
   font: inherit;
   cursor: pointer;
 }
+
+/* An output's header buttons: Ask AI (on an error) and Copy */
+.outActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Ask AI stays fully visible on an error: it's the next step */
+.askAi {
+  opacity: 1;
+  color: var(--bc-link);
+}
+
+.askAi:hover {
+  border-color: var(--bc-link);
+  color: var(--bc-link);
+}
