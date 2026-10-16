@@ -273,7 +273,7 @@ const config = {
       metadata: [
         {property: 'og:image:width', content: '1200'},
         {property: 'og:image:height', content: '630'},
-        {property: 'og:image:alt', content: 'Blue Core Developer Dashboard: docs, repos and live project status in one place'},
+        {property: 'og:image:alt', content: 'Blue Core Developer Dashboard: docs, live project status, your workspace and AI, in one place'},
         {property: 'og:site_name', content: 'Blue Core Developer Dashboard'},
       ],
       colorMode: {
