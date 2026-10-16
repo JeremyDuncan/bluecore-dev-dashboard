@@ -715,3 +715,95 @@
   opacity: 1;
   visibility: visible;
 }
+
+/* ---------- Navbar menus: Docs, Project Status, Workspace (docusaurus.config.js: menu, menuItem) ---------- */
+
+.sidebar-icon--docs {
+  --sidebar-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z'/%3E%3Cpath d='M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z'/%3E%3C/svg%3E");
+}
+
+.sidebar-icon--workspace {
+  --sidebar-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2' y='7' width='20' height='14' rx='2'/%3E%3Cpath d='M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2'/%3E%3Cpath d='M2 13h20'/%3E%3C/svg%3E");
+}
+
+/* A menu item: its icon, then a title over a one-line description of what it's for */
+.dropdown__menu:has(.nav-menu-item) {
+  min-width: 320px;
+  padding: 6px;
+}
+
+.nav-menu-item {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  column-gap: 12px;
+  align-items: start;
+  padding: 8px 10px;
+  border-radius: 8px;
+  white-space: normal;
+}
+
+.nav-menu-item::before {
+  content: '';
+  grid-row: 1 / span 2;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  background-color: var(--bc-link, currentColor);
+  -webkit-mask: var(--sidebar-icon) no-repeat center / contain;
+  mask: var(--sidebar-icon) no-repeat center / contain;
+}
+
+.nav-menu-title {
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.nav-menu-desc {
+  grid-column: 2;
+  margin-top: 2px;
+  color: var(--bc-meta, var(--ifm-color-emphasis-700));
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.35;
+}
+
+.dropdown__link--active.nav-menu-item .nav-menu-title,
+.menu__link--active.nav-menu-item .nav-menu-title {
+  color: var(--bc-link);
+}
+
+/* In the phone menu the items are stacked under each group */
+.navbar-sidebar .menu__link.nav-menu-item {
+  display: grid;
+}
+
+/* GitHub: just its icon in the navbar (the label shows in the phone menu and to screen readers) */
+.navbar__items .navbar-icon-only::before {
+  width: 22px;
+  height: 22px;
+}
+
+.navbar__items .navbar-icon-only .navbar-icon-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.navbar__items .navbar-icon-only svg {
+  display: none;
+}
+
+/* A slim chevron rather than the theme's filled triangle */
+.navbar__items .dropdown > .navbar__link::after {
+  width: 7px;
+  height: 7px;
+  margin-left: 8px;
+  border: solid currentColor;
+  border-width: 0 1.75px 1.75px 0;
+  opacity: 0.7;
+  transform: translateY(-2px) rotate(45deg);
+  top: 0;
+}

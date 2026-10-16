@@ -123,6 +123,37 @@ function withIcon(item) {
   return {...item, className: [item.className, 'sidebar-icon', `sidebar-icon--${icon}`].filter(Boolean).join(' ')};
 }
 
+// Navbar dropdowns (src/css/custom.css, "Navbar menus"): a labeled menu with an icon, whose items have a
+// title, a one-line description and the same icon as the sidebar. `extra`: e.g. {to} to make the label a link.
+const menu = (label, icon, items, extra = {}) => ({type: 'dropdown', label, position: 'right', className: `navbar-icon sidebar-icon--${icon}`, items, ...extra});
+const menuItem = (to, title, description, icon) => ({
+  to,
+  html: `<span class="nav-menu-title">${title}</span><span class="nav-menu-desc">${description}</span>`,
+  className: `nav-menu-item sidebar-icon--${icon}`,
+});
+
+// What each Project Status page is for, by its icon in nav.json (the pages' own descriptions carry counts)
+const STATUS_PURPOSE = {
+  overview: 'Every Project Status page at a glance',
+  board: "The project board: what's planned, in progress and done",
+  issues: 'Open issues across the Blue Core repositories',
+  pulls: 'Open pull requests, their reviews and CI',
+  tests: 'Latest results of the integration suite and each repo',
+  drift: 'Does the stack run the latest release of each service?',
+  releases: 'Recent releases and their notes',
+};
+
+// The Project Status menu: its pages from the sync's _data/nav.json (as the section's sidebar), or just
+// the overview before the first sync
+function statusMenu() {
+  try {
+    const nav = JSON.parse(fs.readFileSync(new URL('./docs/project-status/_data/nav.json', import.meta.url), 'utf8'));
+    return nav.filter((p) => !p.group).map((p) => menuItem(p.href, p.label, STATUS_PURPOSE[p.icon] ?? p.title, `status-${p.icon}`));
+  } catch {
+    return [menuItem('/project-status', 'Overview', 'Live GitHub activity for the Blue Core repositories', 'status')];
+  }
+}
+
 // Defaults target GitHub Pages; Docker sets SITE_URL/BASE_URL to serve at the root.
 const BASE_URL = process.env.BASE_URL ?? `/${REPO_NAME}/`;
 // Navbar activeBaseRegex is tested against the full path, base URL included ("/bluecore-dev-dashboard/…")
@@ -265,22 +296,37 @@ const config = {
           width: 163,
           height: 35,
         },
+        // Three groups, each with a purpose: Docs (reading), Project Status (live GitHub data) and Workspace
+        // (your own notes and notebooks, local only), as dropdowns whose items say what they're for.
+        // GitHub and the Guides "?" are icons beside them.
         items: [
-          // Each link has an icon (className: navbar-icon + the icon's sidebar-icon--<name>, src/css/custom.css)
-          ...ifSection(STACK_DIR, {to: STACK_URL, label: 'Bluecore Stack', position: 'right', className: 'navbar-icon sidebar-icon--stack'}),
-          // Not active on the Bluecore Stack pages, which have their own link
-          ...ifSection('blue-core-repos', {to: '/blue-core-repos', label: 'Repos', position: 'right', className: 'navbar-icon sidebar-icon--repos', activeBaseRegex: activeRegex('blue-core-repos(?!/bluecore-stack)')}),
-          ...ifSection('blue-core-wiki', {to: '/blue-core-wiki', label: 'Wiki', position: 'right', className: 'navbar-icon sidebar-icon--wiki'}),
-          // Project Status and Notes aren't docs: set apart from the doc links by a divider
-          ...(hasSection('project-status') || LIVE_API_URL
-            ? [{type: 'html', value: '<span class="navbar-divider" aria-hidden="true"></span>', position: 'right'}]
+          menu('Docs', 'docs', [
+            ...ifSection(STACK_DIR, menuItem(STACK_URL, 'Bluecore Stack', 'Set up, run and test the stack locally', 'stack')),
+            // Not active on the Bluecore Stack pages, which have their own item
+            ...ifSection('blue-core-repos', {...menuItem('/blue-core-repos', 'Repos', 'Docs from every Blue Core repository', 'repos'), activeBaseRegex: activeRegex('blue-core-repos(?!/bluecore-stack)')}),
+            ...ifSection('blue-core-wiki', menuItem('/blue-core-wiki', 'Wiki', 'The Blue Core GitHub wiki', 'wiki')),
+            ...ifSection('google-drive', menuItem('/google-drive', 'Google Drive', 'Shared project documents (internal)', 'drive')),
+            ...ifSection('box', menuItem('/box', 'Box', 'Files from the project Box folder (internal)', 'box')),
+            ...ifSection('design', menuItem('/design', 'Design', 'Figma design notes (internal)', 'design')),
+            ...ifSection('guides', menuItem('/guides', 'Guides', 'How this site, its MCP tools and agents work', 'guides')),
+          ]),
+          ...(hasSection('project-status') ? [menu('Project Status', 'status', statusMenu(), {to: '/project-status'})] : []),
+          // Your own tools (src/pages/notes.js, notebooks.js): local only, so not on the public site
+          ...(LIVE_API_URL
+            ? [
+                menu('Workspace', 'workspace', [
+                  menuItem('/notes', 'Notes', 'Your Markdown notes, shared with AI agents and Obsidian', 'notes'),
+                  ...(NOTEBOOKS ? [menuItem('/notebooks', 'Jupyter Notebooks', 'Python notebooks that check and debug the stack', 'notebook')] : []),
+                ]),
+              ]
             : []),
-          ...ifSection('project-status', {to: '/project-status', label: 'Project Status', position: 'right', className: 'navbar-icon sidebar-icon--status'}),
-          // Your notes vault (src/pages/notes.js): local only, so not on the public site
-          ...(LIVE_API_URL ? [{to: '/notes', label: 'Notes', position: 'right', className: 'navbar-icon sidebar-icon--notes'}] : []),
-          // Jupyter notebooks for debugging the stack (src/pages/notebooks.js): local only, like Notes
-          ...(NOTEBOOKS ? [{to: '/notebooks', label: 'Notebooks', position: 'right', className: 'navbar-icon sidebar-icon--notebook'}] : []),
-          {href: 'https://github.com/blue-core-lod', label: 'GitHub', position: 'right', className: 'navbar-icon sidebar-icon--github'},
+          {
+            href: 'https://github.com/blue-core-lod',
+            html: '<span class="navbar-icon-label">GitHub</span>',
+            position: 'right',
+            className: 'navbar-icon navbar-icon-only sidebar-icon--github',
+            'aria-label': 'Blue Core on GitHub',
+          },
           // Guides: a small "?" with a tooltip rather than a full link (the label shows in the phone menu)
           ...ifSection('guides', {
             to: '/guides',
