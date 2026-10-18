@@ -6,6 +6,9 @@ build/
 .env
 .chat.pid
 .chat.log
+# The Local Stack page's jobs and the token the MCP server uses to reach chat/stack-runner.mjs
+.devenv/*
+!.devenv/.gitkeep
 # generated at build time
 static/llms.txt
 static/llms-full.txt
