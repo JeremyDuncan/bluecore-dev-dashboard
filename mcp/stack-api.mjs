@@ -8,6 +8,7 @@
 //   GET  /api/stack/jobs                   recent jobs
 //   GET  /api/stack/job?id=&offset=        one job and its output from byte offset
 //   POST /api/stack/run                    {action, options, confirm} → starts a job
+//   POST /api/stack/install                clones bluecore-stack when there's no checkout, then installs → a job
 //   POST /api/stack/stop                   {id} → stops a running job
 //   POST /api/stack/jobs/clear             {ids?} → removes finished jobs (those ids, or all)
 //
@@ -24,6 +25,7 @@ const ROUTES = {
   'GET /jobs': (q) => ['/jobs', {params: {limit: q.get('limit')}}],
   'GET /job': (q) => ['/job', {params: {id: q.get('id'), offset: q.get('offset'), tail: q.get('tail')}}],
   'POST /run': (q, body) => ['/run', {method: 'POST', body: {action: body.action, options: body.options ?? {}, confirm: body.confirm === true, by: 'Local Stack page'}}],
+  'POST /install': () => ['/install', {method: 'POST', body: {by: 'Local Stack page'}}],
   'POST /stop': (q, body) => ['/stop', {method: 'POST', body: {id: body.id}}],
   'POST /jobs/clear': (q, body) => ['/jobs/clear', {method: 'POST', body: {ids: body.ids}}],
 };

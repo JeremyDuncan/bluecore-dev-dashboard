@@ -7,6 +7,7 @@
 //   GET  /stack/diagnose          checks with findings and suggested fixes
 //   GET  /stack/jobs              recent jobs; GET /stack/job?id=&offset= one job and its output from offset
 //   POST /stack/run               {action, options, confirm, by} → starts a job
+//   POST /stack/install           clones bluecore-stack (when there's no checkout) and runs its install → a job
 //   POST /stack/stop              {id} → stops a running job (Ctrl+C, then harder)
 //   POST /stack/jobs/clear        {ids?} → removes finished jobs (those ids, or all of them); running ones stay
 //
@@ -44,7 +45,7 @@ function dotenv(file) {
   try {
     for (const line of fs.readFileSync(file, 'utf8').split('\n')) {
       const m = line.match(/^\s*(?:export\s+)?([A-Za-z0-9_]+)\s*=\s*(.*?)\s*$/);
-      if (m) out[m[1]] = m[2].replace(/^(['"])(.*)\1$/, '$2');
+      if (m) out[m[1]] = /^['"]/.test(m[2]) ? m[2].replace(/^(['"])(.*)\1.*$/, '$2') : m[2].replace(/\s+#.*$/, ''); // KEY=value # comment
     }
   } catch {}
   return out;
@@ -450,24 +451,84 @@ export async function startJob(actionId, rawOptions = {}, {confirm = false, by =
   if (running) throw new RunnerError(409, `"${action.title}" is already running (job ${running.id}). Stop it first, or follow its output.`);
   const [cmd, ...args] = action.command(options, dir);
   if (args.some((a) => a == null)) throw new RunnerError(500, `${action.title}: couldn't find the script's default`);
+  return spawnJob({action: action.id, title: action.title, cmd: cmd.includes('/') ? path.join(dir, cmd) : cmd, args, shown: [cmd, ...args].join(' '), cwd: dir, options, by, long: Boolean(action.long)});
+}
 
+// Starts a detached job: `cmd args` in `cwd`, its output and exit code under .devenv/jobs/
+function spawnJob({action, title, cmd, args, shown, cwd, options = {}, by, long = false}) {
   fs.mkdirSync(JOBS, {recursive: true});
   const id = `${Date.now().toString(36)}-${crypto.randomBytes(3).toString('hex')}`;
   const out = fs.openSync(jobPath(id, 'log'), 'a');
   // The exit code goes to a file, so it's known even when this helper restarted in the meantime
-  const child = spawn('/bin/bash', ['-c', '"$@"; code=$?; printf %s "$code" > "$DEVENV_EXIT"; exit $code', 'devenv', cmd.includes('/') ? path.join(dir, cmd) : cmd, ...args], {
-    cwd: dir,
+  const child = spawn('/bin/bash', ['-c', '"$@"; code=$?; printf %s "$code" > "$DEVENV_EXIT"; exit $code', 'devenv', cmd, ...args], {
+    cwd,
     detached: true, // its own process group: Stop signals the whole script, and it outlives this helper
     stdio: ['ignore', out, out],
     env: {...process.env, DEVENV_EXIT: jobPath(id, 'exit'), CLICOLOR_FORCE: '1', FORCE_COLOR: '1', COMPOSE_ANSI: 'always'},
   });
   fs.closeSync(out);
-  const job = {id, action: action.id, title: action.title, command: [cmd, ...args].join(' '), options, by, pid: child.pid, startedAt: new Date().toISOString(), long: Boolean(action.long)};
+  const job = {id, action, title, command: shown, options, by, pid: child.pid, startedAt: new Date().toISOString(), long};
   child.on('error', (err) => fs.appendFileSync(jobPath(id, 'log'), `\n[dashboard] couldn't start: ${err.message}\n`));
   child.unref();
   fs.writeFileSync(jobPath(id, 'json'), JSON.stringify(job, null, 1));
   pruneJobs();
   return readJob(id);
+}
+
+// ---------- Installing bluecore-stack itself (when BLUECORE_STACK_DIR isn't set or has no checkout)
+
+const STACK_REPO = 'https://github.com/blue-core-lod/bluecore-stack.git';
+const isCheckout = (dir) => Boolean(dir && fs.existsSync(path.join(dir, 'scripts', 'dev', 'run')));
+
+// Where the install puts it: BLUECORE_STACK_DIR when set, else next to this dashboard (where
+// scripts/dev/local-repo-paths expects the sibling repos anyway)
+function installTarget() {
+  const dir = stackDir() ?? path.resolve(REPO, '..', 'bluecore-stack');
+  let found = [];
+  try {
+    found = fs.readdirSync(dir).filter((f) => f !== '.DS_Store').slice(0, 8);
+  } catch {}
+  return {path: dir, set: Boolean(stackDir()), exists: fs.existsSync(dir), checkout: isCheckout(dir), empty: !found.length, found, repo: STACK_REPO};
+}
+
+// Adds BLUECORE_STACK_DIR=<dir> to the dashboard's .env (replacing an uncommented one)
+function saveStackDir(dir) {
+  const file = path.join(REPO, '.env');
+  let text = '';
+  try {
+    text = fs.readFileSync(file, 'utf8');
+  } catch {}
+  const line = `BLUECORE_STACK_DIR=${dir}`;
+  const re = /^[ \t]*(?:export[ \t]+)?BLUECORE_STACK_DIR[ \t]*=.*$/m;
+  text = re.test(text) ? text.replace(re, line) : `${text}${text && !text.endsWith('\n') ? '\n' : ''}${line}\n`;
+  fs.writeFileSync(file, text);
+}
+
+// Clones bluecore-stack, then runs its scripts/dev/update-stack --install (the sibling repos and .env
+// files). A checkout that's already there is only recorded in .env.
+export async function installStack({by = 'page'} = {}) {
+  const target = installTarget();
+  if (target.checkout) {
+    if (!target.set) saveStackDir(target.path);
+    return {linked: true, path: target.path, job: null};
+  }
+  if (target.exists && !target.empty) throw new RunnerError(409, `${target.path} exists but isn't a bluecore-stack checkout (no scripts/dev/run). Move it away, or set BLUECORE_STACK_DIR in the dashboard's .env to your checkout.`);
+  if (!(await which('git'))) throw new RunnerError(409, "git isn't installed on this machine (the helper can't find it on its PATH)");
+  const running = listJobs().find((j) => j.action === 'install_stack' && j.status === 'running');
+  if (running) throw new RunnerError(409, `The install is already running (job ${running.id}).`);
+  fs.mkdirSync(path.dirname(target.path), {recursive: true});
+  if (!target.set) saveStackDir(target.path);
+  const script = 'git clone --progress "$1" "$2" && cd "$2" && echo && echo "[dashboard] Setting up the sibling repos and .env files…" && scripts/dev/update-stack --install';
+  const job = spawnJob({
+    action: 'install_stack',
+    title: 'Install bluecore-stack',
+    cmd: '/bin/bash',
+    args: ['-c', script, 'install', STACK_REPO, target.path],
+    shown: `git clone ${STACK_REPO} ${target.path} && scripts/dev/update-stack --install`,
+    cwd: path.dirname(target.path),
+    by,
+  });
+  return {linked: false, path: target.path, job};
 }
 
 // Removes finished jobs and their output: the ids given, or every finished job. Running jobs are kept.
@@ -601,13 +662,13 @@ export function testCatalog(dir) {
 export async function status() {
   const dir = stackDir();
   const [docker, tools] = await Promise.all([dockerInfo(), Promise.all(['docker', 'git', 'uv', 'act'].map(async (t) => [t, Boolean(await which(t))])).then(Object.fromEntries)]);
-  const configured = Boolean(dir && fs.existsSync(path.join(dir, 'scripts', 'dev', 'run')));
+  const configured = isCheckout(dir);
   const list = configured && docker.running ? await containers(projectOf(dir)) : [];
   let branch = null;
   if (configured) branch = (await exec('git', ['-C', dir, 'rev-parse', '--abbrev-ref', 'HEAD'], {timeout: 5000})).stdout.trim() || null;
   const has = (s) => list.some((c) => c.service.startsWith(s) && c.state === 'running');
   return {
-    stack: {configured, path: dir, project: dir ? projectOf(dir) : null, branch, url: STACK_URL},
+    stack: {configured, path: dir, project: dir ? projectOf(dir) : null, branch, url: STACK_URL, install: installTarget()},
     docker,
     tools,
     containers: list,
@@ -777,6 +838,7 @@ export async function handleStack(req, res, url) {
     if (route === '/jobs' && req.method === 'GET') return sendJson(res, 200, {jobs: listJobs(Number(q.get('limit')) || 30)});
     if (route === '/job' && req.method === 'GET') return sendJson(res, 200, jobOutput(q.get('id'), {offset: q.get('offset'), tail: q.get('tail') ? Number(q.get('tail')) : undefined}));
     if (route === '/run' && req.method === 'POST') return sendJson(res, 200, {job: await startJob(body.action, body.options, {confirm: body.confirm === true, by: String(body.by ?? 'page').slice(0, 80)})});
+    if (route === '/install' && req.method === 'POST') return sendJson(res, 200, await installStack({by: String(body.by ?? 'page').slice(0, 80)}));
     if (route === '/stop' && req.method === 'POST') return sendJson(res, 200, {job: stopJob(body.id)});
     if (route === '/jobs/clear' && req.method === 'POST') return sendJson(res, 200, clearJobs(body.ids));
     sendJson(res, 404, {error: 'Unknown stack endpoint'});

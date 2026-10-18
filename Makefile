@@ -4,7 +4,7 @@
 # On: JupyterLab (compose profile "notebooks") is built and started, and the site, MCP server and chat
 # include notebooks. Off: it's neither built nor started, and a running one is removed. Exported so
 # compose and the chat helper see the same value.
-JUPYTER_NOTEBOOK ?= $(shell sed -n 's/^[[:space:]]*JUPYTER_NOTEBOOK[[:space:]]*=//p' .env 2>/dev/null | tail -1 | tr -d "\"' ")
+JUPYTER_NOTEBOOK ?= $(shell sed -n 's/^[[:space:]]*JUPYTER_NOTEBOOK[[:space:]]*=\([^\#]*\).*/\1/p' .env 2>/dev/null | tail -1 | tr -d "\"' ")
 export JUPYTER_NOTEBOOK
 NOTEBOOKS_ON := $(filter true True TRUE 1 yes Yes YES on On ON,$(JUPYTER_NOTEBOOK))
 NOTEBOOKS_PROFILE := $(if $(NOTEBOOKS_ON),--profile notebooks)
@@ -12,8 +12,8 @@ NOTEBOOKS_PROFILE := $(if $(NOTEBOOKS_ON),--profile notebooks)
 NOTEBOOKS_CLEANUP := $(if $(NOTEBOOKS_ON),@true,@docker compose --profile notebooks rm -sf jupyter >/dev/null 2>&1 || true)
 
 # The Local Stack pages (your bluecore-stack's scripts, logs and health) are off unless LOCAL_STACK=true,
-# like notebooks. Exported so compose and the chat helper (which runs the scripts) see the same value.
-LOCAL_STACK ?= $(shell sed -n 's/^[[:space:]]*LOCAL_STACK[[:space:]]*=//p' .env 2>/dev/null | tail -1 | tr -d "\"' ")
+# like notebooks (an inline `# comment` after the value is ignored). Exported so compose and the chat helper (which runs the scripts) see the same value.
+LOCAL_STACK ?= $(shell sed -n 's/^[[:space:]]*LOCAL_STACK[[:space:]]*=\([^\#]*\).*/\1/p' .env 2>/dev/null | tail -1 | tr -d "\"' ")
 export LOCAL_STACK
 
 up:        ## Pull all sources (skip with SYNC=0), then live preview at http://localhost:3000 + MCP server (:3001) + Ask the docs chat (:3002) + JupyterLab (:8888, if JUPYTER_NOTEBOOK=true)

@@ -837,6 +837,96 @@ function RecentJobs({jobs, onOpen}) {
   );
 }
 
+
+// ---------- Install (no bluecore-stack checkout yet)
+
+// What the page shows instead of its sections while there's no checkout: why, and one button that clones
+// bluecore-stack and installs it (chat/stack-runner.mjs installStack), with the job's output below it
+function InstallStack({call, status, refresh, chat}) {
+  const {install} = status.stack;
+  const job = status.jobs.find((j) => j.action === 'install_stack');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const installing = job?.status === 'running';
+  const blocked = !installing && install.exists && !install.empty && !install.checkout;
+  const start = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await call('/install', {method: 'POST', body: {}});
+      await refresh();
+    } catch (e) {
+      setError(e.message);
+    }
+    setBusy(false);
+  };
+  const removeJob = async (j) => {
+    await call('/jobs/clear', {method: 'POST', body: {ids: [j.id]}});
+    await refresh();
+  };
+  return (
+    <>
+      <div className={styles.notice}>
+        <h2>{installing ? 'Installing bluecore-stack…' : install.set ? 'No bluecore-stack checkout detected' : 'BLUECORE_STACK_DIR is not set'}</h2>
+        <p>
+          {installing ? (
+            <>
+              Cloning <code>{install.repo}</code> into <code>{install.path}</code> and setting up the sibling repos and their <code>.env</code> files. The Local Stack pages open when it&apos;s done.
+            </>
+          ) : install.set ? (
+            <>
+              <code>BLUECORE_STACK_DIR</code> in the dashboard&apos;s <code>.env</code> points at <code>{install.path}</code>, but there&apos;s no bluecore-stack checkout there (no{' '}
+              <code>scripts/dev/run</code>).
+            </>
+          ) : install.checkout ? (
+            <>
+              <code>BLUECORE_STACK_DIR</code> isn&apos;t set in the dashboard&apos;s <code>.env</code>, but there&apos;s a bluecore-stack checkout next to the dashboard at <code>{install.path}</code>.
+            </>
+          ) : (
+            <>
+              <code>BLUECORE_STACK_DIR</code> isn&apos;t set in the dashboard&apos;s <code>.env</code>, and no bluecore-stack checkout was detected next to the dashboard.
+            </>
+          )}{' '}
+          {!installing && <>The Local Stack pages run that checkout&apos;s own scripts, so they need one.</>}
+        </p>
+        {installing ? null : install.checkout ? (
+          <p>
+            <strong>Use this checkout</strong> saves <code>BLUECORE_STACK_DIR={install.path}</code> in the dashboard&apos;s <code>.env</code>.
+          </p>
+        ) : blocked ? (
+          <p className={styles.bad}>
+            <code>{install.path}</code> already exists but isn&apos;t a bluecore-stack checkout (it holds {install.found.join(', ')}), so the install won&apos;t touch it. Folders like these are often left
+            behind by Docker mounting a checkout that was removed. Move it away, or set <code>BLUECORE_STACK_DIR</code> to your checkout, then reload.
+          </p>
+        ) : (
+          <p>
+            <strong>Install Bluecore Stack</strong> clones <code>{install.repo}</code> into <code>{install.path}</code>, runs its <code>scripts/dev/update-stack --install</code> (the sibling repos and
+            their <code>.env</code> files){install.set ? '' : <>, and saves <code>BLUECORE_STACK_DIR</code> in the dashboard&apos;s <code>.env</code></>}.
+          </p>
+        )}
+        <p className={styles.muted}>
+          Afterwards, restart the dashboard (<code>make up</code>) so the MCP server&apos;s <code>local_stack</code> tool and JupyterLab mount the checkout too.
+        </p>
+        <div className={styles.heroButtons}>
+          <button type="button" className={styles.primary} disabled={busy || blocked || installing} onClick={start}>
+            {installing ? 'Installing…' : busy ? 'Starting…' : install.checkout ? 'Use this checkout' : job ? 'Install Bluecore Stack again' : 'Install Bluecore Stack'}
+          </button>
+        </div>
+        {error && (
+          <p className={styles.error} role="alert">
+            {error}
+          </p>
+        )}
+      </div>
+      {job && (
+        <div className={styles.section}>
+          <JobView call={call} id={job.id} chat={chat} onStopped={refresh} onRemove={removeJob} />
+        </div>
+      )}
+    </>
+  );
+}
+
 // ---------- The left sidebar: like the Guides and Project Status sidebars (a link back to the docs, a header,
 // then each section with its icon), with live counts, and the other Workspace pages at the bottom. Hidden
 // on narrow screens, where the icon row under the header does the job.
@@ -1007,8 +1097,25 @@ export default function LocalStack({section: sectionId = 'overview'}) {
   const jobsRunning = status?.jobs.filter((j) => j.status === 'running') ?? [];
   const stackJob = jobsRunning.find((j) => j.action === 'start');
   const sectionJobs = section.groups && status ? status.jobs.filter((j) => section.groups.includes(status.actions.find((a) => a.id === j.action)?.group)) : [];
-  const ready = status?.stack.configured;
+  // Not ready while the install is still running (its checkout appears before its set up is done)
+  const installing = status?.jobs.some((j) => j.action === 'install_stack' && j.status === 'running');
+  const ready = status?.stack.configured && !installing;
   const overview = section.id === 'overview';
+
+  // No checkout yet: the workspace is only the install
+  if (status && !ready)
+    return (
+      <main className={styles.page}>
+        <PageHero eyebrow="Workspace · your machine" title="Local Stack" lead="Your Bluecore stack on this machine, run with your bluecore-stack checkout's own scripts. Install it first." />
+        {error?.helperDown && <HelperDown error={error.message} />}
+        {error && !error.helperDown && (
+          <p className={styles.error} role="alert">
+            {error.message}
+          </p>
+        )}
+        <InstallStack call={call} status={status} refresh={refresh} chat={chat} />
+      </main>
+    );
 
   return (
     <div className={styles.layout}>
@@ -1065,14 +1172,6 @@ export default function LocalStack({section: sectionId = 'overview'}) {
           <p className={styles.error} role="alert">
             {error.message}
           </p>
-        )}
-        {status && !ready && (
-          <div className={styles.notice}>
-            <h2>Point the dashboard at your stack checkout</h2>
-            <p>
-              Set <code>BLUECORE_STACK_DIR</code> in the dashboard&apos;s <code>.env</code> to your bluecore-stack checkout (now: {status.stack.path ?? 'not set'}), then reload.
-            </p>
-          </div>
         )}
         {!status && !error && <p className={styles.muted}>Loading your stack…</p>}
 
