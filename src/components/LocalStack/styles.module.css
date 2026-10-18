@@ -1,0 +1,888 @@
+/* The Local Stack page: a control panel over the site's tokens, with a dark terminal for logs and job output */
+
+:root {
+  --ls-on-accent: #ffffff;
+  --ls-term-bg: #0f1722;
+  --ls-term-fg: #d7e1ec;
+  --ls-term-dim: #7f8fa3;
+  --ls-term-line: #223042;
+  --ls-err-bg: rgba(233, 80, 80, 0.16);
+  --ls-warn-bg: rgba(249, 194, 28, 0.12);
+  --ls-up: #1d9a5b;
+  --ls-down: var(--bc-danger-text);
+  --ls-starting: #c58a00;
+  --ls-done: var(--bc-stone);
+  --ls-ok-text: #1d7a45;
+  --ls-warn-text: #8a5a00;
+  --ls-row: #f5f9fd;
+  --ls-soft: var(--bc-sky-light);
+}
+
+[data-theme='dark'] {
+  --ls-on-accent: var(--bc-navy);
+  --ls-term-bg: #0a0f16;
+  --ls-term-line: #1c2633;
+  --ls-up: #4cc38a;
+  --ls-starting: #f1c24b;
+  --ls-ok-text: #6fd59f;
+  --ls-warn-text: #f1c24b;
+  --ls-row: rgba(255, 255, 255, 0.03);
+  --ls-soft: rgba(121, 192, 255, 0.14);
+}
+
+.page {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1.5rem max(16px, env(safe-area-inset-left, 0px)) 3rem max(16px, env(safe-area-inset-right, 0px));
+}
+
+.meta {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+  color: var(--bc-meta);
+  overflow-wrap: anywhere;
+}
+
+.meta code {
+  font-size: 0.85em;
+}
+
+.bad {
+  color: var(--bc-danger-text);
+}
+
+.heroButtons,
+.cardButtons,
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.heroButtons {
+  margin-top: 1rem;
+}
+
+.toolbar {
+  margin-bottom: 0.75rem;
+}
+
+.spacer {
+  flex: 1;
+}
+
+/* Buttons (as on the Notebooks page) */
+.primary,
+.ghost,
+.danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.primary {
+  background: var(--bc-link);
+  color: var(--ls-on-accent);
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--bc-link-hover);
+}
+
+.ghost {
+  border-color: var(--bc-sky-line);
+  background: var(--bc-surface);
+  color: var(--bc-link);
+}
+
+.ghost:hover:not(:disabled) {
+  border-color: var(--bc-link);
+}
+
+.danger {
+  background: var(--bc-danger-text);
+  color: var(--bc-surface);
+}
+
+.primary:disabled,
+.ghost:disabled,
+.danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.primary:focus-visible,
+.ghost:focus-visible,
+.danger:focus-visible,
+.jobItem:focus-visible,
+.console:focus-visible {
+  outline: 2px solid var(--bc-link);
+  outline-offset: 2px;
+}
+
+/* A section's content, under the icon navigation */
+.section {
+  min-width: 0;
+}
+
+.recent {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--bc-sky-line);
+  border-radius: 10px;
+}
+
+.recent li + li {
+  border-top: 1px solid var(--bc-sky-line);
+}
+
+.recentItem {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  width: 100%;
+  padding: 10px 14px;
+  border: 0;
+  background: var(--bc-surface);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.recentItem:hover {
+  background: var(--ls-row);
+}
+
+.recentItem:focus-visible {
+  outline: 2px solid var(--bc-link);
+  outline-offset: -2px;
+}
+
+/* Notices and states */
+.notice {
+  margin-top: 1.5rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--bc-sky-line);
+  border-left: 4px solid var(--bc-warning);
+  border-radius: 10px;
+  background: var(--bc-surface);
+}
+
+.notice h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+}
+
+.notice p:last-child {
+  margin-bottom: 0;
+}
+
+.empty {
+  padding: 1.5rem;
+  border: 1px dashed var(--bc-sky-line);
+  border-radius: 10px;
+  color: var(--bc-meta);
+}
+
+.error {
+  margin: 0.5rem 0;
+  color: var(--bc-danger-text);
+}
+
+.muted {
+  color: var(--bc-meta);
+  font-size: 0.9rem;
+}
+
+.hint {
+  margin: 0 0 0.5rem;
+  color: var(--bc-meta);
+  font-size: 0.875rem;
+}
+
+.mono {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.8rem;
+}
+
+/* Services */
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 1rem;
+}
+
+.chip {
+  padding: 4px 12px;
+  border: 1px solid var(--bc-sky-line);
+  border-radius: 999px;
+  background: var(--bc-surface);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.chip:hover {
+  border-color: var(--bc-link);
+  text-decoration: none;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--bc-sky-line);
+  border-radius: 10px;
+}
+
+.table {
+  display: table;
+  width: 100%;
+  margin: 0;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.table th,
+.table td {
+  padding: 8px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--bc-sky-line);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.table thead th {
+  background: var(--ls-soft);
+  color: var(--bc-heading);
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+}
+
+.table tr:nth-child(2n) {
+  background: var(--ls-row);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.service {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.rowActions {
+  white-space: nowrap;
+  text-align: right !important;
+}
+
+.rowActions button + button {
+  margin-left: 6px;
+}
+
+.dot {
+  display: inline-block;
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.dot-up {
+  background: var(--ls-up);
+}
+
+.dot-down {
+  background: var(--ls-down);
+}
+
+.dot-starting {
+  background: var(--ls-starting);
+}
+
+.dot-done {
+  background: var(--ls-done);
+}
+
+@media (max-width: 760px) {
+  .hideNarrow {
+    display: none;
+  }
+}
+
+/* Logs and job output: a terminal */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--bc-meta);
+}
+
+.field select,
+.field input {
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--bc-sky-line);
+  border-radius: 8px;
+  background: var(--bc-surface);
+  color: var(--ifm-font-color-base);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+.grow {
+  flex: 1 1 200px;
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 8px;
+  border: 1px solid var(--bc-sky-line);
+  border-radius: 8px;
+  background: var(--bc-surface);
+}
+
+.search input {
+  flex: 1;
+  border: 0;
+  background: none;
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.console {
+  height: min(62vh, 640px);
+  margin: 0;
+  padding: 10px 12px;
+  overflow: auto;
+  border: 1px solid var(--ls-term-line);
+  border-radius: 10px;
+  background: var(--ls-term-bg);
+  color: var(--ls-term-fg);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre;
+}
+
+.consoleSmall {
+  height: auto;
+  max-height: 260px;
+  margin-top: 0.5rem;
+}
+
+.wrap {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.line {
+  padding: 0 4px;
+  border-radius: 3px;
+}
+
+.lineErr {
+  background: var(--ls-err-bg);
+}
+
+.lineWarn {
+  background: var(--ls-warn-bg);
+}
+
+.ts {
+  margin-right: 10px;
+  color: var(--ls-term-dim);
+  user-select: none;
+}
+
+.ansiBold {
+  font-weight: 700;
+}
+
+.ansiDim {
+  color: var(--ls-term-dim);
+}
+
+.ansi-black,
+.ansi-bright-black {
+  color: #8796a8;
+}
+.ansi-red {
+  color: #ff7b72;
+}
+.ansi-bright-red {
+  color: #ffa198;
+}
+.ansi-green {
+  color: #56d364;
+}
+.ansi-bright-green {
+  color: #7ee787;
+}
+.ansi-yellow {
+  color: #e3b341;
+}
+.ansi-bright-yellow {
+  color: #f2cc60;
+}
+.ansi-blue {
+  color: #79c0ff;
+}
+.ansi-bright-blue {
+  color: #a5d6ff;
+}
+.ansi-magenta {
+  color: #d2a8ff;
+}
+.ansi-bright-magenta {
+  color: #e2c5ff;
+}
+.ansi-cyan {
+  color: #56d4dd;
+}
+.ansi-bright-cyan {
+  color: #b3f0ff;
+}
+.ansi-white,
+.ansi-bright-white {
+  color: #f0f6fc;
+}
+
+/* Scripts */
+.group + .group {
+  margin-top: 2rem;
+}
+
+.group h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.15rem;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  gap: 12px;
+}
+
+.action {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--bc-sky-line);
+  border-radius: 12px;
+  background: var(--bc-surface);
+}
+
+.actionPicked {
+  border-color: var(--bc-link);
+  box-shadow: 0 0 0 3px var(--ls-soft);
+}
+
+.action h3 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 1rem;
+}
+
+.action p {
+  margin: 0;
+  color: var(--bc-meta);
+  font-size: 0.9rem;
+}
+
+.action .cardButtons {
+  margin-top: auto;
+  padding-top: 4px;
+}
+
+.script {
+  align-self: flex-start;
+  max-width: 100%;
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+
+.tag {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--ls-soft);
+  color: var(--bc-link);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.tagDanger {
+  background: var(--ls-err-bg);
+  color: var(--bc-danger-text);
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.multi {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.multi legend {
+  width: 100%;
+  margin-bottom: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--bc-meta);
+}
+
+/* Jobs */
+.jobs {
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .jobs {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .jobList {
+    max-height: 220px;
+  }
+}
+
+.jobList {
+  max-height: 70vh;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--bc-sky-line);
+  border-radius: 10px;
+}
+
+.jobList li + li {
+  border-top: 1px solid var(--bc-sky-line);
+}
+
+.jobItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  background: var(--bc-surface);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.jobItem:hover {
+  background: var(--ls-row);
+}
+
+.jobItemOn {
+  background: var(--ls-soft) !important;
+}
+
+.jobTitle {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.jobMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--bc-meta);
+  font-size: 0.8rem;
+}
+
+.jobView {
+  min-width: 0;
+}
+
+.jobHead {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 0.75rem;
+}
+
+.jobHead > div:first-child {
+  min-width: 0;
+}
+
+.jobHead h2 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+  font-size: 1.2rem;
+}
+
+.jobHead p {
+  margin: 6px 0 0;
+}
+
+.badge {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.badge-running {
+  background: var(--ls-soft);
+  color: var(--bc-link);
+}
+
+.badge-succeeded {
+  background: rgba(29, 154, 91, 0.14);
+  color: var(--ls-ok-text);
+}
+
+.badge-failed {
+  background: var(--ls-err-bg);
+  color: var(--bc-danger-text);
+}
+
+.badge-stopped,
+.badge-ended {
+  background: var(--ls-warn-bg);
+  color: var(--ls-warn-text);
+}
+
+/* Troubleshoot */
+.findings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.finding {
+  display: flex;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--bc-sky-line);
+  border-left-width: 4px;
+  border-radius: 10px;
+  background: var(--bc-surface);
+}
+
+.finding-error {
+  border-left-color: var(--bc-danger-text);
+}
+
+.finding-warn {
+  border-left-color: var(--bc-warning);
+}
+
+.finding-info {
+  border-left-color: var(--bc-link);
+}
+
+.finding-ok {
+  border-left-color: var(--ls-up);
+}
+
+.findingIcon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--ls-soft);
+  color: var(--bc-link);
+  font-weight: 800;
+}
+
+.finding-error .findingIcon {
+  background: var(--ls-err-bg);
+  color: var(--bc-danger-text);
+}
+
+.finding-warn .findingIcon {
+  background: var(--ls-warn-bg);
+  color: var(--ls-warn-text);
+}
+
+.finding-ok .findingIcon {
+  color: var(--ls-ok-text);
+}
+
+.findingBody {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.findingBody p {
+  margin: 0;
+  color: var(--bc-meta);
+  font-size: 0.9rem;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.more summary {
+  color: var(--bc-link);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.more[open] summary {
+  margin-bottom: 8px;
+}
+
+/* The left sidebar (as on the docs, Guides and Project Status pages) beside the page */
+.layout {
+  display: flex;
+  width: 100%;
+}
+
+.layout > .page {
+  flex: 1;
+  min-width: 0;
+}
+
+.side {
+  flex: 0 0 var(--doc-sidebar-width, 300px);
+  position: sticky;
+  top: var(--ifm-navbar-height);
+  align-self: flex-start;
+  height: calc(100vh - var(--ifm-navbar-height));
+  overflow-y: auto;
+  border-right: 1px solid var(--bc-sky-line);
+}
+
+.side :global(.menu) {
+  padding: 0.5rem;
+}
+
+.sideLink {
+  align-items: center;
+  gap: 10px;
+}
+
+.sideLabel {
+  flex: 1;
+}
+
+.sideBadge {
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--ls-soft);
+  color: var(--bc-link);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.sideBadgeBad {
+  background: var(--ls-err-bg);
+  color: var(--bc-danger-text);
+}
+
+.sideGroup {
+  margin: 1.25rem 12px 0.25rem;
+  color: var(--bc-meta);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 996px) {
+  .side {
+    display: none;
+  }
+}
+
+/* The job list's header: the count and Clear finished */
+.jobSide {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.jobListHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.small {
+  padding: 4px 9px;
+  font-size: 12.5px;
+}
+
+.ghostDanger {
+  color: var(--bc-danger-text);
+}
+
+.ghostDanger:hover:not(:disabled) {
+  border-color: var(--bc-danger-text);
+}

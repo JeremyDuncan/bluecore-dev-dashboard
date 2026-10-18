@@ -44,6 +44,8 @@ const STACK_URL = `/${STACK_DIR}/`;
 const LIVE_API_URL = process.env.LIVE_API_URL ?? 'http://localhost:3001/api';
 // Jupyter notebooks (the Notebooks page): local only, and off unless JUPYTER_NOTEBOOK=true in .env
 const NOTEBOOKS = Boolean(LIVE_API_URL) && /^(true|1|yes|on)$/i.test(String(process.env.JUPYTER_NOTEBOOK ?? '').trim());
+// The Local Stack pages (your stack's scripts, logs and health): local only, and off unless LOCAL_STACK=true in .env
+const LOCAL_STACK = Boolean(LIVE_API_URL) && /^(true|1|yes|on)$/i.test(String(process.env.LOCAL_STACK ?? '').trim());
 
 // Sidebar icon for each top-level section, by its folder under docs/ (drawn in src/css/custom.css,
 // .sidebar-icon--<name>). Sections not listed get a folder icon.
@@ -201,6 +203,8 @@ const config = {
     chatApiUrl: process.env.CHAT_API_URL ?? 'http://localhost:3002',
     // The Notebooks page and links to it (only with JUPYTER_NOTEBOOK=true, never on the public site)
     notebooks: NOTEBOOKS,
+    // The Local Stack pages and links to them (only with LOCAL_STACK=true, never on the public site)
+    localStack: LOCAL_STACK,
   },
 
   i18n: {
@@ -297,7 +301,7 @@ const config = {
           height: 35,
         },
         // Three groups, each with a purpose: Docs (reading), Project Status (live GitHub data) and Workspace
-        // (your own notes and notebooks, local only), as dropdowns whose items say what they're for.
+        // (your own notes, notebooks and local stack, local only), as dropdowns whose items say what they're for.
         // GitHub and the Guides "?" are icons beside them.
         items: [
           menu('Docs', 'docs', [
@@ -317,6 +321,7 @@ const config = {
                 menu('Workspace', 'workspace', [
                   menuItem('/notes', 'Notes', 'Your Markdown notes, shared with AI agents and Obsidian', 'notes'),
                   ...(NOTEBOOKS ? [menuItem('/notebooks', 'Jupyter Notebooks', 'Python notebooks that check and debug the stack', 'notebook')] : []),
+                  ...(LOCAL_STACK ? [menuItem('/local-stack', 'Local Stack', 'Start, stop, logs, scripts, tests and troubleshooting', 'console')] : []),
                 ]),
               ]
             : []),

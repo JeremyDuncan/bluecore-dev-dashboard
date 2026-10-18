@@ -57,13 +57,14 @@ export function Featured({icon, title, to, children}) {
 }
 
 // Only when the site runs locally: `needs="live"` (Notes and live data, from the MCP container),
-// `needs="chat"` (Ask the docs) or `needs="notebooks"` (Jupyter Notebooks, JUPYTER_NOTEBOOK=true). The
+// `needs="chat"` (Ask the docs), `needs="notebooks"` (Jupyter Notebooks, JUPYTER_NOTEBOOK=true) or
+// `needs="localStack"` (the Local Stack pages, LOCAL_STACK=true). The
 // public build sets the URLs empty, so these never show there. `off`: instead, only on a local site where
 // that feature is off (e.g. how to turn notebooks on).
 export function LocalOnly({needs = 'live', off = false, children}) {
   const {siteConfig} = useDocusaurusContext();
   const f = siteConfig.customFields ?? {};
-  const on = needs === 'chat' ? f.chatApiUrl : needs === 'notebooks' ? f.notebooks : f.liveApiUrl;
+  const on = needs === 'chat' ? f.chatApiUrl : needs === 'notebooks' ? f.notebooks : needs === 'localStack' ? f.localStack : f.liveApiUrl;
   if (off) return f.liveApiUrl && !on ? children : null;
   return on ? children : null;
 }

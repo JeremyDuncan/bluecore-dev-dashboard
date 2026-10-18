@@ -14,11 +14,14 @@
 // Notebooks (notebooks-tools.mjs): list_notebooks, read_notebook, create_notebook, update_notebook and
 // run_notebook (runs cells in the local JupyterLab container, jupyter.mjs, against the local stack or a
 // deployed environment; only when the user asks). Local stack (local-stack-tools.mjs): local_stack reads
-// the developer's bluecore-stack checkout (BLUECORE_STACK_DIR).
+// the developer's bluecore-stack checkout (BLUECORE_STACK_DIR). The running stack (stack-tools.mjs, through
+// the helper on the host): stack_status, stack_logs, stack_diagnose, stack_job, and stack_run and
+// stack_stop_job, which run the checkout's dev scripts (only when the user asks).
 // Prompts (prompts.mjs): standup_summary, weekly_update, onboarding_plan, summarize_epic, docs_cleanup. Content comes straight from docs/, so it includes
 // everything on the site — internal Google Drive pages too. Don't expose the HTTP port publicly.
 // The HTTP server also serves live GitHub data for the Project Status pages (live-api.mjs) and the
-// notes for the Notes page (notes-api.mjs) and the notebooks for the Notebooks page (notebooks-api.mjs).
+// notes for the Notes page (notes-api.mjs), the notebooks for the Notebooks page (notebooks-api.mjs) and
+// the Local Stack page's API (stack-api.mjs).
 import http from 'node:http';
 import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
 import {StdioServerTransport} from '@modelcontextprotocol/sdk/server/stdio.js';
@@ -31,6 +34,9 @@ import {handleNotebooksApi} from './notebooks-api.mjs';
 import {ensureNotebooks, NOTEBOOKS, NOTEBOOKS_ENABLED} from './notebooks.mjs';
 import {registerNotebookTools} from './notebooks-tools.mjs';
 import {registerLocalStackTools} from './local-stack-tools.mjs';
+import {handleStackApi} from './stack-api.mjs';
+import {registerStackTools} from './stack-tools.mjs';
+import {STACK_ENABLED} from './stack-runner.mjs';
 import {STACK, stackInfo} from './local-stack.mjs';
 import {ensureVault, VAULT} from './notes.mjs';
 import {registerNotesTools} from './notes-tools.mjs';
@@ -148,6 +154,7 @@ function createServer() {
   registerNotesTools(server);
   if (NOTEBOOKS_ENABLED) registerNotebookTools(server); // JUPYTER_NOTEBOOK=false turns them off
   registerLocalStackTools(server);
+  if (STACK_ENABLED) registerStackTools(server); // the running stack, through the helper on this machine (chat/stack-runner.mjs); LOCAL_STACK=false turns them off
   registerPrompts(server);
 
   return server;
@@ -173,6 +180,7 @@ async function serveHttp() {
     if (await handleLiveApi(req, res, pathname)) return; // live GitHub data for the Project Status pages
     if (await handleNotesApi(req, res, pathname)) return; // the Notes page
     if (await handleNotebooksApi(req, res, pathname)) return; // the Notebooks page
+    if (await handleStackApi(req, res, pathname)) return; // the Local Stack page
     if (pathname !== '/mcp') {
       res.writeHead(404).end('MCP endpoint is /mcp');
       return;
@@ -218,6 +226,7 @@ async function serveHttp() {
   } catch (err) {
     console.error(`[mcp] notes vault ${VAULT} unavailable: ${err.message}`);
   }
+  if (!STACK_ENABLED) console.log('[mcp] local stack pages and stack_* tools: turned off (LOCAL_STACK=false)');
   if (!NOTEBOOKS_ENABLED) console.log('[mcp] notebooks: turned off (JUPYTER_NOTEBOOK=false)');
   else
     try {

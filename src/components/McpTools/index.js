@@ -17,6 +17,7 @@ const SOURCES = {
   notes: 'Notes vault',
   notebooks: 'JupyterLab',
   stack: 'Your checkout',
+  runner: 'Your machine',
 };
 
 // Copies text, falling back to a hidden textarea where the Clipboard API is refused

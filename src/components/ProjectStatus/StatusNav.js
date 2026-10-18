@@ -1,5 +1,5 @@
 // Icon navigation between the Project Status pages (replaces the sidebar dropdown), and the
-// overview cards on /project-status. `pages` comes from _data/nav.json, written by the sync
+// overview cards on /project-status. The Local Stack pages use the same navigation and cards. `pages` comes from _data/nav.json, written by the sync
 // (scripts/sync/project-status.mjs), so it only lists the pages this build has: the public
 // site has no project board.
 import React from 'react';
@@ -56,6 +56,36 @@ const PATHS = {
       <circle cx="8" cy="8" r="1.4" fill="currentColor" />
     </>
   ),
+  // The Local Stack pages
+  services: (
+    <>
+      <rect x="3.5" y="4" width="17" height="6.5" rx="1.5" />
+      <rect x="3.5" y="13.5" width="17" height="6.5" rx="1.5" />
+      <circle cx="7.5" cy="7.25" r="1" fill="currentColor" />
+      <circle cx="7.5" cy="16.75" r="1" fill="currentColor" />
+    </>
+  ),
+  logs: (
+    <>
+      <rect x="4" y="3.5" width="16" height="17" rx="2" />
+      <path d="M8 8.5h8M8 12h8M8 15.5h5" />
+    </>
+  ),
+  data: (
+    <>
+      <ellipse cx="12" cy="6" rx="7.5" ry="2.8" />
+      <path d="M4.5 6v12c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8V6" />
+      <path d="M4.5 12c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8" />
+    </>
+  ),
+  setup: <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z" />,
+  jobs: (
+    <>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
+      <path d="M7.5 9.5l3 2.5-3 2.5M12.5 15h4" />
+    </>
+  ),
+  troubleshoot: <path d="M3 12h4l2.5-6 5 12 2.5-6h4" />,
 };
 
 export function StatusIcon({name, size = 22}) {
@@ -110,7 +140,7 @@ function NavLink({page: p, active, sub}) {
 // description (the generated pages hide Docusaurus's own title), then a row of icon links. Pages with
 // a `group` (each test suite, group "tests") get a second row, shown on the group's page and on every
 // page in the group. hero={false} leaves the header out (the overview page writes its own).
-export default function StatusNav({pages, current, hero = true}) {
+export default function StatusNav({pages, current, hero = true, label = 'Project Status pages'}) {
   const page = pages.find((p) => p.id === current);
   const group = page?.group ?? (pages.some((p) => p.group === current) ? current : null);
   const members = group ? pages.filter((p) => p.group === group) : [];
@@ -124,14 +154,14 @@ export default function StatusNav({pages, current, hero = true}) {
           lead={page.description}
         />
       )}
-      <StatusNavRows pages={pages} current={current} group={group} members={members} />
+      <StatusNavRows pages={pages} current={current} group={group} members={members} label={label} />
     </>
   );
 }
 
-function StatusNavRows({pages, current, group, members}) {
+function StatusNavRows({pages, current, group, members, label}) {
   return (
-    <nav className={styles.statusNav} aria-label="Project Status pages">
+    <nav className={styles.statusNav} aria-label={label}>
       <ul>
         {pages
           .filter((p) => !p.group)

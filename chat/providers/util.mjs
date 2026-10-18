@@ -88,6 +88,12 @@ export function describeTool(name, input = {}) {
   if (/notes_health$/.test(name)) return 'Checking your notes for things to tidy';
   if (/fork_changes$/.test(name)) return `Comparing ${input.repo} with its upstream project`;
   if (/local_stack$/.test(name)) return input.path ? `Reading ${input.path} in your stack checkout` : 'Looking at your local stack checkout';
+  if (/stack_status$/.test(name)) return 'Checking your running stack';
+  if (/stack_logs$/.test(name)) return `Reading the ${input.service ?? ''} logs${input.since ? ` (last ${input.since})` : ''}${input.errors_only ? ', errors only' : input.grep ? ` for “${input.grep}”` : ''}`;
+  if (/stack_diagnose$/.test(name)) return 'Troubleshooting your stack';
+  if (/stack_run$/.test(name)) return `Running ${input.action ?? 'a script'} on your stack${input.options?.service ? ` (${input.options.service})` : ''}`;
+  if (/stack_job$/.test(name)) return input.id ? `Reading the output of job ${input.id}` : 'Listing stack jobs';
+  if (/stack_stop_job$/.test(name)) return `Stopping job ${input.id ?? ''}`;
   if (/list_notebooks$/.test(name)) return 'Listing your notebooks';
   if (/read_notebook$/.test(name)) return `Reading the notebook ${input.notebook ?? ''}`;
   if (/create_notebook$/.test(name)) return `Writing a notebook: “${input.title ?? input.starter ?? ''}”`;

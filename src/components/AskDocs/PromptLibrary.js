@@ -14,14 +14,16 @@ const SIDE_BY_SIDE = 560;
 const Blanks = ({text}) => text.split(/(\[[^\]]+\])/).map((part, j) => (j % 2 ? <mark key={j} className={styles.promptBlank}>{part}</mark> : part));
 
 export default function PromptMenu({onPick, disabled}) {
-  const notebooks = Boolean(useDocusaurusContext().siteConfig.customFields?.notebooks);
+  const fields = useDocusaurusContext().siteConfig.customFields ?? {};
+  const notebooks = Boolean(fields.notebooks);
+  const localStack = Boolean(fields.localStack);
   const [open, setOpen] = useState(false);
   const [section, setSection] = useState(null); // the section whose prompts are showing
   const [query, setQuery] = useState('');
   const [wide, setWide] = useState(true);
   const [size, setSize] = useState(null); // {width, maxHeight}: fits the chat panel above the question box
   const ref = useRef(null);
-  const sections = useMemo(() => PROMPT_SECTIONS.filter((s) => !s.needs || (s.needs === 'notebooks' && notebooks)), [notebooks]);
+  const sections = useMemo(() => PROMPT_SECTIONS.filter((s) => !s.needs || (s.needs === 'notebooks' && notebooks) || (s.needs === 'localStack' && localStack)), [notebooks, localStack]);
   const total = sections.reduce((n, s) => n + s.prompts.length, 0);
   const q = query.trim().toLowerCase();
   const hits = q ? sections.flatMap((s) => s.prompts.filter((p) => p.toLowerCase().includes(q) || s.title.toLowerCase().includes(q)).map((p) => ({p, s}))) : [];

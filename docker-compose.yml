@@ -20,6 +20,7 @@ x-app: &app
     BLUECORE_STACK_DIR: /bluecore-stack
     BLUECORE_STACK_SOURCE: ${BLUECORE_STACK_DIR:-}
     JUPYTER_NOTEBOOK: ${JUPYTER_NOTEBOOK:-false} # true: the Notebooks page (and make starts JupyterLab)
+    LOCAL_STACK: ${LOCAL_STACK:-false} # true: the Local Stack pages
   env_file:
     - path: .env
       required: false
@@ -69,10 +70,17 @@ services:
       NOTEBOOKS_SOURCE: ${NOTEBOOKS_DIR:-./notebooks}
       JUPYTER_URL: http://jupyter:8888
       JUPYTER_NOTEBOOK: ${JUPYTER_NOTEBOOK:-false} # true: the notebook API and tools
+      LOCAL_STACK: ${LOCAL_STACK:-false} # true: the Local Stack API and the stack_* tools
       BLUECORE_STACK_DIR: /bluecore-stack
       BLUECORE_STACK_SOURCE: ${BLUECORE_STACK_DIR:-}
       # "mcp": notebooks in the jupyter container call the dashboard's live API at http://mcp:3001
       MCP_ALLOWED_HOSTS: mcp,${MCP_ALLOWED_HOSTS:-}
+      # The Local Stack page and stack_* tools: the helper on this machine runs the stack's scripts; it
+      # writes its token to .devenv/ (this folder is /app)
+      STACK_RUNNER_URL: http://host.docker.internal:3002/stack
+      STACK_RUNNER_TOKEN_FILE: /app/.devenv/token
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # the helper on this machine (built in on Docker Desktop)
     ports:
       - "127.0.0.1:3001:3001" # this machine only: the docs include internal Google Drive pages
 
@@ -125,6 +133,7 @@ services:
       target: prod
       args:
         JUPYTER_NOTEBOOK: ${JUPYTER_NOTEBOOK:-false} # true: the build includes the Notebooks page and links
+        LOCAL_STACK: ${LOCAL_STACK:-false} # true: the build includes the Local Stack pages and links
     image: bluecore-dev-dashboard
     ports:
       - "8080:80"
@@ -148,6 +157,7 @@ services:
     environment:
       MCP_ALLOWED_HOSTS: mcp,${MCP_ALLOWED_HOSTS:-}
       JUPYTER_NOTEBOOK: ${JUPYTER_NOTEBOOK:-false}
+      LOCAL_STACK: ${LOCAL_STACK:-false}
       BLUECORE_STACK_DIR: /bluecore-stack
       BLUECORE_STACK_SOURCE: ${BLUECORE_STACK_DIR:-}
       NOTES_DIR: /notes
@@ -156,8 +166,13 @@ services:
       NOTEBOOKS_DIR: /notebooks
       NOTEBOOKS_SOURCE: ${NOTEBOOKS_DIR:-./notebooks}
       JUPYTER_URL: http://jupyter:8888
+      STACK_RUNNER_URL: http://host.docker.internal:3002/stack # the Local Stack page and stack_* tools
+      STACK_RUNNER_TOKEN_FILE: /run/devenv/token
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ${NOTES_DIR:-./notes}:/notes # the notes vault (read and written)
+      - ./.devenv:/run/devenv:ro # the token for the helper on this machine (written by chat/stack-runner.mjs)
       - ${NOTEBOOKS_DIR:-./notebooks}:/notebooks
       - jupyter-token:/run/jupyter:ro
       - ${BLUECORE_STACK_DIR:-./imports/bluecore-stack}:/bluecore-stack:ro

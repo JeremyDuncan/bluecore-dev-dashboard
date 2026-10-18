@@ -1,0 +1,77 @@
+---
+title: "Local stack tools"
+sidebar_label: "Local stack"
+sidebar_position: 9
+hide_table_of_contents: true
+description: "Your running Bluecore stack: its services and their health, their logs, a troubleshooting check, and your bluecore-stack checkout's own dev scripts (set up, start and stop, load data, Keycloak, tests) run as jobs."
+---
+
+import {GroupNav, Tool, Tools} from '@site/src/components/McpTools';
+
+<GroupNav current="local-stack" />
+
+These tools run on your machine, through the dashboard's helper (the one behind Ask the docs), so they need `make up` or `make prod` running. They use the same jobs as the [Local Stack page](/local-stack): a script an agent starts shows up there, and the other way round. See the [Local Stack guide](/guides/local-stack).
+
+<Tools>
+
+<Tool
+  name="stack_status"
+  title="Your running stack"
+  source="runner"
+  uses={["Is my stack up?", "Which services are unhealthy or stopped?", "What did the last job do?"]}
+  ask="Is my local stack healthy?">
+  Docker and its memory, every service of the stack with its state and health, the stack's pages, and the running and recent jobs.
+</Tool>
+
+<Tool
+  name="stack_logs"
+  title="Service logs"
+  source="runner"
+  args="service*, tail, since, grep, errors_only"
+  uses={["Read the error behind a failing request", "Find when something started failing", "Errors only, of the last hour"]}
+  ask="Show me the errors in the bc_api logs from the last hour.">
+  A service's container logs, oldest first with times, stdout and stderr together. Filter by time, text or errors only. Secret values from the stack's `.env` are redacted.
+</Tool>
+
+<Tool
+  name="stack_diagnose"
+  title="Troubleshoot the stack"
+  source="runner"
+  uses={["Find what's wrong when the stack misbehaves", "Check a fresh setup", "Explain an exit code 137"]}
+  ask="Something's wrong with my local stack. What is it?">
+  Checks Docker and its memory, the sibling checkouts and their `.env` files, crashed, restarting or unhealthy services (with their last log lines), errors of the last 15 minutes, pages that don't answer through nginx, ports taken by other programs and missing tools. Each problem names a fix when there is one.
+</Tool>
+
+<Tool
+  name="stack_job"
+  title="A stack job"
+  source="runner"
+  args="id, tail"
+  uses={["Follow a long job (start, tests)", "Read why a job failed"]}
+  ask="Why did the last integration test run fail?">
+  A job's status, exit code and output. Without an id, the recent jobs.
+</Tool>
+
+<Tool
+  name="stack_run"
+  title="Run a stack script"
+  access="write"
+  source="runner"
+  args="action*, options, confirm, wait_seconds"
+  uses={["Start, stop or restart the stack or one service", "Install missing repos, load data or profiles", "Run the integration or workflow tests"]}
+  ask="Restart keycloak in my local stack.">
+  Runs one of the checkout's scripts as a job and returns its output so far: `install`, `check_updates`, `update`, `start`, `stop`, `restart_service`, `reset`, `load_data`, `load_profiles`, `clear_data`, `export_realm`, `import_realm`, `integration_tests`, `integration_tests_stop`, `workflow_tests` and `slow_queries`. Only when you ask. The ones that delete or rewrite data (`reset`, `clear_data`, `import_realm`, `update`) are refused without `confirm`, which the agent only sends after you agree.
+</Tool>
+
+<Tool
+  name="stack_stop_job"
+  title="Stop a stack job"
+  access="write"
+  source="runner"
+  args="id*"
+  uses={["Stop a test run or a log follower", "Stop a stack started from the page"]}
+  ask="Stop the integration tests.">
+  Stops a running job like Ctrl+C, then harder after 15 seconds.
+</Tool>
+
+</Tools>

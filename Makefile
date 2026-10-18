@@ -11,6 +11,11 @@ NOTEBOOKS_PROFILE := $(if $(NOTEBOOKS_ON),--profile notebooks)
 # Off: remove a JupyterLab left running from when notebooks were on
 NOTEBOOKS_CLEANUP := $(if $(NOTEBOOKS_ON),@true,@docker compose --profile notebooks rm -sf jupyter >/dev/null 2>&1 || true)
 
+# The Local Stack pages (your bluecore-stack's scripts, logs and health) are off unless LOCAL_STACK=true,
+# like notebooks. Exported so compose and the chat helper (which runs the scripts) see the same value.
+LOCAL_STACK ?= $(shell sed -n 's/^[[:space:]]*LOCAL_STACK[[:space:]]*=//p' .env 2>/dev/null | tail -1 | tr -d "\"' ")
+export LOCAL_STACK
+
 up:        ## Pull all sources (skip with SYNC=0), then live preview at http://localhost:3000 + MCP server (:3001) + Ask the docs chat (:3002) + JupyterLab (:8888, if JUPYTER_NOTEBOOK=true)
 	@$(MAKE) --no-print-directory pull
 	docker compose --profile prod stop mcp-prod

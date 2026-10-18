@@ -11,6 +11,7 @@ export const GROUPS = [
   {id: 'notes-read', title: 'Notes: read', icon: 'notes', blurb: 'Search, read and follow links in your notes vault.'},
   {id: 'notes-write', title: 'Notes: write', icon: 'notes', blurb: 'Add and change notes, only when you ask. None deletes.'},
   {id: 'notebooks', title: 'Jupyter Notebooks', icon: 'notebook', blurb: 'Write and run Jupyter notebooks that debug your local stack, dev or stage.'},
+  {id: 'local-stack', title: 'Local stack', icon: 'console', blurb: 'Your running stack: services, logs, troubleshooting, and its own scripts as jobs.'},
 ];
 
 // [name, title, group, access]
@@ -62,6 +63,12 @@ export const TOOLS = [
   ['create_notebook', 'Create a notebook', 'notebooks', 'write'],
   ['update_notebook', 'Update a notebook', 'notebooks', 'write'],
   ['run_notebook', 'Run a notebook', 'notebooks', 'write'],
+  ['stack_status', 'Your running stack', 'local-stack'],
+  ['stack_logs', 'Service logs', 'local-stack'],
+  ['stack_diagnose', 'Troubleshoot the stack', 'local-stack'],
+  ['stack_job', 'A stack job', 'local-stack'],
+  ['stack_run', 'Run a stack script', 'local-stack', 'write'],
+  ['stack_stop_job', 'Stop a stack job', 'local-stack', 'write'],
 ].map(([name, title, group, access = 'read']) => ({name, title, group, access}));
 
 export const groupPath = (id) => `/guides/mcp-tools/tools/${id}`;

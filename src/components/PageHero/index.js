@@ -7,7 +7,7 @@
 //             stats={[{icon: <NoteIcon />, value: 12, label: 'notes', to: '/notes?view=tags'}]} />
 //
 // An action takes `to` (a page), `href` (another site), or `event` (a window event, e.g. 'ask-docs:open');
-// `needs: 'chat' | 'live' | 'notebooks'` shows it only where that local feature exists (as LocalOnly).
+// `needs: 'chat' | 'live' | 'notebooks' | 'localStack'` shows it only where that local feature exists (as LocalOnly).
 import React from 'react';
 import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
@@ -15,7 +15,7 @@ import styles from './styles.module.css';
 
 function Action({label, to, href, event, icon, primary, needs}) {
   const f = useDocusaurusContext().siteConfig.customFields ?? {};
-  if (needs && !{chat: f.chatApiUrl, live: f.liveApiUrl, notebooks: f.notebooks}[needs]) return null;
+  if (needs && !{chat: f.chatApiUrl, live: f.liveApiUrl, notebooks: f.notebooks, localStack: f.localStack}[needs]) return null;
   const className = `button ${primary ? 'button--primary' : 'button--secondary'} ${styles.action}`;
   const body = (
     <>

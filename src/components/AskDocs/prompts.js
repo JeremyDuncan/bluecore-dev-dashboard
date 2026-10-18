@@ -1,6 +1,7 @@
 // The prompt library in Ask the docs: ready-made questions by use case. A prompt with a [placeholder]
 // goes into the input box with the placeholder selected, to fill in; the others are asked at once.
-// `needs: 'notebooks'`: only where Jupyter Notebooks are on (JUPYTER_NOTEBOOK=true).
+// `needs: 'notebooks'`: only where Jupyter Notebooks are on (JUPYTER_NOTEBOOK=true); `needs: 'localStack'`: only
+// where the Local Stack pages and stack_* tools are on (LOCAL_STACK=true).
 // Each section's `icon` is a sidebar icon name (src/css/custom.css, .sidebar-icon--<name>).
 
 export const PROMPT_SECTIONS = [
@@ -34,6 +35,20 @@ export const PROMPT_SECTIONS = [
       'How do I reset my local database and load sample data?',
       'How do I run the stack on Apple Silicon?',
       'How do I change [service] in the stack to use my local checkout instead of the image?',
+    ],
+  },
+  {
+    id: 'running-stack',
+    title: 'Your running stack',
+    icon: 'console',
+    needs: 'localStack',
+    prompts: [
+      'Is my local stack healthy? Check it and tell me what is wrong and how to fix it.',
+      'Show me the errors in the [service] logs from the last hour, and explain them.',
+      'Restart [service] in my local stack, then check that it came back healthy.',
+      'Why did my last stack job fail?',
+      'Run the [folder or file] integration tests and tell me what failed.',
+      'Which of my stack services keep restarting or are unhealthy, and why?',
     ],
   },
   {
