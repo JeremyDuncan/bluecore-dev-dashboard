@@ -76,7 +76,8 @@
       "includeArchived": false,
       "includeForks": [
         "graph-toolbox",
-        "marva_editor"
+        "marva_editor",
+        "dctap-dancer"
       ],
       "includePrivate": false,
       "skipRepos": [],
@@ -120,7 +121,8 @@
       "skipRepos": [],
       "includeForks": [
         "graph-toolbox",
-        "marva_editor"
+        "marva_editor",
+        "dctap-dancer"
       ]
     },
     "_note": "Needs GITHUB_TOKEN with the read:project scope. Output is git-ignored (the board is private).",
@@ -130,7 +132,8 @@
       "perRepo": 20,
       "includeForks": [
         "graph-toolbox",
-        "marva_editor"
+        "marva_editor",
+        "dctap-dancer"
       ]
     },
     "integrationTests": [
@@ -192,6 +195,11 @@
         "workflow": "unit_tests.yml",
         "title": "marva_editor (unit)",
         "slug": "tests-marva_editor-unit"
+      },
+      {
+        "repo": "dctap-dancer",
+        "workflow": "test.yml",
+        "title": "dctap-dancer"
       }
     ],
     "_repoTestsNote": "Each repo's own test workflow: one page per entry under Tests. runs (default 50) and parseLogs (default 10) keep GitHub API use low.",
@@ -233,6 +241,13 @@
           "branch": "bluecore-main",
           "imageTracksBranch": true,
           "health": "/marva/health"
+        },
+        {
+          "name": "DCTap Dancer",
+          "repo": "dctap-dancer",
+          "imageVar": "DCTAP_DANCER_IMAGE",
+          "publishWorkflow": "bluecore-publish.yml",
+          "health": "/marva/dancer/api/health"
         }
       ],
       "libraries": [

@@ -407,7 +407,7 @@ export function registerGitHubTools(server) {
       {
         title: 'What a fork changed',
         description:
-          `For ${org} repos that are forks of another project (e.g. marva_editor, graph-toolbox): what the fork changed compared with upstream — ` +
+          `For ${org} repos that are forks of another project (e.g. marva_editor, dctap-dancer, graph-toolbox): what the fork changed compared with upstream — ` +
           'commits ahead/behind, the files added/modified/removed with line counts, and commit messages. Pass a file path to see that file\'s diff.',
         inputSchema: {
           repo: z.string().describe('A forked repo, e.g. "marva_editor"'),

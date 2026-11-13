@@ -243,9 +243,9 @@ ngrok http 8080 --basic-auth="bluecore:a-long-password"     # terminal 2 (passwo
 | `search_issues` | GitHub search over **open and closed** issues and PRs in the org (supports `is:pr is:merged`, `label:bug`, `author:…`). |
 | `list_releases` | Latest releases per repo with highlights, or full notes. |
 | `list_files` / `get_file` | List a repo's files (filter by folder or text) and read any file, or part of one, on any branch. |
-| `search_code` | GitHub code search across the org's repos, with the matching lines (GitHub allows ~10 code searches a minute). GitHub doesn't index forks, so for marva_editor and graph-toolbox it lists matching file names instead. |
+| `search_code` | GitHub code search across the org's repos, with the matching lines (GitHub allows ~10 code searches a minute). GitHub doesn't index forks, so for marva_editor, dctap-dancer and graph-toolbox it lists matching file names instead. |
 | `local_stack` | Your own bluecore-stack checkout (`BLUECORE_STACK_DIR`): branch, last commit, uncommitted changes, compose files and services, `.env` setting names; pass `path` to read a file as it is on your machine. Secret files aren't readable. |
-| `fork_changes` | For forks (marva_editor, graph-toolbox): what the fork changed vs its upstream project: commits ahead/behind, files added/modified by folder, commit messages, and a file's diff. |
+| `fork_changes` | For forks (marva_editor, dctap-dancer, graph-toolbox): what the fork changed vs its upstream project: commits ahead/behind, files added/modified by folder, commit messages, and a file's diff. |
 | `ci_status` | Latest GitHub Actions run of every workflow per repo (default branch), with the failed steps. |
 | `recent_changes` | Pull requests merged since a date (default 7 days), grouped by repo; bot dependency updates hidden by default. |
 | `integration_tests` | Test health of the integration suite or any repo's own tests: latest result, pass rate, durations, failures by stage, most-failing tests (still failing or fixed), triggers, recent runs. |
