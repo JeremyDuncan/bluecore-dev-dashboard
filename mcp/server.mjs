@@ -25,7 +25,7 @@ import {StdioServerTransport} from '@modelcontextprotocol/sdk/server/stdio.js';
 import {StreamableHTTPServerTransport} from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import {z} from 'zod';
 import {extractSection, findPage, getIndex, headings, search} from './docs-index.mjs';
-import {allowedOrigin, handleLiveApi, prewarm} from './live-api.mjs';
+import {allowedOrigin, handleLiveApi, keepWarm} from './live-api.mjs';
 import {handleNotesApi} from './notes-api.mjs';
 import {handleNotebooksApi} from './notebooks-api.mjs';
 import {ensureNotebooks, NOTEBOOKS, NOTEBOOKS_ENABLED} from './notebooks.mjs';
@@ -211,7 +211,7 @@ async function serveHttp() {
   });
 
   const {pages} = await getIndex();
-  prewarm();
+  keepWarm();
   try {
     ensureVault();
     console.log(`[mcp] notes vault: ${VAULT}`);

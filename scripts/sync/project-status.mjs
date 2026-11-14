@@ -23,7 +23,7 @@
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import {ciMetrics, failureStage, formatDuration, triggerName} from '../../mcp/ci-metrics.mjs';
+import {ciMetrics, failureStage, formatDuration, suiteSummary, suiteTitle, triggerName} from '../../mcp/ci-metrics.mjs';
 import {fetchIssues, fetchProject, fetchReleases, fetchWorkflowRuns, logCacheFromSnapshot, testSuites} from '../../mcp/github.mjs';
 import {fetchVersionDrift} from '../../mcp/drift.mjs';
 import {fetchPullRequests} from '../../mcp/pulls.mjs';
@@ -227,34 +227,7 @@ ${lines.join('\n')}
 `;
 }
 
-const suiteTitle = (suite) => suite.pageTitle ?? (suite.kind === 'integration' ? 'Integration Tests' : `${suite.title ?? suite.repo} tests`);
-
-// One row per suite for the Tests overview page (TestsOverview reads _data/tests.json)
-function suiteSummary(data, suite, href) {
-  const m = ciMetrics(data);
-  const latest = data.runs.find((r) => r.conclusion === 'success' || r.conclusion === 'failure') ?? null;
-  return {
-    id: suite.slug,
-    href,
-    kind: suite.kind,
-    title: suite.kind === 'integration' ? suiteTitle(suite) : (suite.title ?? suite.repo),
-    repo: suite.repo,
-    workflow: data.name,
-    url: data.url,
-    latest: latest && {conclusion: latest.conclusion, number: latest.number, url: latest.url, createdAt: latest.createdAt},
-    passRate: m.passRate.window,
-    last7Days: m.passRate.last7Days,
-    runs: m.window.runs,
-    streak: m.streak,
-    medianSec: m.duration.medianSec,
-    tests: m.latestTests && {passed: m.latestTests.passed, failed: m.latestTests.failed + m.latestTests.errors, skipped: m.latestTests.skipped},
-    failingNow: m.failingNow,
-    runsPerDay: m.runsPerDay,
-    fetchedAt: data.fetchedAt,
-  };
-}
-
-function testsOverviewPage({position}) {
+function testsOverviewPage({position, org}) {
   return `---
 title: "Tests"
 description: "Test health of the integration suite and of each Blue Core repository."
@@ -268,7 +241,7 @@ import TestsOverview from '@site/src/components/ProjectStatus/TestsOverview';
 import suites from './_data/tests.json';
 ${navBlock('tests')}
 
-<TestsOverview suites={suites} />
+<TestsOverview suites={suites} apiPath="/github/tests/${org}" />
 `;
 }
 
@@ -449,7 +422,7 @@ export async function syncProjectStatus() {
       const failing = summaries.filter((x) => x.latest?.conclusion === 'failure').length;
       testsNav.description = `${summaries.length} test suites: the integration suite and each repo's own tests. ${failing ? `${failing} failing on their latest run.` : 'All passing on their latest run.'}`;
       await fs.writeFile(path.join(staging, '_data', 'tests.json'), JSON.stringify(summaries, null, 2));
-      await fs.writeFile(path.join(staging, 'tests.mdx'), testsOverviewPage({position: testsPosition}));
+      await fs.writeFile(path.join(staging, 'tests.mdx'), testsOverviewPage({position: testsPosition, org: suites[0].org}));
     }
 
     if (config.versionDrift && config.issues) {

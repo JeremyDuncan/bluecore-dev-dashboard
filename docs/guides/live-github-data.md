@@ -38,18 +38,20 @@ Every Project Status page has a badge at the top:
 
 - **Live · updated N min ago:** the last request to the MCP server worked.
 - **Snapshot from the last sync · date:** the live request failed. **Hover over the badge** to see the error.
+- **Updating… showing data from date:** the page is waiting for live data while it shows an older snapshot, so the page is dimmed until the live data arrives.
 - **As of date:** this site has no live API (the public GitHub Pages site). The data is from the last deploy, which runs every hour.
 
 ### Freshness
 
 | Layer | How long | Setting |
 |---|---|---|
-| Browser refresh | 5 minutes | `REFRESH_MS` in `src/components/ProjectStatus/shared.js` |
-| Server cache | 2 minutes (failed requests aren't cached) | `LIVE_CACHE_SECONDS` |
-| **Refresh** button | On demand: skips the server cache (data fetched in the last 10 s is reused) | Next to the Live badge; only where the live API runs (local development), not on the public site |
-| Snapshot | Until the next sync (`make up` / `make prod` / `make sync`) | n/a |
+| Browser refresh | 5 minutes, and when the tab comes back into view after that long | `REFRESH_MS` in `src/components/ProjectStatus/shared.js` |
+| Server cache | Served as is for 2 minutes. Up to 15 minutes old, it's served at once while it refreshes in the background (the page picks up the refreshed data 15 s later); older data waits for GitHub. Failed fetches keep the last good data. | `LIVE_CACHE_SECONDS`, `LIVE_STALE_SECONDS` |
+| Keep-warm | The server refetches every page's data when it starts and every 10 minutes, so the first visit after days of quiet is still fast and current (`0` turns it off) | `LIVE_WARM_MINUTES` |
+| **Refresh** button | On demand, for the whole app: the server refetches every page's data (`GET /api/github/refresh/<org>`), and every Project Status page, in this tab and any other open tab, shows "Updating…" until it has data fetched after the click. Pages opened in the next 15 minutes ask for that data too. A second click within 10 s reuses the first. | Next to the Live badge; only where the live API runs (local development), not on the public site |
+| Snapshot | Until the next sync (`make up` / `make prod` / `make sync`); shown only until the live data arrives | n/a |
 
-So live data is at most about 7 minutes old.
+So live data is at most about 15 minutes old, and usually less than 5.
 
 ## The pages
 

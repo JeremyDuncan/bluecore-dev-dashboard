@@ -1,30 +1,25 @@
 // Tests overview: one row per test suite (the integration suite, then each repo's own tests) with its
 // latest result, pass rate, latest test counts and run time. `suites` is _data/tests.json, written by
-// the sync (scripts/sync/project-status.mjs); each suite's own page has the live details.
+// the sync (scripts/sync/project-status.mjs), replaced by live rows from `apiPath` (/api/github/tests/<org>)
+// when the MCP container is reachable; each suite's own page has the details.
 import React from 'react';
 import Link from '@docusaurus/Link';
 import {formatDuration} from '@site/mcp/ci-metrics.mjs';
-import {useTimeFormat} from './shared';
+import {LiveBadge, dataTime, useLiveData} from './shared';
 import styles from './styles.module.css';
 
 const pct = (v) => (v === null || v === undefined ? '–' : `${v}%`);
 const rateTone = (v) => (v === null || v === undefined ? undefined : v < 70 ? 'var(--bc-error)' : v < 90 ? 'var(--bc-warning)' : 'var(--bc-ok)');
 const day = (iso) => new Date(iso).toLocaleDateString(undefined, {month: 'short', day: 'numeric'});
 
-export default function TestsOverview({suites}) {
+export default function TestsOverview({suites: snapshot, apiPath}) {
+  const {data: suites, live, error, updating, refresh, refreshing} = useLiveData(snapshot, apiPath);
   const failing = suites.filter((s) => s.latest?.conclusion === 'failure');
-  const asOf = suites.map((s) => s.fetchedAt).sort()[0];
-  const formatTime = useTimeFormat();
   return (
     <div className={styles.wrapper}>
+      <LiveBadge live={live} error={error} updating={updating} refresh={refresh} refreshing={refreshing} fetchedAt={dataTime(suites)} />
       <p className={styles.total}>
         {suites.length} test suites · <strong>{failing.length ? `${failing.length} failing on their latest run` : 'all passing on their latest run'}</strong>
-        {asOf && (
-          <span>
-            {' '}
-            · as of {formatTime(asOf)}
-          </span>
-        )}
       </p>
       <div className={styles.tableWrap}>
         <table className={`${styles.table} ${styles.testsTable}`}>

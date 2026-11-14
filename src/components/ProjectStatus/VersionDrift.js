@@ -278,12 +278,12 @@ function Environments({data}) {
 }
 
 export default function VersionDrift({snapshot, apiPath}) {
-  const {data, live, error, refresh, refreshing} = useLiveData(snapshot, apiPath);
+  const {data, live, error, updating, refresh, refreshing} = useLiveData(snapshot, apiPath);
   const rows = [...data.services, ...data.libraries];
   const off = rows.filter((r) => r.status !== 'ok').length;
   return (
     <div className={styles.wrapper}>
-      <LiveBadge live={live} error={error} refresh={refresh} refreshing={refreshing} fetchedAt={data.fetchedAt} sourceUrl={`https://github.com/${data.org}/${data.stackRepo}`} sourceLabel={`${data.stackRepo} in GitHub`} />
+      <LiveBadge live={live} error={error} updating={updating} refresh={refresh} refreshing={refreshing} fetchedAt={data.fetchedAt} sourceUrl={`https://github.com/${data.org}/${data.stackRepo}`} sourceLabel={`${data.stackRepo} in GitHub`} />
       <p className={styles.total}>
         <strong>{off ? `${off} of ${rows.length} need attention` : `All ${rows.length} are current`}</strong>. When something works in its own repo but fails in the stack or the integration tests, check here first.
       </p>

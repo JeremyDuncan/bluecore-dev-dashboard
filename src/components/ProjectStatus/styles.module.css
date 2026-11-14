@@ -88,6 +88,30 @@
   background: var(--bc-warning);
 }
 
+/* Waiting for live data while the page shows an outdated snapshot: pulse the dot and dim the
+   page below the status bar, so old numbers don't pass for current ones */
+.badgeUpdating .dot {
+  background: var(--bc-warning);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.wrapper:has(.badgeUpdating) > :not(.statusBar) {
+  opacity: 0.45;
+  transition: opacity 0.2s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .badgeUpdating .dot {
+    animation: none;
+  }
+}
+
 .wrapper .sourceLink {
   font-weight: 500;
   text-decoration: none;

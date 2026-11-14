@@ -130,3 +130,31 @@ export const formatDuration = (sec) => {
   const m = Math.floor(sec / 60);
   return m ? `${m}m ${String(Math.round(sec % 60)).padStart(2, '0')}s` : `${Math.round(sec)}s`;
 };
+
+export const suiteTitle = (suite) => suite.pageTitle ?? (suite.kind === 'integration' ? 'Integration Tests' : `${suite.title ?? suite.repo} tests`);
+
+// One row per suite for the Tests overview page: written to _data/tests.json by the sync and served
+// live by /api/github/tests/<org>
+export function suiteSummary(data, suite, href) {
+  const m = ciMetrics(data);
+  const latest = data.runs.find((r) => r.conclusion === 'success' || r.conclusion === 'failure') ?? null;
+  return {
+    id: suite.slug,
+    href,
+    kind: suite.kind,
+    title: suite.kind === 'integration' ? suiteTitle(suite) : (suite.title ?? suite.repo),
+    repo: suite.repo,
+    workflow: data.name,
+    url: data.url,
+    latest: latest && {conclusion: latest.conclusion, number: latest.number, url: latest.url, createdAt: latest.createdAt},
+    passRate: m.passRate.window,
+    last7Days: m.passRate.last7Days,
+    runs: m.window.runs,
+    streak: m.streak,
+    medianSec: m.duration.medianSec,
+    tests: m.latestTests && {passed: m.latestTests.passed, failed: m.latestTests.failed + m.latestTests.errors, skipped: m.latestTests.skipped},
+    failingNow: m.failingNow,
+    runsPerDay: m.runsPerDay,
+    fetchedAt: data.fetchedAt,
+  };
+}
